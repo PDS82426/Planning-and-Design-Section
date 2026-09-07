@@ -1,7 +1,8 @@
 /* =========================================================
-   PDS HUB
-   COMPLETE SUPABASE + GITHUB PAGES SCRIPT
-   ========================================================= */
+   PDS — PLANNING & DESIGN SECTION
+   COMPLETE SUPABASE + NAVIGATION + DOCUMENTS + PROJECTS
+   + DEPARTMENT ORDERS + PDS AI SUPPORT
+========================================================= */
 
 
 /* =========================================================
@@ -34,6 +35,9 @@ let currentProfile = null;
 let modalMode = "project";
 let pdsAIHistory = [];
 
+let currentPage = "dashboard";
+
+
 /* =========================================================
    AUTH SCREEN
 ========================================================= */
@@ -55,8 +59,14 @@ function showLogin() {
     }
 
     clearAuthMessages();
-       document.getElementById("tabLogin")?.classList.add("is-active");
-    document.getElementById("tabRegister")?.classList.remove("is-active");
+
+    document
+        .getElementById("tabLogin")
+        ?.classList.add("is-active");
+
+    document
+        .getElementById("tabRegister")
+        ?.classList.remove("is-active");
 }
 
 
@@ -77,8 +87,14 @@ function showRegister() {
     }
 
     clearAuthMessages();
-       document.getElementById("tabRegister")?.classList.add("is-active");
-    document.getElementById("tabLogin")?.classList.remove("is-active");
+
+    document
+        .getElementById("tabRegister")
+        ?.classList.add("is-active");
+
+    document
+        .getElementById("tabLogin")
+        ?.classList.remove("is-active");
 }
 
 
@@ -97,6 +113,7 @@ function clearAuthMessages() {
     if (registerMessage) {
         registerMessage.textContent = "";
     }
+
 }
 
 
@@ -121,8 +138,8 @@ function authMessage(
 
     element.style.color =
         success
-            ? "#1d5b45"
-            : "#b34b42";
+            ? "#18804b"
+            : "#b52e2e";
 }
 
 
@@ -137,30 +154,30 @@ async function registerUser(event) {
     const name =
         document
             .getElementById("registerName")
-            .value
-            .trim();
+            ?.value
+            ?.trim();
 
     const position =
         document
             .getElementById("registerPosition")
-            .value
-            .trim();
+            ?.value
+            ?.trim();
 
     const email =
         document
             .getElementById("registerEmail")
-            .value
-            .trim();
+            ?.value
+            ?.trim();
 
     const password =
         document
             .getElementById("registerPassword")
-            .value;
+            ?.value;
 
     const confirm =
         document
             .getElementById("registerConfirm")
-            .value;
+            ?.value;
 
 
     if (!name) {
@@ -234,9 +251,9 @@ async function registerUser(event) {
             error
         } = await db.auth.signUp({
 
-            email: email,
+            email,
 
-            password: password,
+            password,
 
             options: {
 
@@ -244,7 +261,7 @@ async function registerUser(event) {
 
                     full_name: name,
 
-                    position: position
+                    position
 
                 }
 
@@ -254,19 +271,11 @@ async function registerUser(event) {
 
 
         if (error) {
-
             throw error;
-
         }
 
 
-        /*
-           Supabase may return a user without
-           a session when email confirmation
-           is enabled.
-        */
-
-        if (data && data.user) {
+        if (data?.user) {
 
             if (data.session) {
 
@@ -281,7 +290,7 @@ async function registerUser(event) {
 
                 authMessage(
                     "registerMessage",
-                    "Account created successfully. Loading PDS Hub...",
+                    "Account created successfully. Loading PDS...",
                     true
                 );
 
@@ -297,7 +306,7 @@ async function registerUser(event) {
 
                 document
                     .getElementById("registerForm")
-                    .reset();
+                    ?.reset();
 
             }
 
@@ -316,7 +325,6 @@ async function registerUser(event) {
             "CREATE ACCOUNT ERROR:",
             error
         );
-
 
         authMessage(
             "registerMessage",
@@ -404,13 +412,13 @@ async function loginUser(event) {
     const email =
         document
             .getElementById("loginEmail")
-            .value
-            .trim();
+            ?.value
+            ?.trim();
 
     const password =
         document
             .getElementById("loginPassword")
-            .value;
+            ?.value;
 
 
     authMessage(
@@ -440,17 +448,15 @@ async function loginUser(event) {
             error
         } = await db.auth.signInWithPassword({
 
-            email: email,
+            email,
 
-            password: password
+            password
 
         });
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -470,7 +476,7 @@ async function loginUser(event) {
 
         document
             .getElementById("loginForm")
-            .reset();
+            ?.reset();
 
 
     } catch (error) {
@@ -524,6 +530,8 @@ async function signOut() {
     currentUser = null;
 
     currentProfile = null;
+
+    pdsAIHistory = [];
 
 
     const app =
@@ -579,13 +587,20 @@ async function loadApplication() {
 
         if (!user) {
 
-            document
-                .getElementById("authScreen")
-                .style.display = "flex";
+            const authScreen =
+                document.getElementById("authScreen");
 
-            document
-                .getElementById("app")
-                .style.display = "none";
+            const app =
+                document.getElementById("app");
+
+
+            if (authScreen) {
+                authScreen.style.display = "flex";
+            }
+
+            if (app) {
+                app.style.display = "none";
+            }
 
             return;
 
@@ -599,14 +614,20 @@ async function loadApplication() {
         await loadProfile();
 
 
-        document
-            .getElementById("authScreen")
-            .style.display = "none";
+        const authScreen =
+            document.getElementById("authScreen");
+
+        const app =
+            document.getElementById("app");
 
 
-        document
-            .getElementById("app")
-            .style.display = "flex";
+        if (authScreen) {
+            authScreen.style.display = "none";
+        }
+
+        if (app) {
+            app.style.display = "flex";
+        }
 
 
         updateUserInterface();
@@ -615,7 +636,7 @@ async function loadApplication() {
         await refreshAll();
 
 
-        showPage("overview");
+        showPage("dashboard");
 
 
     } catch (error) {
@@ -666,25 +687,45 @@ async function loadProfile() {
     }
 
 
-if (data) {
+    if (data) {
 
-    // Backfill full_name if it's missing but we have it in auth metadata
-    if (!data.full_name && currentUser.user_metadata?.full_name) {
+        if (
+            !data.full_name &&
+            currentUser.user_metadata?.full_name
+        ) {
 
-        const { data: updated } = await db
-            .from("profiles")
-            .update({ full_name: currentUser.user_metadata.full_name })
-            .eq("id", currentUser.id)
-            .select()
-            .maybeSingle();
+            const {
+                data: updated
+            } = await db
+                .from("profiles")
+                .update({
+                    full_name:
+                        currentUser
+                            .user_metadata
+                            .full_name
+                })
+                .eq(
+                    "id",
+                    currentUser.id
+                )
+                .select()
+                .maybeSingle();
 
-        currentProfile = updated || data;
+
+            currentProfile =
+                updated || data;
+
+            return;
+
+        }
+
+
+        currentProfile =
+            data;
+
         return;
-    }
 
-    currentProfile = data;
-    return;
-}
+    }
 
 
     await createProfile(
@@ -793,37 +834,323 @@ function getInitials(name) {
 
 /* =========================================================
    PAGE NAVIGATION
+   SINGLE SECTION ONLY
 ========================================================= */
 
-function showPage(pageId) {
+function getPDSPages() {
 
-    const pages =
-        document.querySelectorAll(".page");
+    return document.querySelectorAll(
+        "#app .page-section, " +
+        "#app [data-page-section], " +
+        "#app section[data-section], " +
+        "#app .content > section"
+    );
+
+}
+
+
+/* =========================================================
+   NORMALIZE PAGE NAME
+========================================================= */
+
+function normalizePageName(pageName) {
+
+    if (!pageName) {
+        return "dashboard";
+    }
+
+
+    const aliases = {
+
+        overview: "dashboard",
+
+        dashboard: "dashboard",
+
+        projects: "projects",
+
+        myprojects: "myprojects",
+
+        documents: "documents",
+
+        content: "documents",
+
+        standards: "documents",
+
+        forms: "documents",
+
+        orders: "department-orders",
+
+        "department-orders":
+            "department-orders",
+
+        team: "team",
+
+        profile: "profile"
+
+    };
+
+
+    return aliases[pageName] || pageName;
+
+}
+
+
+/* =========================================================
+   SETUP SIDEBAR NAVIGATION
+========================================================= */
+
+function setupNavigation() {
 
     const navItems =
-        document.querySelectorAll(".nav-item");
+        document.querySelectorAll(
+            ".sidebar .nav-item, " +
+            ".sidebar .nav-link, " +
+            ".sidebar [data-page], " +
+            ".sidebar [data-section]"
+        );
 
+
+    if (!navItems.length) {
+
+        console.warn(
+            "PDS Navigation: No sidebar navigation items found."
+        );
+
+        return;
+
+    }
+
+
+    navItems.forEach(item => {
+
+        if (
+            item.dataset.pdsNavigationReady ===
+            "true"
+        ) {
+
+            return;
+
+        }
+
+
+        item.dataset.pdsNavigationReady =
+            "true";
+
+
+        item.addEventListener(
+            "click",
+            function(event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                const rawPage =
+                    this.dataset.page ||
+                    this.dataset.section ||
+                    this.getAttribute("href")
+                        ?.replace("#", "");
+
+
+                if (!rawPage) {
+
+                    console.warn(
+                        "PDS Navigation: No page assigned.",
+                        this
+                    );
+
+                    return;
+
+                }
+
+
+                const page =
+                    normalizePageName(
+                        rawPage
+                    );
+
+
+                showPage(page);
+
+            }
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   SHOW ONLY SELECTED SECTION
+========================================================= */
+
+function showPage(pageName) {
+
+    const requestedPage =
+        normalizePageName(pageName);
+
+
+    currentPage =
+        requestedPage;
+
+
+    console.log(
+        "PDS Navigation →",
+        requestedPage
+    );
+
+
+    const pages =
+        getPDSPages();
+
+
+    /* -----------------------------------------
+       HIDE ALL SECTIONS
+    ----------------------------------------- */
 
     pages.forEach(page => {
+
+        page.classList.remove(
+            "active"
+        );
 
         page.classList.remove(
             "active-page"
         );
 
+        page.style.display =
+            "none";
+
     });
 
 
-    const selectedPage =
-        document.getElementById(pageId);
+    /* -----------------------------------------
+       FIND SELECTED SECTION
+    ----------------------------------------- */
 
+    let selectedPage =
+        document.getElementById(
+            requestedPage
+        );
+
+
+    /* -----------------------------------------
+       FALLBACK — DATA PAGE SECTION
+    ----------------------------------------- */
+
+    if (!selectedPage) {
+
+        selectedPage =
+            document.querySelector(
+                `[data-page-section="${requestedPage}"]`
+            );
+
+    }
+
+
+    /* -----------------------------------------
+       FALLBACK — DATA SECTION
+    ----------------------------------------- */
+
+    if (!selectedPage) {
+
+        selectedPage =
+            document.querySelector(
+                `section[data-section="${requestedPage}"]`
+            );
+
+    }
+
+
+    /* -----------------------------------------
+       SPECIAL FALLBACKS
+    ----------------------------------------- */
+
+    if (
+        !selectedPage &&
+        requestedPage === "dashboard"
+    ) {
+
+        selectedPage =
+            document.getElementById(
+                "overview"
+            );
+
+    }
+
+
+    if (
+        !selectedPage &&
+        requestedPage === "department-orders"
+    ) {
+
+        selectedPage =
+            document.getElementById(
+                "orders"
+            );
+
+    }
+
+
+    if (
+        !selectedPage &&
+        requestedPage === "documents"
+    ) {
+
+        selectedPage =
+            document.getElementById(
+                "content"
+            );
+
+    }
+
+
+    /* -----------------------------------------
+       SHOW SELECTED PAGE
+    ----------------------------------------- */
 
     if (selectedPage) {
+
+        selectedPage.style.display =
+            "block";
+
+        selectedPage.classList.add(
+            "active"
+        );
 
         selectedPage.classList.add(
             "active-page"
         );
 
+
+        console.log(
+            "PDS Navigation: Showing",
+            selectedPage.id ||
+            requestedPage
+        );
+
+    } else {
+
+        console.warn(
+            "PDS Navigation: Section not found:",
+            requestedPage
+        );
+
     }
+
+
+    /* -----------------------------------------
+       SIDEBAR ACTIVE STATE
+    ----------------------------------------- */
+
+    const navItems =
+        document.querySelectorAll(
+            ".sidebar .nav-item, " +
+            ".sidebar .nav-link, " +
+            ".sidebar [data-page], " +
+            ".sidebar [data-section]"
+        );
 
 
     navItems.forEach(item => {
@@ -833,9 +1160,27 @@ function showPage(pageId) {
         );
 
 
+        const rawPage =
+            item.dataset.page ||
+            item.dataset.section ||
+            item.getAttribute("href")
+                ?.replace("#", "");
+
+
+        if (!rawPage) {
+            return;
+        }
+
+
+        const itemPage =
+            normalizePageName(
+                rawPage
+            );
+
+
         if (
-            item.dataset.page ===
-            pageId
+            itemPage ===
+            requestedPage
         ) {
 
             item.classList.add(
@@ -847,10 +1192,174 @@ function showPage(pageId) {
     });
 
 
+    /* -----------------------------------------
+       MOBILE NAV
+    ----------------------------------------- */
+
+    const mobileButtons =
+        document.querySelectorAll(
+            ".mobile-nav button, " +
+            ".mobile-nav [data-page], " +
+            ".mobile-nav [data-section]"
+        );
+
+
+    mobileButtons.forEach(button => {
+
+        button.classList.remove(
+            "active"
+        );
+
+
+        const rawPage =
+            button.dataset.page ||
+            button.dataset.section;
+
+
+        if (!rawPage) {
+            return;
+        }
+
+
+        if (
+            normalizePageName(
+                rawPage
+            ) === requestedPage
+        ) {
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+    });
+
+
+    /* -----------------------------------------
+       GO TO TOP
+    ----------------------------------------- */
+
     window.scrollTo({
         top: 0,
-        behavior: "smooth"
+        left: 0,
+        behavior: "instant"
     });
+
+
+    /* -----------------------------------------
+       PAGE-SPECIFIC DATA
+    ----------------------------------------- */
+
+    switch (requestedPage) {
+
+        case "projects":
+
+            if (
+                typeof loadProjects ===
+                "function"
+            ) {
+
+                loadProjects();
+
+            }
+
+            break;
+
+
+        case "myprojects":
+
+            if (
+                typeof loadMyProjects ===
+                "function"
+            ) {
+
+                loadMyProjects();
+
+            }
+
+            break;
+
+
+        case "team":
+
+            if (
+                typeof loadTeam ===
+                "function"
+            ) {
+
+                loadTeam();
+
+            }
+
+            break;
+
+
+        case "department-orders":
+
+            if (
+                typeof displayDepartmentOrders ===
+                "function"
+            ) {
+
+                displayDepartmentOrders(
+                    planningDesignOrders
+                );
+
+            }
+
+            break;
+
+
+        case "documents":
+
+            if (
+                typeof loadDocuments ===
+                "function"
+            ) {
+
+                loadDocuments();
+
+            }
+
+            break;
+
+    }
+
+}
+
+
+/* =========================================================
+   INITIALIZE PAGE NAVIGATION
+========================================================= */
+
+function initializePageNavigation() {
+
+    const activeItem =
+        document.querySelector(
+            ".sidebar .nav-item.active, " +
+            ".sidebar .nav-link.active"
+        );
+
+
+    let initialPage =
+        activeItem?.dataset.page ||
+        activeItem?.dataset.section;
+
+
+    if (!initialPage) {
+
+        initialPage =
+            "dashboard";
+
+    }
+
+
+    showPage(
+        normalizePageName(
+            initialPage
+        )
+    );
 
 }
 
@@ -872,9 +1381,23 @@ function setupGlobalSearch() {
     }
 
 
+    if (
+        globalSearch.dataset.searchReady ===
+        "true"
+    ) {
+
+        return;
+
+    }
+
+
+    globalSearch.dataset.searchReady =
+        "true";
+
+
     globalSearch.addEventListener(
         "input",
-        function () {
+        function() {
 
             const search =
                 this.value
@@ -885,7 +1408,7 @@ function setupGlobalSearch() {
             if (!search) {
 
                 showPage(
-                    "overview"
+                    "dashboard"
                 );
 
                 return;
@@ -894,9 +1417,7 @@ function setupGlobalSearch() {
 
 
             const pages =
-                document.querySelectorAll(
-                    ".page"
-                );
+                getPDSPages();
 
 
             let found = false;
@@ -904,11 +1425,19 @@ function setupGlobalSearch() {
 
             pages.forEach(page => {
 
-                if (
-                    !found &&
+                if (found) {
+                    return;
+                }
+
+
+                const text =
                     page.innerText
-                        .toLowerCase()
-                        .includes(search)
+                        ?.toLowerCase() ||
+                    "";
+
+
+                if (
+                    text.includes(search)
                 ) {
 
                     showPage(
@@ -951,12 +1480,15 @@ function focusSearch() {
 
 document.addEventListener(
     "keydown",
-    function (event) {
+    function(event) {
 
         if (
-            (event.ctrlKey ||
-             event.metaKey) &&
-            event.key.toLowerCase() === "k"
+            (
+                event.ctrlKey ||
+                event.metaKey
+            ) &&
+            event.key.toLowerCase() ===
+            "k"
         ) {
 
             event.preventDefault();
@@ -1044,92 +1576,144 @@ function closeModal() {
 function setModalFieldState(mode) {
 
     const projectFields =
-        document.getElementById("projectFields");
+        document.getElementById(
+            "projectFields"
+        );
 
     const uploadFields =
-        document.getElementById("uploadFields");
+        document.getElementById(
+            "uploadFields"
+        );
 
-    if (!projectFields || !uploadFields) {
+
+    if (
+        !projectFields ||
+        !uploadFields
+    ) {
+
         return;
+
     }
 
 
     if (mode === "project") {
 
-        projectFields.style.display = "block";
-        uploadFields.style.display = "none";
+        projectFields.style.display =
+            "block";
+
+        uploadFields.style.display =
+            "none";
 
 
         projectFields
-            .querySelectorAll("input, select, textarea")
+            .querySelectorAll(
+                "input, select, textarea"
+            )
             .forEach(field => {
 
-                field.disabled = false;
+                field.disabled =
+                    false;
 
             });
 
 
         uploadFields
-            .querySelectorAll("input, select, textarea")
+            .querySelectorAll(
+                "input, select, textarea"
+            )
             .forEach(field => {
 
-                field.disabled = true;
+                field.disabled =
+                    true;
 
             });
 
 
         const projectName =
-            document.getElementById("projectName");
+            document.getElementById(
+                "projectName"
+            );
+
 
         if (projectName) {
-            projectName.required = true;
+
+            projectName.required =
+                true;
+
         }
 
 
         const documentTitle =
-            document.getElementById("documentTitle");
+            document.getElementById(
+                "documentTitle"
+            );
+
 
         if (documentTitle) {
-            documentTitle.required = false;
+
+            documentTitle.required =
+                false;
+
         }
 
     } else {
 
-        projectFields.style.display = "none";
-        uploadFields.style.display = "block";
+        projectFields.style.display =
+            "none";
+
+        uploadFields.style.display =
+            "block";
 
 
         projectFields
-            .querySelectorAll("input, select, textarea")
+            .querySelectorAll(
+                "input, select, textarea"
+            )
             .forEach(field => {
 
-                field.disabled = true;
+                field.disabled =
+                    true;
 
             });
 
 
         uploadFields
-            .querySelectorAll("input, select, textarea")
+            .querySelectorAll(
+                "input, select, textarea"
+            )
             .forEach(field => {
 
-                field.disabled = false;
+                field.disabled =
+                    false;
 
             });
 
 
         const projectName =
-            document.getElementById("projectName");
+            document.getElementById(
+                "projectName"
+            );
+
 
         if (projectName) {
-            projectName.required = false;
+
+            projectName.required =
+                false;
+
         }
 
 
         const documentTitle =
-            document.getElementById("documentTitle");
+            document.getElementById(
+                "documentTitle"
+            );
+
 
         if (documentTitle) {
-            documentTitle.required = true;
+
+            documentTitle.required =
+                true;
+
         }
 
     }
@@ -1143,12 +1727,17 @@ function setModalFieldState(mode) {
 
 function openProjectModal() {
 
-    modalMode = "project";
+    modalMode =
+        "project";
 
-    setModalFieldState("project");
+
+    setModalFieldState(
+        "project"
+    );
+
 
     openModal(
-        "New project",
+        "New Project",
         "Create a new project for monitoring."
     );
 
@@ -1163,9 +1752,13 @@ function openUploadModal(
     category = "General"
 ) {
 
-    modalMode = "upload";
+    modalMode =
+        "upload";
 
-    setModalFieldState("upload");
+
+    setModalFieldState(
+        "upload"
+    );
 
 
     const categoryInput =
@@ -1183,11 +1776,12 @@ function openUploadModal(
 
 
     openModal(
-        "Upload document",
+        "Upload Document",
         "Upload a PDF, Excel, or Word document."
     );
 
 }
+
 
 /* =========================================================
    SAVE PROJECT
@@ -1216,8 +1810,8 @@ async function saveProject() {
                 .getElementById(
                     "projectCode"
                 )
-                .value
-                .trim() ||
+                ?.value
+                ?.trim() ||
             null,
 
         name:
@@ -1225,16 +1819,16 @@ async function saveProject() {
                 .getElementById(
                     "projectName"
                 )
-                .value
-                .trim(),
+                ?.value
+                ?.trim(),
 
         location:
             document
                 .getElementById(
                     "projectLocation"
                 )
-                .value
-                .trim() ||
+                ?.value
+                ?.trim() ||
             null,
 
         status:
@@ -1242,14 +1836,15 @@ async function saveProject() {
                 .getElementById(
                     "projectStatus"
                 )
-                .value,
+                ?.value ||
+            "Ongoing",
 
         target_date:
             document
                 .getElementById(
                     "projectTargetDate"
                 )
-                .value ||
+                ?.value ||
             null,
 
         notes:
@@ -1257,8 +1852,8 @@ async function saveProject() {
                 .getElementById(
                     "projectNotes"
                 )
-                .value
-                .trim() ||
+                ?.value
+                ?.trim() ||
             null
 
     };
@@ -1274,7 +1869,8 @@ async function saveProject() {
                         .getElementById(
                             "projectProgress"
                         )
-                        .value || 0
+                        ?.value ||
+                    0
                 )
             )
         );
@@ -1305,9 +1901,7 @@ async function saveProject() {
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -1341,63 +1935,90 @@ async function saveProject() {
 
 
 /* =========================================================
-   UPLOAD DOCUMENT — FIXED
+   UPLOAD DOCUMENT
 ========================================================= */
 
 async function uploadDocument() {
 
     if (!currentUser) {
-        alert("Please sign in first.");
+
+        alert(
+            "Please sign in first."
+        );
+
         return;
+
     }
 
+
     const fileInput =
-        document.getElementById("documentFile");
+        document.getElementById(
+            "documentFile"
+        );
 
     const titleInput =
-        document.getElementById("documentTitle");
+        document.getElementById(
+            "documentTitle"
+        );
 
     const categoryInput =
-        document.getElementById("documentCategory");
+        document.getElementById(
+            "documentCategory"
+        );
 
     const submitButton =
-        document.getElementById("modalSubmitButton");
+        document.getElementById(
+            "modalSubmitButton"
+        );
+
 
     const file =
         fileInput?.files?.[0];
 
+
     const title =
-        titleInput?.value?.trim();
+        titleInput
+            ?.value
+            ?.trim();
+
 
     const category =
-        categoryInput?.value || "General";
+        categoryInput?.value ||
+        "General";
 
-
-    /* -----------------------------------------------------
-       VALIDATION
-    ----------------------------------------------------- */
 
     if (!file) {
-        alert("Please select a file.");
+
+        alert(
+            "Please select a file."
+        );
+
         return;
+
     }
+
 
     if (!title) {
-        alert("Please enter a document title.");
+
+        alert(
+            "Please enter a document title."
+        );
+
         titleInput?.focus();
+
         return;
+
     }
 
-
-    /* -----------------------------------------------------
-       FILE SIZE CHECK
-       50 MB maximum
-    ----------------------------------------------------- */
 
     const MAX_FILE_SIZE =
         50 * 1024 * 1024;
 
-    if (file.size > MAX_FILE_SIZE) {
+
+    if (
+        file.size >
+        MAX_FILE_SIZE
+    ) {
 
         alert(
             "File is too large.\n\n" +
@@ -1405,12 +2026,9 @@ async function uploadDocument() {
         );
 
         return;
+
     }
 
-
-    /* -----------------------------------------------------
-       SAFE FILE NAME
-    ----------------------------------------------------- */
 
     const safeFileName =
         file.name
@@ -1428,23 +2046,16 @@ async function uploadDocument() {
         safeFileName;
 
 
-    /* -----------------------------------------------------
-       LOCK BUTTON
-    ----------------------------------------------------- */
-
     if (submitButton) {
 
-        submitButton.disabled = true;
+        submitButton.disabled =
+            true;
 
         submitButton.textContent =
             "Uploading...";
 
     }
 
-
-    /* -----------------------------------------------------
-       HELPER — TIMEOUT
-    ----------------------------------------------------- */
 
     function timeoutPromise(
         promise,
@@ -1481,7 +2092,8 @@ async function uploadDocument() {
     }
 
 
-    let uploaded = false;
+    let uploaded =
+        false;
 
 
     try {
@@ -1501,24 +2113,14 @@ async function uploadDocument() {
         );
 
         console.log(
-            "Size:",
-            file.size
-        );
-
-        console.log(
             "Path:",
             filePath
         );
 
 
-        /* -------------------------------------------------
-           STEP 1 — UPLOAD TO SUPABASE STORAGE
-        ------------------------------------------------- */
-
-        console.log(
-            "Uploading to Storage..."
-        );
-
+        /* -----------------------------------------
+           STORAGE
+        ----------------------------------------- */
 
         const {
             error: uploadError
@@ -1531,8 +2133,12 @@ async function uploadDocument() {
                     filePath,
                     file,
                     {
-                        cacheControl: "3600",
-                        upsert: false,
+                        cacheControl:
+                            "3600",
+
+                        upsert:
+                            false,
+
                         contentType:
                             file.type ||
                             "application/octet-stream"
@@ -1541,35 +2147,22 @@ async function uploadDocument() {
 
             30000,
 
-            "The Storage upload timed out after 30 seconds.\n\n" +
-            "This usually means the Supabase Storage policy, bucket, " +
-            "network connection, or bucket configuration needs to be checked."
+            "The Storage upload timed out after 30 seconds."
         );
 
 
         if (uploadError) {
-
-            console.error(
-                "SUPABASE STORAGE ERROR:",
-                uploadError
-            );
-
             throw uploadError;
-
         }
 
 
-        uploaded = true;
+        uploaded =
+            true;
 
 
-        console.log(
-            "STORAGE UPLOAD SUCCESS"
-        );
-
-
-        /* -------------------------------------------------
-           STEP 2 — SAVE DATABASE RECORD
-        ------------------------------------------------- */
+        /* -----------------------------------------
+           DATABASE RECORD
+        ----------------------------------------- */
 
         if (submitButton) {
 
@@ -1577,11 +2170,6 @@ async function uploadDocument() {
                 "Saving...";
 
         }
-
-
-        console.log(
-            "Saving document metadata..."
-        );
 
 
         const {
@@ -1595,8 +2183,7 @@ async function uploadDocument() {
                     owner_id:
                         currentUser.id,
 
-                    title:
-                        title,
+                    title,
 
                     project_name:
                         category,
@@ -1618,52 +2205,28 @@ async function uploadDocument() {
 
             30000,
 
-            "The file uploaded, but saving the document record timed out.\n\n" +
-            "Please check the Supabase documents table policy."
+            "The file uploaded, but saving the document record timed out."
         );
 
 
         if (databaseError) {
 
-            console.error(
-                "DOCUMENT DATABASE ERROR:",
-                databaseError
-            );
+            if (uploaded) {
 
+                await db
+                    .storage
+                    .from("documents")
+                    .remove([
+                        filePath
+                    ]);
 
-            /* ---------------------------------------------
-               ROLLBACK STORAGE FILE
-            --------------------------------------------- */
-
-            console.log(
-                "Removing uploaded file..."
-            );
-
-
-            await db
-                .storage
-                .from("documents")
-                .remove([
-                    filePath
-                ]);
-
-
-            uploaded = false;
+            }
 
 
             throw databaseError;
 
         }
 
-
-        console.log(
-            "DATABASE SAVE SUCCESS"
-        );
-
-
-        /* -------------------------------------------------
-           SUCCESS
-        ------------------------------------------------- */
 
         alert(
             "Document uploaded successfully."
@@ -1677,26 +2240,15 @@ async function uploadDocument() {
 
 
         showPage(
-            "content"
+            "documents"
         );
 
 
     } catch (error) {
 
         console.error(
-            "================================"
-        );
-
-        console.error(
-            "UPLOAD FAILED"
-        );
-
-        console.error(
+            "UPLOAD FAILED:",
             error
-        );
-
-        console.error(
-            "================================"
         );
 
 
@@ -1705,47 +2257,45 @@ async function uploadDocument() {
             "Unknown upload error.";
 
 
-        /* -------------------------------------------------
-           FRIENDLY SUPABASE ERRORS
-        ------------------------------------------------- */
+        const lowerMessage =
+            message.toLowerCase();
+
 
         if (
-            message
-                .toLowerCase()
-                .includes("row-level security")
+            lowerMessage.includes(
+                "row-level security"
+            )
         ) {
 
             message =
-                "Supabase Row Level Security blocked the upload.\n\n" +
-                "The Storage or documents table policy needs to allow " +
-                "authenticated users to upload.";
+                "Supabase Row Level Security blocked the operation.\n\n" +
+                "Please check the Storage and documents table policies.";
 
         }
 
 
         else if (
-            message
-                .toLowerCase()
-                .includes("not found")
+            lowerMessage.includes(
+                "not found"
+            )
         ) {
 
             message =
                 "The Supabase Storage bucket 'documents' could not be found.\n\n" +
-                "Please check that the bucket exists and is named exactly:\n" +
-                "documents";
+                "Check that the bucket exists.";
 
         }
 
 
         else if (
-            message
-                .toLowerCase()
-                .includes("duplicate")
+            lowerMessage.includes(
+                "duplicate"
+            )
         ) {
 
             message =
                 "A file with this path already exists.\n\n" +
-                "Please try uploading again.";
+                "Please try again.";
 
         }
 
@@ -1774,23 +2324,21 @@ async function uploadDocument() {
 
 
 /* =========================================================
-   MODAL SUBMIT
-========================================================= */
-
-/* =========================================================
-   MODAL SUBMIT
+   MODAL FORM
 ========================================================= */
 
 function setupModalForm() {
 
     const form =
-        document.getElementById("modalForm");
+        document.getElementById(
+            "modalForm"
+        );
 
 
     if (!form) {
 
-        console.error(
-            "MODAL FORM NOT FOUND"
+        console.warn(
+            "PDS: Modal form not found."
         );
 
         return;
@@ -1798,26 +2346,40 @@ function setupModalForm() {
     }
 
 
+    if (
+        form.dataset.modalReady ===
+        "true"
+    ) {
+
+        return;
+
+    }
+
+
+    form.dataset.modalReady =
+        "true";
+
+
     form.addEventListener(
         "submit",
-        async function (event) {
+        async function(event) {
 
             event.preventDefault();
 
 
-            console.log(
-                "MODAL SUBMIT:",
-                modalMode
-            );
-
-
-            if (modalMode === "project") {
+            if (
+                modalMode ===
+                "project"
+            ) {
 
                 await saveProject();
 
             }
 
-            else if (modalMode === "upload") {
+            else if (
+                modalMode ===
+                "upload"
+            ) {
 
                 await uploadDocument();
 
@@ -1922,7 +2484,7 @@ function renderProjects(
                         class="button primary"
                         onclick="openProjectModal()">
 
-                        + New project
+                        + New Project
 
                     </button>
 
@@ -1965,7 +2527,7 @@ function renderProjects(
                     </div>
 
                     <h2>
-                        No projects
+                        No Projects
                     </h2>
 
                     <p>
@@ -2018,7 +2580,7 @@ function renderProjects(
                         </div>
 
                         <h2>
-                            No projects assigned
+                            No Projects Assigned
                         </h2>
 
                         <p>
@@ -2080,13 +2642,11 @@ function projectRow(
 
             </div>
 
-
             <div>
                 ${escapeHTML(
                     project.location || "—"
                 )}
             </div>
-
 
             <div>
 
@@ -2101,7 +2661,6 @@ function projectRow(
                 </span>
 
             </div>
-
 
             <div>
 
@@ -2118,7 +2677,6 @@ function projectRow(
                 </small>
 
             </div>
-
 
             <div>
 
@@ -2169,7 +2727,6 @@ function projectCard(
 
                     </div>
 
-
                     <h2>
 
                         ${escapeHTML(
@@ -2177,7 +2734,6 @@ function projectCard(
                         )}
 
                     </h2>
-
 
                     <p>
 
@@ -2189,7 +2745,6 @@ function projectCard(
                     </p>
 
                 </div>
-
 
                 <span class="status ${statusClass(
                     project.status
@@ -2524,7 +3079,7 @@ function renderDocuments(
                         </div>
 
                         <h2>
-                            No documents
+                            No Documents
                         </h2>
 
                         <p>
@@ -2625,7 +3180,7 @@ function renderCategory(
                     </div>
 
                     <h2>
-                        No documents
+                        No Documents
                     </h2>
 
                     <p>
@@ -2876,9 +3431,7 @@ async function openDocument(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -2895,9 +3448,7 @@ async function openDocument(
 
 
         if (storageError) {
-
             throw storageError;
-
         }
 
 
@@ -2962,9 +3513,7 @@ async function deleteDocument(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -2979,9 +3528,7 @@ async function deleteDocument(
 
 
         if (storageError) {
-
             throw storageError;
-
         }
 
 
@@ -2997,9 +3544,7 @@ async function deleteDocument(
 
 
         if (databaseError) {
-
             throw databaseError;
-
         }
 
 
@@ -3042,8 +3587,10 @@ function filterLibrary() {
         );
 
 
-    if (!searchInput ||
-        !typeFilter) {
+    if (
+        !searchInput ||
+        !typeFilter
+    ) {
 
         return;
 
@@ -3079,9 +3626,7 @@ function filterLibrary() {
 
 
             const matchesSearch =
-                text.includes(
-                    search
-                );
+                text.includes(search);
 
 
             const matchesType =
@@ -3133,6 +3678,9 @@ async function loadTeam() {
     const container =
         document.getElementById(
             "teamList"
+        ) ||
+        document.getElementById(
+            "teamGrid"
         );
 
 
@@ -3221,7 +3769,9 @@ function setText(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (element) {
@@ -3367,53 +3917,861 @@ function formatBytes(
 
 
 /* =========================================================
-   SIDEBAR NAVIGATION
+   DEPARTMENT ORDERS
 ========================================================= */
 
-function setupNavigation() {
+const planningDesignOrders = [
 
-    document
-        .querySelectorAll(
-            ".nav-item"
-        )
-        .forEach(
-            item => {
+    {
+        number: "DO 75",
+        year: "2024",
 
-                item.addEventListener(
-                    "click",
-                    function (event) {
+        title:
+            "Guidelines for the Conduct of Geotechnical Investigation for all DPWH Infrastructure",
 
-                        event.preventDefault();
+        description:
+            "Guidelines for geotechnical investigation for proposed DPWH infrastructure projects and preparation of design documents.",
+
+        category: "geotechnical",
+
+        categoryName:
+            "Geotechnical",
+
+        url:
+            "https://www.dpwh.gov.ph/dpwh/sites/default/files/issuances/do_075_s2024.pdf"
+    },
+
+    {
+        number: "DO 159",
+        year: "2022",
+
+        title:
+            "Implementation of the Social and Environmental Management System Operations Manual",
+
+        description:
+            "Reference for environmental and social considerations during project development and implementation.",
+
+        category: "planning",
+
+        categoryName:
+            "Planning & Project Development",
+
+        url:
+            "https://www.dpwh.gov.ph/dpwh/issuances/department-order/26980"
+    },
+
+    {
+        number: "DO 37",
+        year: "2021",
+
+        title:
+            "Infrastructure Right-of-Way Related Guidelines",
+
+        description:
+            "Reference related to Infrastructure Right-of-Way activities supporting project development.",
+
+        category: "row",
+
+        categoryName:
+            "Right-of-Way",
+
+        url:
+            "https://www.dpwh.gov.ph/"
+    },
+
+    {
+        number: "DO 120",
+        year: "2019",
+
+        title:
+            "Road Network Definition and Inventory Update Manual and Visual Road Condition Assessment Manual",
+
+        description:
+            "Reference for road network information, inventory and visual road condition assessment.",
+
+        category: "roads",
+
+        categoryName:
+            "Roads",
+
+        url:
+            "https://www.dpwh.gov.ph/"
+    },
+
+    {
+        number: "DO 27",
+        year: "2019",
+
+        title:
+            "Manual on Streamflow — 2018 Edition",
+
+        description:
+            "Technical reference for streamflow information used in hydrologic studies and infrastructure planning.",
+
+        category: "hydrology",
+
+        categoryName:
+            "Hydrology & Drainage",
+
+        url:
+            "https://www.dpwh.gov.ph/"
+    },
+
+    {
+        number: "DO 28",
+        year: "2019",
+
+        title:
+            "Cost Estimation Manual for Low Rise Buildings and High Rise Buildings",
+
+        description:
+            "Reference for preparation and evaluation of construction cost estimates for building projects.",
+
+        category: "standards",
+
+        categoryName:
+            "Standards & Manuals",
+
+        url:
+            "https://www.dpwh.gov.ph/"
+    }
+
+];
 
 
-                        const page =
-                            this.dataset.page;
+/* =========================================================
+   DISPLAY DEPARTMENT ORDERS
+========================================================= */
+
+function displayDepartmentOrders(
+    orders
+) {
+
+    const container =
+        document.getElementById(
+            "departmentOrdersGrid"
+        );
+
+    const count =
+        document.getElementById(
+            "ordersResultCount"
+        );
+
+    const noResults =
+        document.getElementById(
+            "ordersNoResults"
+        );
 
 
-                        if (page) {
+    if (!container) {
+        return;
+    }
 
-                            showPage(
-                                page
-                            );
 
-                        }
+    container.innerHTML =
+        "";
 
-                    }
+
+    if (count) {
+        count.textContent =
+            orders.length;
+    }
+
+
+    if (
+        orders.length ===
+        0
+    ) {
+
+        if (noResults) {
+            noResults.style.display =
+                "block";
+        }
+
+        return;
+
+    }
+
+
+    if (noResults) {
+        noResults.style.display =
+            "none";
+    }
+
+
+    orders.forEach(
+        order => {
+
+            const card =
+                document.createElement(
+                    "article"
                 );
 
-            }
-        );
+
+            card.className =
+                "department-order-card";
+
+
+            card.innerHTML = `
+
+                <div class="department-order-top">
+
+                    <span class="department-order-number">
+                        ${escapeHTML(order.number)}
+                    </span>
+
+                    <span class="department-order-year">
+                        Series of ${escapeHTML(order.year)}
+                    </span>
+
+                </div>
+
+
+                <h3>
+                    ${escapeHTML(order.title)}
+                </h3>
+
+
+                <p>
+                    ${escapeHTML(order.description)}
+                </p>
+
+
+                <span class="department-order-category">
+                    ${escapeHTML(order.categoryName)}
+                </span>
+
+
+                <div class="department-order-footer">
+
+                    <span class="department-order-source">
+                        Official DPWH
+                    </span>
+
+                    <a
+                        class="department-order-link"
+                        href="${order.url}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View Document ↗
+                    </a>
+
+                </div>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
 
 }
 
 
 /* =========================================================
-   ESC CLOSE MODAL
+   FILTER DEPARTMENT ORDERS
+========================================================= */
+
+function filterDepartmentOrders() {
+
+    const searchElement =
+        document.getElementById(
+            "ordersSearch"
+        );
+
+    const categoryElement =
+        document.getElementById(
+            "ordersCategory"
+        );
+
+    const yearElement =
+        document.getElementById(
+            "ordersYear"
+        );
+
+
+    if (!searchElement) {
+        return;
+    }
+
+
+    const search =
+        searchElement.value
+            .toLowerCase()
+            .trim();
+
+
+    const category =
+        categoryElement
+            ?.value ||
+        "all";
+
+
+    const year =
+        yearElement
+            ?.value ||
+        "all";
+
+
+    const filtered =
+        planningDesignOrders.filter(
+            order => {
+
+                const text = `
+
+                    ${order.number}
+                    ${order.year}
+                    ${order.title}
+                    ${order.description}
+                    ${order.categoryName}
+
+                `.toLowerCase();
+
+
+                const matchesSearch =
+                    text.includes(
+                        search
+                    );
+
+
+                const matchesCategory =
+                    category === "all" ||
+                    order.category ===
+                    category;
+
+
+                const matchesYear =
+                    year === "all" ||
+                    order.year ===
+                    year;
+
+
+                return (
+                    matchesSearch &&
+                    matchesCategory &&
+                    matchesYear
+                );
+
+            }
+        );
+
+
+    displayDepartmentOrders(
+        filtered
+    );
+
+
+    const clearButton =
+        document.getElementById(
+            "clearOrdersSearch"
+        );
+
+
+    if (clearButton) {
+
+        clearButton.style.display =
+            search.length
+                ? "block"
+                : "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   CLEAR DEPARTMENT ORDER SEARCH
+========================================================= */
+
+function clearOrdersSearch() {
+
+    const input =
+        document.getElementById(
+            "ordersSearch"
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    input.value =
+        "";
+
+
+    filterDepartmentOrders();
+
+
+    input.focus();
+
+}
+
+
+/* =========================================================
+   RESET DEPARTMENT ORDERS
+========================================================= */
+
+function resetDepartmentOrders() {
+
+    const search =
+        document.getElementById(
+            "ordersSearch"
+        );
+
+    const category =
+        document.getElementById(
+            "ordersCategory"
+        );
+
+    const year =
+        document.getElementById(
+            "ordersYear"
+        );
+
+
+    if (search) {
+        search.value = "";
+    }
+
+
+    if (category) {
+        category.value = "all";
+    }
+
+
+    if (year) {
+        year.value = "all";
+    }
+
+
+    filterDepartmentOrders();
+
+}
+
+
+/* =========================================================
+   PDS AI
+   SMALL FLOATING CHATBOT
+========================================================= */
+
+function openPDSAI() {
+
+    const chatbot =
+        document.getElementById(
+            "pdsAiChatbot"
+        );
+
+    if (chatbot) {
+
+        chatbot.style.display =
+            "flex";
+
+    }
+
+}
+
+
+function closePDSAI() {
+
+    const chatbot =
+        document.getElementById(
+            "pdsAiChatbot"
+        );
+
+    if (chatbot) {
+
+        chatbot.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   ADD AI MESSAGE
+========================================================= */
+
+function addPDSAIMessage(
+    message,
+    type = "bot"
+) {
+
+    const response =
+        document.getElementById(
+            "aiResponse"
+        );
+
+
+    if (!response) {
+        return null;
+    }
+
+
+    const bubble =
+        document.createElement(
+            "div"
+        );
+
+
+    bubble.className =
+        "pds-ai-message " +
+        (
+            type === "user"
+                ? "pds-ai-user"
+                : "pds-ai-bot"
+        );
+
+
+    bubble.textContent =
+        message;
+
+
+    response.appendChild(
+        bubble
+    );
+
+
+    response.scrollTop =
+        response.scrollHeight;
+
+
+    return bubble;
+
+}
+
+
+/* =========================================================
+   PDS AI MESSAGE
+========================================================= */
+
+async function askPDSAI() {
+
+    const input =
+        document.getElementById(
+            "aiInput"
+        );
+
+    const response =
+        document.getElementById(
+            "aiResponse"
+        );
+
+
+    if (!input || !response) {
+        return;
+    }
+
+
+    const message =
+        input.value
+            .trim();
+
+
+    if (!message) {
+        return;
+    }
+
+
+    /* -----------------------------------------
+       SHOW USER MESSAGE
+    ----------------------------------------- */
+
+    addPDSAIMessage(
+        message,
+        "user"
+    );
+
+
+    /* -----------------------------------------
+       CLEAR INPUT IMMEDIATELY
+    ----------------------------------------- */
+
+    input.value =
+        "";
+
+
+    input.focus();
+
+
+    /* -----------------------------------------
+       SAVE USER HISTORY
+    ----------------------------------------- */
+
+    pdsAIHistory.push({
+
+        role: "user",
+
+        content: message
+
+    });
+
+
+    /* -----------------------------------------
+       THINKING MESSAGE
+    ----------------------------------------- */
+
+    const thinking =
+        addPDSAIMessage(
+            "PDS AI is thinking...",
+            "bot"
+        );
+
+
+    try {
+
+        const {
+            data,
+            error
+        } = await db.functions.invoke(
+            "PDS-AI",
+            {
+                body: {
+
+                    message,
+
+                    history:
+                        pdsAIHistory
+
+                }
+
+            }
+        );
+
+
+        if (error) {
+
+            throw error;
+
+        }
+
+
+        let answer =
+            data?.answer ||
+            data?.response ||
+            data?.message;
+
+
+        if (
+            !answer &&
+            typeof data ===
+            "string"
+        ) {
+
+            answer =
+                data;
+
+        }
+
+
+        if (!answer) {
+
+            answer =
+                "PDS AI did not return a response.";
+
+        }
+
+
+        if (thinking) {
+
+            thinking.remove();
+
+        }
+
+
+        addPDSAIMessage(
+            answer,
+            "bot"
+        );
+
+
+        pdsAIHistory.push({
+
+            role: "assistant",
+
+            content: answer
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS AI ERROR:",
+            error
+        );
+
+
+        if (thinking) {
+
+            thinking.remove();
+
+        }
+
+
+        addPDSAIMessage(
+            "PDS AI could not respond.\n\n" +
+            (
+                error?.message ||
+                "Please try again."
+            ),
+            "bot"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SETUP PDS AI
+========================================================= */
+
+function setupPDSAI() {
+
+    const sendButton =
+        document.getElementById(
+            "pdsAiSend"
+        );
+
+    const input =
+        document.getElementById(
+            "aiInput"
+        );
+
+    const closeButton =
+        document.getElementById(
+            "pdsAiClose"
+        );
+
+    const launcher =
+        document.getElementById(
+            "pdsAiLauncher"
+        );
+
+
+    if (sendButton) {
+
+        if (
+            sendButton.dataset.aiReady !==
+            "true"
+        ) {
+
+            sendButton.dataset.aiReady =
+                "true";
+
+
+            sendButton.addEventListener(
+                "click",
+                askPDSAI
+            );
+
+        }
+
+    }
+
+
+    if (input) {
+
+        if (
+            input.dataset.aiReady !==
+            "true"
+        ) {
+
+            input.dataset.aiReady =
+                "true";
+
+
+            input.addEventListener(
+                "keydown",
+                function(event) {
+
+                    if (
+                        event.key ===
+                        "Enter" &&
+                        !event.shiftKey
+                    ) {
+
+                        event.preventDefault();
+
+                        askPDSAI();
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+
+
+    if (closeButton) {
+
+        if (
+            closeButton.dataset.aiReady !==
+            "true"
+        ) {
+
+            closeButton.dataset.aiReady =
+                "true";
+
+
+            closeButton.addEventListener(
+                "click",
+                closePDSAI
+            );
+
+        }
+
+    }
+
+
+    if (launcher) {
+
+        if (
+            launcher.dataset.aiReady !==
+            "true"
+        ) {
+
+            launcher.dataset.aiReady =
+                "true";
+
+
+            launcher.addEventListener(
+                "click",
+                openPDSAI
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   ESC CLOSE MODAL / AI
 ========================================================= */
 
 document.addEventListener(
     "keydown",
-    function (event) {
+    function(event) {
+
+        if (
+            event.key !==
+            "Escape"
+        ) {
+
+            return;
+
+        }
+
 
         const modal =
             document.getElementById(
@@ -3422,7 +4780,6 @@ document.addEventListener(
 
 
         if (
-            event.key === "Escape" &&
             modal &&
             modal.classList.contains(
                 "open"
@@ -3457,20 +4814,42 @@ function setupAuthForms() {
 
     if (loginForm) {
 
-        loginForm.addEventListener(
-            "submit",
-            loginUser
-        );
+        if (
+            loginForm.dataset.authReady !==
+            "true"
+        ) {
+
+            loginForm.dataset.authReady =
+                "true";
+
+
+            loginForm.addEventListener(
+                "submit",
+                loginUser
+            );
+
+        }
 
     }
 
 
     if (registerForm) {
 
-        registerForm.addEventListener(
-            "submit",
-            registerUser
-        );
+        if (
+            registerForm.dataset.authReady !==
+            "true"
+        ) {
+
+            registerForm.dataset.authReady =
+                "true";
+
+
+            registerForm.addEventListener(
+                "submit",
+                registerUser
+            );
+
+        }
 
     }
 
@@ -3478,8 +4857,7 @@ function setupAuthForms() {
 
 
 /* =========================================================
-   AUTH STATE LISTENER
-   Keeps the user signed in after page refresh
+   SUPABASE AUTH STATE
 ========================================================= */
 
 db.auth.onAuthStateChange(
@@ -3490,20 +4868,12 @@ db.auth.onAuthStateChange(
             event
         );
 
-        /* ---------------------------------------------
-           USER SIGNED IN / SESSION RESTORED
-        --------------------------------------------- */
 
         if (session?.user) {
 
             currentUser =
                 session.user;
 
-            /*
-               IMPORTANT:
-               Do NOT show the login screen here.
-               Supabase has already restored the session.
-            */
 
             if (
                 event === "SIGNED_IN" ||
@@ -3511,30 +4881,45 @@ db.auth.onAuthStateChange(
                 event === "TOKEN_REFRESHED"
             ) {
 
+                /*
+                   Avoid unnecessarily showing
+                   the login screen.
+                */
+
                 await loadApplication();
 
             }
 
+
             return;
+
         }
 
 
-        /* ---------------------------------------------
-           USER SIGNED OUT
-        --------------------------------------------- */
+        if (
+            event ===
+            "SIGNED_OUT"
+        ) {
 
-        if (event === "SIGNED_OUT") {
+            currentUser =
+                null;
 
-            currentUser = null;
+            currentProfile =
+                null;
 
-            currentProfile = null;
+            pdsAIHistory =
+                [];
 
 
             const app =
-                document.getElementById("app");
+                document.getElementById(
+                    "app"
+                );
 
             const authScreen =
-                document.getElementById("authScreen");
+                document.getElementById(
+                    "authScreen"
+                );
 
 
             if (app) {
@@ -3560,9 +4945,9 @@ db.auth.onAuthStateChange(
     }
 );
 
+
 /* =========================================================
-   INITIALIZE
-   Restores Supabase session before showing login screen
+   INITIALIZE PDS
 ========================================================= */
 
 async function initializePDSHub() {
@@ -3580,17 +4965,23 @@ async function initializePDSHub() {
 
     setupGlobalSearch();
 
+    setupPDSAI();
+
 
     const authScreen =
-        document.getElementById("authScreen");
+        document.getElementById(
+            "authScreen"
+        );
 
     const app =
-        document.getElementById("app");
+        document.getElementById(
+            "app"
+        );
 
 
     /*
-       Hide both screens temporarily while
-       Supabase checks the existing session.
+       Hide both while Supabase
+       checks the existing session.
     */
 
     if (authScreen) {
@@ -3640,9 +5031,9 @@ async function initializePDSHub() {
         }
 
 
-        /*
-           EXISTING SESSION FOUND
-        */
+        /* -----------------------------------------
+           EXISTING SESSION
+        ----------------------------------------- */
 
         if (data?.session?.user) {
 
@@ -3663,9 +5054,9 @@ async function initializePDSHub() {
         }
 
 
-        /*
+        /* -----------------------------------------
            NO SESSION
-        */
+        ----------------------------------------- */
 
         console.log(
             "No active Supabase session."
@@ -3721,8 +5112,9 @@ async function initializePDSHub() {
 
 }
 
+
 /* =========================================================
-   START
+   INITIAL PAGE LOAD
 ========================================================= */
 
 if (
@@ -3740,365 +5132,15 @@ if (
     initializePDSHub();
 
 }
-/* =========================================================
-   PDS HUB — PLANNING & DESIGN DEPARTMENT ORDERS
-========================================================= */
-
-const planningDesignOrders = [
-
-    {
-        number: "DO 75",
-        year: "2024",
-
-        title:
-            "Guidelines for the Conduct of Geotechnical Investigation for all DPWH Infrastructure",
-
-        description:
-            "Guidelines for geotechnical investigation for proposed DPWH infrastructure projects and preparation of design documents.",
-
-        category: "geotechnical",
-
-        categoryName: "Geotechnical",
-
-        url:
-            "https://www.dpwh.gov.ph/dpwh/sites/default/files/issuances/do_075_s2024.pdf"
-    },
-
-    {
-        number: "DO 159",
-        year: "2022",
-
-        title:
-            "Implementation of the Social and Environmental Management System Operations Manual",
-
-        description:
-            "Reference for environmental and social considerations during project development and implementation.",
-
-        category: "planning",
-
-        categoryName: "Planning & Project Development",
-
-        url:
-            "https://www.dpwh.gov.ph/dpwh/issuances/department-order/26980"
-    },
-
-    {
-        number: "DO 37",
-        year: "2021",
-
-        title:
-            "Infrastructure Right-of-Way Related Guidelines",
-
-        description:
-            "Reference related to Infrastructure Right-of-Way activities supporting project development.",
-
-        category: "row",
-
-        categoryName: "Right-of-Way",
-
-        url:
-            "https://www.dpwh.gov.ph/"
-    },
-
-    {
-        number: "DO 120",
-        year: "2019",
-
-        title:
-            "Road Network Definition and Inventory Update Manual and Visual Road Condition Assessment Manual",
-
-        description:
-            "Reference for road network information, inventory and visual road condition assessment.",
-
-        category: "roads",
-
-        categoryName: "Roads",
-
-        url:
-            "https://www.dpwh.gov.ph/"
-    },
-
-    {
-        number: "DO 27",
-        year: "2019",
-
-        title:
-            "Manual on Streamflow — 2018 Edition",
-
-        description:
-            "Technical reference for streamflow information used in hydrologic studies and infrastructure planning.",
-
-        category: "hydrology",
-
-        categoryName: "Hydrology & Drainage",
-
-        url:
-            "https://www.dpwh.gov.ph/"
-    },
-
-    {
-        number: "DO 28",
-        year: "2019",
-
-        title:
-            "Cost Estimation Manual for Low Rise Buildings and High Rise Buildings",
-
-        description:
-            "Reference for preparation and evaluation of construction cost estimates for building projects.",
-
-        category: "standards",
-
-        categoryName: "Standards & Manuals",
-
-        url:
-            "https://www.dpwh.gov.ph/"
-    }
-
-];
 
 
 /* =========================================================
-   DISPLAY DEPARTMENT ORDERS
-========================================================= */
-
-function displayDepartmentOrders(orders) {
-
-    const container =
-        document.getElementById("departmentOrdersGrid");
-
-    const count =
-        document.getElementById("ordersResultCount");
-
-    const noResults =
-        document.getElementById("ordersNoResults");
-
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    count.textContent = orders.length;
-
-
-    if (orders.length === 0) {
-
-        noResults.style.display = "block";
-
-        return;
-
-    }
-
-
-    noResults.style.display = "none";
-
-
-    orders.forEach(order => {
-
-        const card =
-            document.createElement("article");
-
-        card.className =
-            "department-order-card";
-
-
-        card.innerHTML = `
-
-            <div class="department-order-top">
-
-                <span class="department-order-number">
-                    ${order.number}
-                </span>
-
-                <span class="department-order-year">
-                    Series of ${order.year}
-                </span>
-
-            </div>
-
-
-            <h3>
-                ${order.title}
-            </h3>
-
-
-            <p>
-                ${order.description}
-            </p>
-
-
-            <span class="department-order-category">
-                ${order.categoryName}
-            </span>
-
-
-            <div class="department-order-footer">
-
-                <span class="department-order-source">
-                    Official DPWH
-                </span>
-
-                <a
-                    class="department-order-link"
-                    href="${order.url}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    View Document ↗
-                </a>
-
-            </div>
-
-        `;
-
-
-        container.appendChild(card);
-
-    });
-
-}
-
-
-/* =========================================================
-   FILTER DEPARTMENT ORDERS
-========================================================= */
-
-function filterDepartmentOrders() {
-
-    const searchElement =
-        document.getElementById("ordersSearch");
-
-    const categoryElement =
-        document.getElementById("ordersCategory");
-
-    const yearElement =
-        document.getElementById("ordersYear");
-
-
-    if (!searchElement) return;
-
-
-    const search =
-        searchElement.value
-            .toLowerCase()
-            .trim();
-
-
-    const category =
-        categoryElement.value;
-
-
-    const year =
-        yearElement.value;
-
-
-    const filtered =
-        planningDesignOrders.filter(order => {
-
-            const text = `
-
-                ${order.number}
-                ${order.year}
-                ${order.title}
-                ${order.description}
-                ${order.categoryName}
-
-            `.toLowerCase();
-
-
-            const matchesSearch =
-                text.includes(search);
-
-
-            const matchesCategory =
-                category === "all" ||
-                order.category === category;
-
-
-            const matchesYear =
-                year === "all" ||
-                order.year === year;
-
-
-            return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesYear
-            );
-
-        });
-
-
-    displayDepartmentOrders(filtered);
-
-
-    const clearButton =
-        document.getElementById(
-            "clearOrdersSearch"
-        );
-
-
-    if (clearButton) {
-
-        clearButton.style.display =
-            search.length
-                ? "block"
-                : "none";
-
-    }
-
-}
-
-
-/* =========================================================
-   CLEAR SEARCH
-========================================================= */
-
-function clearOrdersSearch() {
-
-    const input =
-        document.getElementById("ordersSearch");
-
-    input.value = "";
-
-    filterDepartmentOrders();
-
-    input.focus();
-
-}
-
-
-/* =========================================================
-   RESET
-========================================================= */
-
-function resetDepartmentOrders() {
-
-    document.getElementById(
-        "ordersSearch"
-    ).value = "";
-
-
-    document.getElementById(
-        "ordersCategory"
-    ).value = "all";
-
-
-    document.getElementById(
-        "ordersYear"
-    ).value = "all";
-
-
-    filterDepartmentOrders();
-
-}
-
-
-/* =========================================================
-   INITIALIZE
+   DEPARTMENT ORDERS INITIAL DISPLAY
 ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
+    function() {
 
         displayDepartmentOrders(
             planningDesignOrders
@@ -4107,78 +5149,7 @@ document.addEventListener(
     }
 );
 
+
 /* =========================================================
-   PDS AI — CHAT MESSAGE BUBBLES
+   END OF PDS SCRIPT
 ========================================================= */
-
-#aiResponse {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-}
-
-/* Base message */
-
-.pds-ai-message {
-    display: block;
-    width: fit-content;
-    max-width: 82%;
-    padding: 10px 13px;
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.55;
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-}
-
-/* USER MESSAGE */
-
-.pds-ai-user {
-    align-self: flex-end;
-
-    background: #063b61;
-    color: #ffffff;
-
-    border-bottom-right-radius: 3px;
-
-    box-shadow:
-        0 3px 10px rgba(3, 41, 66, .15);
-}
-
-/* PDS AI MESSAGE */
-
-.pds-ai-bot {
-    align-self: flex-start;
-
-    background: #f1f5f8;
-    color: #10212d;
-
-    border: 1px solid #d5e0e7;
-
-    border-bottom-left-radius: 3px;
-
-    box-shadow:
-        0 3px 10px rgba(5, 35, 55, .07);
-}
-
-/* THINKING */
-
-.pds-ai-bot:has(+ .pds-ai-thinking) {
-    opacity: .8;
-}
-
-/* Mobile */
-
-@media (max-width: 650px) {
-
-    .pds-ai-message {
-        max-width: 88%;
-        font-size: 12px;
-    }
-
-}
-
