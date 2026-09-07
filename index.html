@@ -177,22 +177,12 @@
 <div id="app">
 
 
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-
     <aside class="sidebar">
 
-
-        <!-- =================================================
-             BRAND
-        ================================================== -->
-
+        <!-- BRAND -->
         <div class="brand">
 
-
             <div class="brand-logo-wrap">
-
                 <img
                     src="assets/dpwh-logo.png"
                     alt="DPWH Logo"
@@ -202,449 +192,137 @@
                         this.nextElementSibling.style.display='flex';
                     "
                 >
-
-
-                <div
-                    class="brand-logo-ring"
-                    style="display:none;"
-                >
-
-                    <div class="brand-logo-inner">
-                        DPWH
-                    </div>
-
+                <div class="brand-logo-ring" style="display:none;">
+                    <div class="brand-logo-inner">DPWH</div>
                 </div>
-
             </div>
-
 
             <div class="brand-copy">
-
-                <div class="brand-agency">
-                    DPWH
-                </div>
-
-                <div class="brand-name">
-                    PDS
-                </div>
-
+                <div class="brand-agency">DPWH</div>
                 <div class="brand-subtitle">
-                    Planning & Design Section
+                    Department of Public Works<br>and Highways
                 </div>
-
-                <div class="brand-divider"></div>
-
             </div>
-
 
         </div>
 
-
-
-        <!-- =================================================
-             NAVIGATION
-        ================================================== -->
-
+        <!-- NAVIGATION -->
         <nav class="navigation">
 
+            <div class="nav-section-title">MAIN</div>
 
-            <div class="nav-section-title">
-                MAIN
+            <div class="nav-item active" data-section="dashboard" role="button" tabindex="0">
+                <span>⌂</span>
+                <span>Dashboard</span>
             </div>
 
-
-            <!-- 01 DASHBOARD -->
-
-            <div
-                class="nav-item active"
-                data-section="dashboard"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    01
-                </span>
-
-                <span>
-                    Dashboard
-                </span>
-
+            <div class="nav-item" data-section="projects" role="button" tabindex="0">
+                <span>◫</span>
+                <span>Projects</span>
             </div>
 
-
-            <!-- 02 PROJECTS -->
-
-            <div
-                class="nav-item"
-                data-section="projects"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    02
-                </span>
-
-                <span>
-                    Projects
-                </span>
-
+            <div class="nav-item" data-section="documents" role="button" tabindex="0">
+                <span>▤</span>
+                <span>Documents</span>
             </div>
 
-
-            <!-- 03 DOCUMENTS -->
-
-            <div
-                class="nav-item"
-                data-section="documents"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    03
-                </span>
-
-                <span>
-                    Documents
-                </span>
-
+            <div class="nav-item" data-section="standards-guidelines" role="button" tabindex="0">
+                <span>◈</span>
+                <span>Standards &amp; Guidelines</span>
             </div>
 
-
-            <!-- 04 STANDARDS -->
-
-            <div
-                class="nav-item"
-                data-section="standards-guidelines"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    04
-                </span>
-
-                <span>
-                    Standards & Guidelines
-                </span>
-
+            <div class="nav-item" data-section="department-orders" role="button" tabindex="0">
+                <span>▥</span>
+                <span>Department Orders</span>
             </div>
 
-
-            <!-- 05 DEPARTMENT ORDERS -->
-
-            <div
-                class="nav-item"
-                data-section="department-orders"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    05
-                </span>
-
-                <span>
-                    Department Orders
-                </span>
-
+            <div class="nav-item" data-section="forms-templates" role="button" tabindex="0">
+                <span>▣</span>
+                <span>Forms &amp; Templates</span>
             </div>
 
-
-            <!-- 06 FORMS -->
-
-            <div
-                class="nav-item"
-                data-section="forms-templates"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    06
-                </span>
-
-                <span>
-                    Forms & Templates
-                </span>
-
+            <div class="nav-item" data-section="announcements" role="button" tabindex="0">
+                <span>◔</span>
+                <span>News &amp; Announcements</span>
             </div>
 
-
-            <!-- 07 ANNOUNCEMENTS -->
-
-            <div
-                class="nav-item"
-                data-section="announcements"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    07
-                </span>
-
-                <span>
-                    Announcements
-                </span>
-
+            <div class="nav-item" data-section="pds-ai-assistant" role="button" tabindex="0">
+                <span>✦</span>
+                <span>PDS AI Assistant</span>
             </div>
 
+            <div class="nav-section-title">SYSTEM</div>
 
-            <!-- 08 PDS AI -->
-
-            <div
-                class="nav-item"
-                data-section="pds-ai-assistant"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    08
-                </span>
-
-                <span>
-                    PDS AI Assistant
-                </span>
-
+            <div class="nav-item" data-section="aboutpds" role="button" tabindex="0">
+                <span>ⓘ</span>
+                <span>About PDS</span>
             </div>
 
-
-            <!-- 09 ABOUT -->
-
-            <div
-                class="nav-item"
-                data-section="aboutpds"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    09
-                </span>
-
-                <span>
-                    About PDS
-                </span>
-
+            <div class="nav-item" data-section="contact-us" role="button" tabindex="0">
+                <span>☎</span>
+                <span>Contact Us</span>
             </div>
 
-
-            <!-- 10 CONTACT -->
-
-            <div
-                class="nav-item"
-                data-section="contact-us"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    10
-                </span>
-
-                <span>
-                    Contact Us
-                </span>
-
+            <div class="nav-item" data-section="profile" role="button" tabindex="0">
+                <span>◎</span>
+                <span>Profile</span>
             </div>
 
-
-            <!-- =================================================
-                 SYSTEM
-            ================================================== -->
-
-            <div class="nav-section-title">
-                SYSTEM
+            <div class="nav-item" id="logoutButton" role="button" tabindex="0">
+                <span>⇥</span>
+                <span>Sign Out</span>
             </div>
-
-
-            <!-- PROFILE -->
-
-            <div
-                class="nav-item"
-                data-section="profile"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    11
-                </span>
-
-                <span>
-                    Profile
-                </span>
-
-            </div>
-
-
-            <!-- SIGN OUT -->
-
-            <div
-                class="nav-item"
-                id="logoutButton"
-                role="button"
-                tabindex="0"
-            >
-
-                <span>
-                    12
-                </span>
-
-                <span>
-                    Sign Out
-                </span>
-
-            </div>
-
 
         </nav>
 
-
-
-        <!-- =================================================
-             SIDEBAR HELP
-        ================================================== -->
-
         <div class="sidebar-help">
-
-            <strong>
-                PDS CONTROL DESK
-            </strong>
-
-            <p>
-                Planning, design, technical documents,
-                project monitoring and engineering references.
-            </p>
-
+            <strong>PDS CONTROL DESK</strong>
+            <p>Planning, design, technical documents, project monitoring and engineering references.</p>
         </div>
-
-
-
-        <!-- =================================================
-             SIDEBAR USER
-        ================================================== -->
 
         <div class="sidebar-profile">
-
-
-            <div
-                class="avatar"
-                id="sidebarAvatar"
-            >
-                PDS
-            </div>
-
-
+            <div class="avatar" id="sidebarAvatar">PDS</div>
             <div>
-
-                <strong id="sidebarUserName">
-                    PDS User
-                </strong>
-
-                <small id="sidebarUserRole">
-                    PLANNING & DESIGN
-                </small>
-
+                <strong id="sidebarUserName">PDS User</strong>
+                <small id="sidebarUserRole">PLANNING &amp; DESIGN</small>
             </div>
-
-
         </div>
-
 
     </aside>
 
-
-
-    <!-- =====================================================
-         MAIN AREA
-    ====================================================== -->
-
+    <!-- MAIN AREA -->
     <main class="main">
-
-
-        <!-- =================================================
-             TOPBAR
-        ================================================== -->
 
         <header class="topbar">
 
-
             <div class="topbar-left">
 
-
                 <div class="mobile-brand">
-
-                    <div class="brand-mark">
-                        PDS
-                    </div>
-
+                    <div class="brand-mark">PDS</div>
                 </div>
-
 
                 <div class="search-container">
-
-
-                    <span>
-                        ⌕
-                    </span>
-
-
-                    <input
-                        type="search"
-                        id="globalSearch"
-                        placeholder="SEARCH PDS..."
-                    >
-
-
+                    <span>⌕</span>
+                    <input type="search" id="globalSearch" placeholder="Search documents, projects...">
                 </div>
 
-
             </div>
-
-
 
             <div class="topbar-right">
 
-
-                <button
-                    class="icon-button"
-                    id="notificationButton"
-                    type="button"
-                    title="Notifications"
-                >
+                <button class="icon-button" id="notificationButton" type="button" title="Notifications">
                     ◉
                 </button>
 
-
-                <button
-                    class="icon-button"
-                    id="refreshButton"
-                    type="button"
-                    title="Refresh"
-                >
+                <button class="icon-button" id="refreshButton" type="button" title="Refresh">
                     ↻
                 </button>
 
-
-                <div
-                    class="top-avatar"
-                    id="topAvatar"
-                >
-                    PDS
-                </div>
-
+                <div class="top-avatar" id="topAvatar">PDS</div>
 
             </div>
 
-
         </header>
-
-
 
         <!-- =================================================
              CONTENT
