@@ -1,159 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>PDS — Planning & Design Section</title>
 
+    <!-- PDS MAIN CSS -->
     <link rel="stylesheet" href="style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Supabase -->
+    <!-- GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 
+
 <body>
+
 
 <!-- =========================================================
      AUTH SCREEN
 ========================================================= -->
 
-  <div id="authScreen">
-  <div class="auth-blueprint">
+<div id="authScreen">
 
-    <div class="auth-mark">
-      <div class="auth-mark-badge">PDS</div>
-      <div class="auth-mark-text">
-        <div class="eyebrow-blueprint">Planning &amp; Design Section</div>
-        <h1>PDS</h1>
-      </div>
+    <div class="auth-blueprint">
+
+        <div class="auth-mark">
+
+            <div class="auth-mark-badge">
+                PDS
+            </div>
+
+            <div class="auth-mark-text">
+
+                <div class="eyebrow-blueprint">
+                    Planning &amp; Design Section
+                </div>
+
+                <h1>
+                    PDS
+                </h1>
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="auth-instrument"
+            aria-hidden="true"
+        >
+
+            <svg
+                viewBox="0 0 200 200"
+                fill="none"
+                stroke="#9fc3e6"
+                stroke-width="1.4"
+            >
+
+                <line
+                    class="draw"
+                    x1="100"
+                    y1="14"
+                    x2="100"
+                    y2="186"
+                />
+
+                <line
+                    class="draw"
+                    x1="14"
+                    y1="100"
+                    x2="186"
+                    y2="100"
+                />
+
+                <circle
+                    class="draw"
+                    cx="100"
+                    cy="100"
+                    r="62"
+                />
+
+                <circle
+                    class="draw"
+                    cx="100"
+                    cy="100"
+                    r="3"
+                    fill="#e08a2b"
+                    stroke="none"
+                />
+
+                <path
+                    class="draw"
+                    d="M100 38 L138 100 L100 162 L62 100 Z"
+                />
+
+            </svg>
+
+        </div>
+
+
+        <p class="auth-caption">
+
+            A shared workspace for department orders,
+            standard forms, and project monitoring
+            across the Planning &amp; Design Section.
+
+        </p>
+
+
+        <div class="auth-titleblock">
+
+            <div class="auth-titleblock-row">
+
+                <div class="auth-titleblock-cell">
+
+                    <span>
+                        System
+                    </span>
+
+                    <strong>
+                        PDS
+                    </strong>
+
+                </div>
+
+
+                <div class="auth-titleblock-cell">
+
+                    <span>
+                        Section
+                    </span>
+
+                    <strong>
+                        Planning &amp; Design
+                    </strong>
+
+                </div>
+
+
+                <div class="auth-titleblock-cell">
+
+                    <span>
+                        Access
+                    </span>
+
+                    <strong>
+                        Workspace Login
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="auth-instrument" aria-hidden="true">
-      <svg viewBox="0 0 200 200" fill="none" stroke="#9fc3e6" stroke-width="1.4">
-        <line class="draw" x1="100" y1="14" x2="100" y2="186"/>
-        <line class="draw" x1="14" y1="100" x2="186" y2="100"/>
-        <circle class="draw" cx="100" cy="100" r="62"/>
-        <circle class="draw" cx="100" cy="100" r="3" fill="#e08a2b" stroke="none"/>
-        <path class="draw" d="M100 38 L138 100 L100 162 L62 100 Z"/>
-      </svg>
+
+    <div class="auth-paper">
+
+        <div class="auth-sheet">
+
+
+            <!-- AUTH TABS -->
+
+            <div class="auth-tabs">
+
+                <button
+                    type="button"
+                    class="auth-tab is-active"
+                    id="tabLogin"
+                    onclick="showLogin()"
+                >
+                    Sign In
+                </button>
+
+                <button
+                    type="button"
+                    class="auth-tab"
+                    id="tabRegister"
+                    onclick="showRegister()"
+                >
+                    Create Account
+                </button>
+
+            </div>
+
+
+            <!-- LOGIN -->
+
+            <div id="loginPanel">
+
+                <p class="auth-eyebrow">
+                    Welcome back
+                </p>
+
+                <h1 class="auth-title">
+                    Sign in
+                </h1>
+
+                <p class="auth-sub">
+                    Access your PDS workspace.
+                </p>
+
+
+                <form id="loginForm">
+
+                    <label>
+
+                        Email
+
+                        <input
+                            id="loginEmail"
+                            type="email"
+                            required
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        Password
+
+                        <input
+                            id="loginPassword"
+                            type="password"
+                            required
+                            autocomplete="current-password"
+                            placeholder="Enter your password"
+                        >
+
+                    </label>
+
+
+                    <button
+                        type="submit"
+                        class="auth-submit"
+                    >
+                        Sign In
+                    </button>
+
+                </form>
+
+
+                <div
+                    id="loginMessage"
+                    class="auth-message"
+                ></div>
+
+
+                <div class="auth-switch">
+
+                    Don't have an account?
+
+                    <button
+                        type="button"
+                        onclick="showRegister()"
+                    >
+                        Create Account
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- REGISTER -->
+
+            <div
+                id="registerPanel"
+                style="display:none;"
+            >
+
+                <p class="auth-eyebrow">
+                    New user
+                </p>
+
+                <h1 class="auth-title">
+                    Create account
+                </h1>
+
+                <p class="auth-sub">
+                    Create your PDS workspace account.
+                </p>
+
+
+                <form id="registerForm">
+
+                    <label>
+
+                        Full Name
+
+                        <input
+                            id="registerName"
+                            type="text"
+                            required
+                            placeholder="Full name"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        Position
+
+                        <input
+                            id="registerPosition"
+                            type="text"
+                            placeholder="Engineer II"
+                        >
+
+                    </label>
+
+
+                    <label>
+
+                        Email
+
+                        <input
+                            id="registerEmail"
+                            type="email"
+                            required
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                        >
+
+                    </label>
+
+
+                    <div class="auth-field-row">
+
+                        <label>
+
+                            Password
+
+                            <input
+                                id="registerPassword"
+                                type="password"
+                                required
+                                minlength="6"
+                                autocomplete="new-password"
+                                placeholder="At least 6 characters"
+                            >
+
+                        </label>
+
+
+                        <label>
+
+                            Confirm Password
+
+                            <input
+                                id="registerConfirm"
+                                type="password"
+                                required
+                                minlength="6"
+                                autocomplete="new-password"
+                                placeholder="Repeat password"
+                            >
+
+                        </label>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="auth-submit"
+                    >
+                        Create Account
+                    </button>
+
+                </form>
+
+
+                <div
+                    id="registerMessage"
+                    class="auth-message"
+                ></div>
+
+
+                <div class="auth-switch">
+
+                    Already have an account?
+
+                    <button
+                        type="button"
+                        onclick="showLogin()"
+                    >
+                        Sign In
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
-
-    <p class="auth-caption">
-      A shared workspace for department orders, standard forms,
-      and project monitoring across the Planning &amp; Design Section.
-    </p>
-
-    <div class="auth-titleblock">
-      <div class="auth-titleblock-row">
-        <div class="auth-titleblock-cell">
-          <span>System</span>
-          <strong>PDS</strong>
-        </div>
-        <div class="auth-titleblock-cell">
-          <span>Section</span>
-          <strong>Planning &amp; Design</strong>
-        </div>
-        <div class="auth-titleblock-cell">
-          <span>Access</span>
-          <strong>Workspace&nbsp;Login</strong>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <div class="auth-paper">
-    <div class="auth-sheet">
-
-      <div class="auth-tabs">
-        <button type="button" class="auth-tab is-active" id="tabLogin" onclick="showLogin()">Sign In</button>
-        <button type="button" class="auth-tab" id="tabRegister" onclick="showRegister()">Create Account</button>
-      </div>
-
-      <div id="loginPanel">
-
-        <p class="auth-eyebrow">Welcome back</p>
-        <h1 class="auth-title">Sign in</h1>
-        <p class="auth-sub">Access your PDS workspace.</p>
-
-        <form id="loginForm">
-
-          <label>
-            Email
-            <input id="loginEmail" type="email" required autocomplete="email" placeholder="you@example.com">
-          </label>
-
-          <label>
-            Password
-            <input id="loginPassword" type="password" required autocomplete="current-password" placeholder="Enter your password">
-          </label>
-
-          <button type="submit" class="auth-submit">Sign In</button>
-
-        </form>
-
-        <div id="loginMessage" class="auth-message"></div>
-
-        <div class="auth-switch">
-          Don't have an account?
-          <button type="button" onclick="showRegister()">Create Account</button>
-        </div>
-
-      </div>
-
-      <div id="registerPanel" style="display:none;">
-
-        <p class="auth-eyebrow">New user</p>
-        <h1 class="auth-title">Create account</h1>
-        <p class="auth-sub">Create your PDS workspace account.</p>
-
-        <form id="registerForm">
-
-          <label>
-            Full Name
-            <input id="registerName" type="text" required placeholder="Full name">
-          </label>
-
-          <label>
-            Position
-            <input id="registerPosition" type="text" placeholder="Engineer II">
-          </label>
-
-          <label>
-            Email
-            <input id="registerEmail" type="email" required autocomplete="email" placeholder="you@example.com">
-          </label>
-
-          <div class="auth-field-row">
-            <label>
-              Password
-              <input id="registerPassword" type="password" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
-            </label>
-
-            <label>
-              Confirm Password
-              <input id="registerConfirm" type="password" required minlength="6" autocomplete="new-password" placeholder="Repeat password">
-            </label>
-          </div>
-
-          <button type="submit" class="auth-submit">Create Account</button>
-
-        </form>
-
-        <div id="registerMessage" class="auth-message"></div>
-
-        <div class="auth-switch">
-          Already have an account?
-          <button type="button" onclick="showLogin()">Sign In</button>
-        </div>
-
-      </div>
-
-    </div>
-  </div>
 
 </div>
 
@@ -162,96 +426,212 @@
      MAIN APPLICATION
 ========================================================= -->
 
-<div id="app" class="app" style="display:none;">
+<div
+    id="app"
+    class="app"
+    style="display:none;"
+>
 
-    <!-- SIDEBAR -->
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
 
     <aside class="sidebar">
 
+
+        <!-- BRAND -->
+
         <div class="brand">
 
-<div class="brand-logo-wrap">
-    <img
-        src="dpwh-logo.png"
-        alt="DPWH Logo"
-        class="dpwh-logo"
-    >
-</div>
+            <div class="brand-logo-wrap">
 
-    <div class="brand-copy">
+                <img
+                    src="dpwh-logo.png"
+                    alt="DPWH Logo"
+                    class="dpwh-logo"
+                >
 
-        <div class="brand-agency">
-            DEPARTMENT OF PUBLIC WORKS
-            <br>
-            AND HIGHWAYS
+            </div>
+
+
+            <div class="brand-copy">
+
+                <div class="brand-agency">
+
+                    DEPARTMENT OF PUBLIC WORKS
+                    <br>
+                    AND HIGHWAYS
+
+                </div>
+
+
+                <div class="brand-divider"></div>
+
+
+                <div class="brand-name">
+                    PDS
+                </div>
+
+
+                <div class="brand-subtitle">
+                    PLANNING &amp; DESIGN SECTION
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="brand-divider"></div>
 
-        <div class="brand-name">
-            PDS
-        </div>
-
-        <div class="brand-subtitle">
-            PLANNING & DESIGN SECTION
-        </div>
-
-    </div>
-
-</div>
-
+        <!-- =================================================
+             SIDEBAR NAVIGATION
+        ================================================== -->
 
         <nav class="navigation">
 
-            <a href="#" class="nav-item active" data-page="overview">
+
+            <a
+                href="#"
+                class="nav-item active"
+                data-page="overview"
+            >
+
                 <span>⌂</span>
-                <span>Overview</span>
+
+                <span>
+                    Overview
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="orders">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="orders"
+            >
+
                 <span>▤</span>
-                <span>Department Orders</span>
+
+                <span>
+                    Department Orders
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="standards">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="standards"
+            >
+
                 <span>◇</span>
-                <span>Standards & Templates</span>
+
+                <span>
+                    Standards &amp; Templates
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="forms">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="forms"
+            >
+
                 <span>▣</span>
-                <span>Forms</span>
+
+                <span>
+                    Forms
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="projects">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="projects"
+            >
+
                 <span>◫</span>
-                <span>Project Monitoring</span>
-                <span id="projectBadge" class="badge">0</span>
+
+                <span>
+                    Project Monitoring
+                </span>
+
+                <span
+                    id="projectBadge"
+                    class="badge"
+                >
+                    0
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="myprojects">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="myprojects"
+            >
+
                 <span>✓</span>
-                <span>My Projects</span>
+
+                <span>
+                    My Projects
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="team">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="team"
+            >
+
                 <span>◎</span>
-                <span>Team Directory</span>
+
+                <span>
+                    Team Directory
+                </span>
+
             </a>
 
-            <a href="#" class="nav-item" data-page="content">
+
+            <a
+                href="#"
+                class="nav-item"
+                data-page="content"
+            >
+
                 <span>⚙</span>
-                <span>Content Manager</span>
+
+                <span>
+                    Content Manager
+                </span>
+
             </a>
+
 
         </nav>
 
 
+        <!-- =================================================
+             SIDEBAR BOTTOM
+        ================================================== -->
+
         <div class="sidebar-bottom">
+
 
             <div class="help-box">
 
-                <strong>Need something?</strong>
+                <strong>
+                    Need something?
+                </strong>
 
                 <p>
                     Use global search to find any issuance,
@@ -265,11 +645,17 @@
             </div>
 
 
+            <!-- PROFILE -->
+
             <div class="profile">
 
-                <div id="sidebarAvatar" class="avatar">
+                <div
+                    id="sidebarAvatar"
+                    class="avatar"
+                >
                     U
                 </div>
+
 
                 <div class="profile-info">
 
@@ -282,6 +668,7 @@
                     </small>
 
                 </div>
+
 
                 <button
                     class="dots"
@@ -298,13 +685,17 @@
     </aside>
 
 
-    <!-- MAIN -->
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
 
     <main class="main">
+
 
         <!-- TOPBAR -->
 
         <header class="topbar">
+
 
             <div class="mobile-brand">
 
@@ -319,11 +710,14 @@
             </div>
 
 
+            <!-- GLOBAL SEARCH -->
+
             <div class="search-container">
 
                 <span class="search-icon">
                     ⌕
                 </span>
+
 
                 <input
                     id="globalSearch"
@@ -332,12 +726,15 @@
                     autocomplete="off"
                 >
 
+
                 <span class="shortcut">
                     ⌘ K
                 </span>
 
             </div>
 
+
+            <!-- TOP ACTIONS -->
 
             <div class="top-actions">
 
@@ -348,6 +745,7 @@
                 >
                     ⇥
                 </button>
+
 
                 <div
                     id="topAvatar"
@@ -361,32 +759,47 @@
         </header>
 
 
-        <!-- CONTENT -->
+        <!-- =================================================
+             CONTENT
+        ================================================== -->
 
         <div class="content">
 
 
-            <!-- OVERVIEW -->
+            <!-- =================================================
+                 OVERVIEW
+            ================================================== -->
 
-            <section id="overview" class="page active-page">
+            <section
+                id="overview"
+                class="page active active-page"
+            >
+
 
                 <div class="date-label">
                     PDS · WORKSPACE
                 </div>
 
 
+                <!-- HERO -->
+
                 <div class="hero">
 
                     <div>
 
                         <h1>
+
                             Magandang araw,
                             <span id="welcomeName"></span>👋
+
                         </h1>
 
+
                         <p>
+
                             Here’s what needs your attention today.
                             Your PDS workspace is connected.
+
                         </p>
 
                     </div>
@@ -400,6 +813,7 @@
                         >
                             View my projects →
                         </button>
+
 
                         <button
                             class="button primary"
@@ -429,6 +843,7 @@
 
                     </div>
 
+
                     <span
                         id="workspaceProgress"
                         class="workspace-progress"
@@ -441,9 +856,11 @@
 
                 <div class="stats-grid">
 
+
                     <div class="stat-card">
 
                         <div class="stat-top">
+
                             <span class="stat-label">
                                 Active projects
                             </span>
@@ -451,7 +868,9 @@
                             <span class="stat-arrow">
                                 ↗
                             </span>
+
                         </div>
+
 
                         <div
                             id="activeProjectsCount"
@@ -459,6 +878,7 @@
                         >
                             0
                         </div>
+
 
                         <div class="stat-change positive">
                             Your workspace
@@ -470,6 +890,7 @@
                     <div class="stat-card">
 
                         <div class="stat-top">
+
                             <span class="stat-label">
                                 For review
                             </span>
@@ -477,7 +898,9 @@
                             <span class="stat-arrow">
                                 ↗
                             </span>
+
                         </div>
+
 
                         <div
                             id="reviewProjectsCount"
@@ -485,6 +908,7 @@
                         >
                             0
                         </div>
+
 
                         <div class="stat-change">
                             Projects requiring review
@@ -496,6 +920,7 @@
                     <div class="stat-card">
 
                         <div class="stat-top">
+
                             <span class="stat-label">
                                 Completed
                             </span>
@@ -503,7 +928,9 @@
                             <span class="stat-arrow">
                                 ↗
                             </span>
+
                         </div>
+
 
                         <div
                             id="completedProjectsCount"
@@ -511,6 +938,7 @@
                         >
                             0
                         </div>
+
 
                         <div class="stat-change">
                             Completed projects
@@ -522,6 +950,7 @@
                     <div class="stat-card">
 
                         <div class="stat-top">
+
                             <span class="stat-label">
                                 Documents
                             </span>
@@ -529,7 +958,9 @@
                             <span class="stat-arrow">
                                 ↗
                             </span>
+
                         </div>
+
 
                         <div
                             id="documentsCount"
@@ -537,6 +968,7 @@
                         >
                             0
                         </div>
+
 
                         <div class="stat-change warning">
                             Your document library
@@ -568,6 +1000,7 @@
 
                 <div class="quick-grid">
 
+
                     <button
                         class="quick-card"
                         onclick="showPage('orders')"
@@ -589,7 +1022,9 @@
 
                         </div>
 
-                        <b>→</b>
+                        <b>
+                            →
+                        </b>
 
                     </button>
 
@@ -606,7 +1041,7 @@
                         <div>
 
                             <strong>
-                                POW & ABC
+                                POW &amp; ABC
                             </strong>
 
                             <span>
@@ -615,7 +1050,9 @@
 
                         </div>
 
-                        <b>→</b>
+                        <b>
+                            →
+                        </b>
 
                     </button>
 
@@ -636,21 +1073,27 @@
                             </strong>
 
                             <span>
-                                Admin & field forms
+                                Admin &amp; field forms
                             </span>
 
                         </div>
 
-                        <b>→</b>
+                        <b>
+                            →
+                        </b>
 
                     </button>
+
 
                 </div>
 
 
+                <!-- TWO COLUMNS -->
+
                 <div class="two-column">
 
-                    <!-- DEADLINES -->
+
+                    <!-- PROJECT STATUS -->
 
                     <div class="panel">
 
@@ -696,6 +1139,7 @@
 
                             </div>
 
+
                             <button
                                 class="small-button"
                                 onclick="showPage('content')"
@@ -706,7 +1150,9 @@
                         </div>
 
 
-                        <div id="recentFiles"></div>
+                        <div
+                            id="recentFiles"
+                        ></div>
 
                     </div>
 
@@ -728,7 +1174,7 @@
                         </div>
 
                         <h3>
-                            Your Planning & Design workspace is now connected.
+                            Your Planning &amp; Design workspace is now connected.
                         </h3>
 
                         <p>
@@ -743,264 +1189,283 @@
             </section>
 
 
-            <!-- DEPARTMENT ORDERS -->
-            <!-- =========================================================
-     DEPARTMENT ORDERS
-========================================================= -->
+            <!-- =================================================
+                 DEPARTMENT ORDERS
+            ================================================== -->
 
-<section id="orders" class="page">
-
-    <div class="page-title">
-
-        <div>
-
-            <div class="eyebrow">
-                PDS REFERENCE LIBRARY
-            </div>
-
-            <h1>
-                Department Orders
-            </h1>
-
-            <p>
-                Official DPWH issuances relevant to Planning & Design.
-            </p>
-
-        </div>
-
-        <a
-            href="https://www.dpwh.gov.ph/dpwh/references/issuances/DO"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="button secondary"
-        >
-            View All DPWH Orders ↗
-        </a>
-
-    </div>
-
-
-    <!-- INFORMATION BANNER -->
-
-    <div class="orders-info-banner">
-
-        <div class="orders-info-icon">
-            ✓
-        </div>
-
-        <div>
-
-            <strong>
-                Planning & Design Curated Library
-            </strong>
-
-            <p>
-                This section contains Department Orders and related
-                issuances selected for Planning & Design activities,
-                including project development, roads, bridges,
-                geotechnical investigation, hydrology, drainage,
-                right-of-way, survey, and design standards.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <!-- SEARCH AND FILTER -->
-
-    <div class="orders-toolbar">
-
-        <div class="orders-search">
-
-            <span>⌕</span>
-
-            <input
-                id="ordersSearch"
-                type="search"
-                placeholder="Search Department Orders..."
-                autocomplete="off"
+            <section
+                id="orders"
+                class="page"
             >
 
-            <button
-                id="clearOrdersSearch"
-                type="button"
-                onclick="clearOrdersSearch()"
+                <div class="page-title">
+
+                    <div>
+
+                        <div class="eyebrow">
+                            PDS REFERENCE LIBRARY
+                        </div>
+
+                        <h1>
+                            Department Orders
+                        </h1>
+
+                        <p>
+                            Official DPWH issuances relevant to Planning &amp; Design.
+                        </p>
+
+                    </div>
+
+
+                    <a
+                        href="https://www.dpwh.gov.ph/dpwh/references/issuances/DO"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="button secondary"
+                    >
+                        View All DPWH Orders ↗
+                    </a>
+
+                </div>
+
+
+                <!-- INFORMATION -->
+
+                <div class="orders-info-banner">
+
+                    <div class="orders-info-icon">
+                        ✓
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Planning &amp; Design Curated Library
+                        </strong>
+
+                        <p>
+
+                            This section contains Department Orders
+                            and related issuances selected for Planning
+                            &amp; Design activities, including project
+                            development, roads, bridges, geotechnical
+                            investigation, hydrology, drainage,
+                            right-of-way, survey, and design standards.
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TOOLBAR -->
+
+                <div class="orders-toolbar">
+
+
+                    <div class="orders-search">
+
+                        <span>
+                            ⌕
+                        </span>
+
+
+                        <input
+                            id="ordersSearch"
+                            type="search"
+                            placeholder="Search Department Orders..."
+                            autocomplete="off"
+                        >
+
+
+                        <button
+                            id="clearOrdersSearch"
+                            type="button"
+                            onclick="clearOrdersSearch()"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+
+                    <select
+                        id="ordersCategory"
+                        onchange="filterDepartmentOrders()"
+                    >
+
+                        <option value="all">
+                            All Categories
+                        </option>
+
+                        <option value="planning">
+                            Planning &amp; Project Development
+                        </option>
+
+                        <option value="roads">
+                            Roads
+                        </option>
+
+                        <option value="bridges">
+                            Bridges &amp; Structures
+                        </option>
+
+                        <option value="geotechnical">
+                            Geotechnical
+                        </option>
+
+                        <option value="hydrology">
+                            Hydrology &amp; Drainage
+                        </option>
+
+                        <option value="survey">
+                            Survey &amp; Mapping
+                        </option>
+
+                        <option value="row">
+                            Right-of-Way
+                        </option>
+
+                        <option value="standards">
+                            Standards &amp; Manuals
+                        </option>
+
+                    </select>
+
+
+                    <select
+                        id="ordersYear"
+                        onchange="filterDepartmentOrders()"
+                    >
+
+                        <option value="all">
+                            All Years
+                        </option>
+
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                        <option value="2019">2019</option>
+                        <option value="2018">2018</option>
+                        <option value="2017">2017</option>
+                        <option value="2016">2016</option>
+                        <option value="2015">2015</option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- RESULT COUNT -->
+
+                <div class="orders-result-header">
+
+                    <div>
+
+                        <strong id="ordersResultCount">
+                            0
+                        </strong>
+
+                        <span>
+                            Planning &amp; Design issuances
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        onclick="resetDepartmentOrders()"
+                    >
+                        Reset filters
+                    </button>
+
+                </div>
+
+
+                <!-- ORDER GRID -->
+
+                <div
+                    id="departmentOrdersGrid"
+                    class="department-orders-grid"
+                ></div>
+
+
+                <!-- NO RESULTS -->
+
+                <div
+                    id="ordersNoResults"
+                    class="orders-no-results"
+                    style="display:none;"
+                >
+
+                    <div>
+                        ⌕
+                    </div>
+
+                    <h3>
+                        No Department Orders found
+                    </h3>
+
+                    <p>
+                        Try another keyword, category, or year.
+                    </p>
+
+                    <button
+                        type="button"
+                        class="button primary"
+                        onclick="resetDepartmentOrders()"
+                    >
+                        Reset Filters
+                    </button>
+
+                </div>
+
+
+                <!-- OFFICIAL SOURCE -->
+
+                <div class="orders-source-note">
+
+                    <strong>
+                        Official Source
+                    </strong>
+
+                    <p>
+
+                        The Department Orders listed here are provided
+                        as a Planning &amp; Design reference. Always
+                        verify the latest issuance, amendment, or
+                        superseding order through the official DPWH website.
+
+                    </p>
+
+
+                    <a
+                        href="https://www.dpwh.gov.ph/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Official DPWH Website ↗
+                    </a>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 STANDARDS
+            ================================================== -->
+
+            <section
+                id="standards"
+                class="page"
             >
-                ×
-            </button>
-
-        </div>
-
-
-        <select
-            id="ordersCategory"
-            onchange="filterDepartmentOrders()"
-        >
-
-            <option value="all">
-                All Categories
-            </option>
-
-            <option value="planning">
-                Planning & Project Development
-            </option>
-
-            <option value="roads">
-                Roads
-            </option>
-
-            <option value="bridges">
-                Bridges & Structures
-            </option>
-
-            <option value="geotechnical">
-                Geotechnical
-            </option>
-
-            <option value="hydrology">
-                Hydrology & Drainage
-            </option>
-
-            <option value="survey">
-                Survey & Mapping
-            </option>
-
-            <option value="row">
-                Right-of-Way
-            </option>
-
-            <option value="standards">
-                Standards & Manuals
-            </option>
-
-        </select>
-
-
-        <select
-            id="ordersYear"
-            onchange="filterDepartmentOrders()"
-        >
-
-            <option value="all">
-                All Years
-            </option>
-
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="2021">2021</option>
-            <option value="2020">2020</option>
-            <option value="2019">2019</option>
-            <option value="2018">2018</option>
-            <option value="2017">2017</option>
-            <option value="2016">2016</option>
-            <option value="2015">2015</option>
-
-        </select>
-
-    </div>
-
-
-    <!-- RESULT COUNT -->
-
-    <div class="orders-result-header">
-
-        <div>
-
-            <strong id="ordersResultCount">
-                0
-            </strong>
-
-            <span>
-                Planning & Design issuances
-            </span>
-
-        </div>
-
-        <button
-            type="button"
-            onclick="resetDepartmentOrders()"
-        >
-            Reset filters
-        </button>
-
-    </div>
-
-
-    <!-- ORDER CARDS -->
-
-    <div
-        id="departmentOrdersGrid"
-        class="department-orders-grid"
-    ></div>
-
-
-    <!-- NO RESULTS -->
-
-    <div
-        id="ordersNoResults"
-        class="orders-no-results"
-        style="display:none;"
-    >
-
-        <div>
-            ⌕
-        </div>
-
-        <h3>
-            No Department Orders found
-        </h3>
-
-        <p>
-            Try another keyword, category, or year.
-        </p>
-
-        <button
-            type="button"
-            class="button primary"
-            onclick="resetDepartmentOrders()"
-        >
-            Reset Filters
-        </button>
-
-    </div>
-
-
-    <!-- OFFICIAL SOURCE -->
-
-    <div class="orders-source-note">
-
-        <strong>
-            Official Source
-        </strong>
-
-        <p>
-            The Department Orders listed here are provided as a
-            Planning & Design reference. Always verify the latest
-            issuance, amendment, or superseding order through
-            the official DPWH website.
-        </p>
-
-        <a
-            href="https://www.dpwh.gov.ph/"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            Official DPWH Website ↗
-        </a>
-
-    </div>
-
-</section>
-           
-
-
-            <!-- STANDARDS -->
-
-            <section id="standards" class="page">
 
                 <div class="page-title">
 
@@ -1011,7 +1476,7 @@
                         </div>
 
                         <h1>
-                            Standards & Templates
+                            Standards &amp; Templates
                         </h1>
 
                         <p>
@@ -1019,6 +1484,7 @@
                         </p>
 
                     </div>
+
 
                     <button
                         class="button primary"
@@ -1038,9 +1504,14 @@
             </section>
 
 
-            <!-- FORMS -->
+            <!-- =================================================
+                 FORMS
+            ================================================== -->
 
-            <section id="forms" class="page">
+            <section
+                id="forms"
+                class="page"
+            >
 
                 <div class="page-title">
 
@@ -1060,6 +1531,7 @@
 
                     </div>
 
+
                     <button
                         class="button primary"
                         onclick="openUploadModal('Form')"
@@ -1078,9 +1550,14 @@
             </section>
 
 
-            <!-- PROJECTS -->
+            <!-- =================================================
+                 PROJECTS
+            ================================================== -->
 
-            <section id="projects" class="page">
+            <section
+                id="projects"
+                class="page"
+            >
 
                 <div class="page-title">
 
@@ -1100,6 +1577,7 @@
 
                     </div>
 
+
                     <button
                         class="button primary"
                         onclick="openProjectModal()"
@@ -1111,6 +1589,7 @@
 
 
                 <div class="project-table">
+
 
                     <div class="table-header">
 
@@ -1137,16 +1616,23 @@
                     </div>
 
 
-                    <div id="projectList"></div>
+                    <div
+                        id="projectList"
+                    ></div>
 
                 </div>
 
             </section>
 
 
-            <!-- MY PROJECTS -->
+            <!-- =================================================
+                 MY PROJECTS
+            ================================================== -->
 
-            <section id="myprojects" class="page">
+            <section
+                id="myprojects"
+                class="page"
+            >
 
                 <div class="page-title">
 
@@ -1169,14 +1655,21 @@
                 </div>
 
 
-                <div id="myProjectList"></div>
+                <div
+                    id="myProjectList"
+                ></div>
 
             </section>
 
 
-            <!-- TEAM -->
+            <!-- =================================================
+                 TEAM
+            ================================================== -->
 
-            <section id="team" class="page">
+            <section
+                id="team"
+                class="page"
+            >
 
                 <div class="page-title">
 
@@ -1191,7 +1684,7 @@
                         </h1>
 
                         <p>
-                            Planning & Design Section team members.
+                            Planning &amp; Design Section team members.
                         </p>
 
                     </div>
@@ -1207,9 +1700,14 @@
             </section>
 
 
-            <!-- CONTENT MANAGER -->
+            <!-- =================================================
+                 CONTENT MANAGER
+            ================================================== -->
 
-            <section id="content" class="page">
+            <section
+                id="content"
+                class="page"
+            >
 
                 <div class="page-title">
 
@@ -1229,6 +1727,7 @@
 
                     </div>
 
+
                     <button
                         class="button primary"
                         onclick="openUploadModal()"
@@ -1240,6 +1739,7 @@
 
 
                 <div class="library">
+
 
                     <div class="library-toolbar">
 
@@ -1277,11 +1777,14 @@
                     </div>
 
 
-                    <div id="libraryList"></div>
+                    <div
+                        id="libraryList"
+                    ></div>
 
                 </div>
 
             </section>
+
 
         </div>
 
@@ -1294,7 +1797,11 @@
      PROJECT / UPLOAD MODAL
 ========================================================= -->
 
-<div id="modal" class="modal">
+<div
+    id="modal"
+    class="modal"
+>
+
 
     <div
         class="modal-overlay"
@@ -1303,6 +1810,7 @@
 
 
     <div class="modal-box">
+
 
         <button
             class="modal-close"
@@ -1324,9 +1832,14 @@
 
         <form id="modalForm">
 
+
+            <!-- PROJECT FIELDS -->
+
             <div id="projectFields">
 
+
                 <label>
+
                     Project Code
 
                     <input
@@ -1334,10 +1847,12 @@
                         type="text"
                         placeholder="e.g. 26B-014"
                     >
+
                 </label>
 
 
                 <label>
+
                     Project Name
 
                     <input
@@ -1345,20 +1860,24 @@
                         type="text"
                         required
                     >
+
                 </label>
 
 
                 <label>
+
                     Location
 
                     <input
                         id="projectLocation"
                         type="text"
                     >
+
                 </label>
 
 
                 <label>
+
                     Status
 
                     <select id="projectStatus">
@@ -1389,6 +1908,7 @@
 
 
                 <label>
+
                     Progress (%)
 
                     <input
@@ -1403,6 +1923,7 @@
 
 
                 <label>
+
                     Target Date
 
                     <input
@@ -1414,6 +1935,7 @@
 
 
                 <label>
+
                     Notes
 
                     <textarea
@@ -1423,12 +1945,20 @@
 
                 </label>
 
+
             </div>
 
 
-            <div id="uploadFields" style="display:none;">
+            <!-- UPLOAD FIELDS -->
+
+            <div
+                id="uploadFields"
+                style="display:none;"
+            >
+
 
                 <label>
+
                     Document Title
 
                     <input
@@ -1440,6 +1970,7 @@
 
 
                 <label>
+
                     Category
 
                     <select id="documentCategory">
@@ -1466,6 +1997,7 @@
 
 
                 <label>
+
                     File
 
                     <input
@@ -1476,10 +2008,14 @@
 
                 </label>
 
+
             </div>
 
 
+            <!-- MODAL ACTIONS -->
+
             <div class="modal-actions">
+
 
                 <button
                     type="button"
@@ -1498,7 +2034,9 @@
                     Save
                 </button>
 
+
             </div>
+
 
         </form>
 
@@ -1507,46 +2045,96 @@
 </div>
 
 
-<!-- MOBILE NAV -->
+<!-- =========================================================
+     MOBILE NAVIGATION
+========================================================= -->
 
 <nav class="mobile-nav">
 
-    <button onclick="showPage('overview')">
-        <span>⌂</span>
+
+    <button
+        class="active"
+        data-page="overview"
+        onclick="showPage('overview')"
+    >
+
+        <span>
+            ⌂
+        </span>
+
         Home
+
     </button>
 
-    <button onclick="showPage('orders')">
-        <span>▤</span>
+
+    <button
+        data-page="orders"
+        onclick="showPage('orders')"
+    >
+
+        <span>
+            ▤
+        </span>
+
         DOs
+
     </button>
 
-    <button onclick="showPage('forms')">
-        <span>◇</span>
+
+    <button
+        data-page="forms"
+        onclick="showPage('forms')"
+    >
+
+        <span>
+            ◇
+        </span>
+
         Forms
+
     </button>
 
-    <button onclick="showPage('projects')">
-        <span>◫</span>
+
+    <button
+        data-page="projects"
+        onclick="showPage('projects')"
+    >
+
+        <span>
+            ◫
+        </span>
+
         Projects
+
     </button>
 
-    <button onclick="showPage('team')">
-        <span>◎</span>
+
+    <button
+        data-page="team"
+        onclick="showPage('team')"
+    >
+
+        <span>
+            ◎
+        </span>
+
         Me
+
     </button>
+
 
 </nav>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="script.js"></script>
-
-<!-- PDS ENHANCEMENTS -->
-<script src="pds-enhancements.js"></script>
 <!-- =========================================================
-     FLOATING PDS AI CHATBOT
+     PDS ENHANCEMENTS
+========================================================= -->
+
+<script src="pds-enhancements.js"></script>
+
+
+<!-- =========================================================
+     PDS AI — FLOATING CHATBOT
 ========================================================= -->
 
 <button
@@ -1556,23 +2144,52 @@
     onclick="togglePDSAI()"
     aria-label="Open PDS AI"
 >
-    <span class="pds-ai-icon">✦</span>
-    <span class="pds-ai-launcher-text">PDS AI</span>
+
+    <span class="pds-ai-icon">
+        ✦
+    </span>
+
+    <span class="pds-ai-launcher-text">
+        PDS AI
+    </span>
+
 </button>
 
 
-<div id="pdsAiChatbot" class="pds-ai-chatbot">
+<div
+    id="pdsAiChatbot"
+    class="pds-ai-chatbot"
+>
+
+
+    <!-- AI HEADER -->
 
     <div class="pds-ai-chat-header">
 
+
         <div class="pds-ai-chat-brand">
-            <div class="pds-ai-mini-logo">PDS</div>
+
+
+            <div class="pds-ai-mini-logo">
+                PDS
+            </div>
+
 
             <div>
-                <strong>PDS AI</strong>
-                <small>Planning & Design Assistant</small>
+
+                <strong>
+                    PDS AI
+                </strong>
+
+                <small>
+                    Planning &amp; Design Assistant
+                </small>
+
             </div>
+
+
         </div>
+
 
         <button
             type="button"
@@ -1583,25 +2200,43 @@
             ×
         </button>
 
+
     </div>
 
+
+    <!-- AI MESSAGES -->
 
     <div
         id="aiResponse"
         class="pds-ai-messages"
     >
+
+
         <div class="pds-ai-message ai">
-            <strong>PDS AI</strong>
+
+            <strong>
+                PDS AI
+            </strong>
+
             <p>
-                Hello! I'm PDS AI. How can I help you with
-                planning, design, DPWH standards, projects,
+
+                Hello! I'm PDS AI.
+                How can I help you with planning,
+                design, DPWH standards, projects,
                 documents, or construction?
+
             </p>
+
         </div>
+
+
     </div>
 
 
+    <!-- AI INPUT -->
+
     <div class="pds-ai-input-area">
+
 
         <input
             type="text"
@@ -1609,6 +2244,7 @@
             placeholder="Ask PDS AI..."
             autocomplete="off"
         >
+
 
         <button
             type="button"
@@ -1619,9 +2255,19 @@
             ➤
         </button>
 
+
     </div>
 
 </div>
-</body>
-</html>
 
+
+<!-- =========================================================
+     MAIN SCRIPT
+========================================================= -->
+
+<script src="script.js"></script>
+
+
+</body>
+
+</html>
