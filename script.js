@@ -4108,61 +4108,77 @@ document.addEventListener(
 );
 
 /* =========================================================
-   PDS AI ASSISTANT — FREE
-   Uses Google Gemini API through Supabase Edge Function
+   PDS AI — CHAT MESSAGE BUBBLES
 ========================================================= */
 
-async function askPDSAI() {
-
-    const input = document.getElementById("aiInput");
-    const responseBox = document.getElementById("aiResponse");
-
-    if (!input || !responseBox) {
-        console.error("PDS AI elements not found.");
-        return;
-    }
-
-    const message = input.value.trim();
-
-    if (!message) {
-        return;
-    }
-
-    responseBox.innerHTML = "PDS AI is thinking...";
-
-    try {
-
-        const {
-            data,
-            error
-        } = await db.functions.invoke(
-            "PDS-AI",
-            {
-                body: {
-                    message: message
-                }
-            }
-        );
-
-        if (error) {
-            throw error;
-        }
-
-        responseBox.innerHTML =
-            escapeHTML(
-                data?.answer ||
-                "No response received."
-            );
-
-    } catch (error) {
-
-        console.error("PDS AI ERROR:", error);
-
-        responseBox.innerHTML =
-            "PDS AI could not respond.<br><br>" +
-            escapeHTML(
-                error.message ||
-                "Unknown error."
-            );
-    }
+#aiResponse {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
 }
+
+/* Base message */
+
+.pds-ai-message {
+    display: block;
+    width: fit-content;
+    max-width: 82%;
+    padding: 10px 13px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* USER MESSAGE */
+
+.pds-ai-user {
+    align-self: flex-end;
+
+    background: #063b61;
+    color: #ffffff;
+
+    border-bottom-right-radius: 3px;
+
+    box-shadow:
+        0 3px 10px rgba(3, 41, 66, .15);
+}
+
+/* PDS AI MESSAGE */
+
+.pds-ai-bot {
+    align-self: flex-start;
+
+    background: #f1f5f8;
+    color: #10212d;
+
+    border: 1px solid #d5e0e7;
+
+    border-bottom-left-radius: 3px;
+
+    box-shadow:
+        0 3px 10px rgba(5, 35, 55, .07);
+}
+
+/* THINKING */
+
+.pds-ai-bot:has(+ .pds-ai-thinking) {
+    opacity: .8;
+}
+
+/* Mobile */
+
+@media (max-width: 650px) {
+
+    .pds-ai-message {
+        max-width: 88%;
+        font-size: 12px;
+    }
+
+}
+
