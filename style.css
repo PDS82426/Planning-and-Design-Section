@@ -3703,3 +3703,1007 @@ img {
         opacity:.18;
     }
 }
+/* =========================================================
+   STEP 9 — TECHNICAL DASHBOARD HEADER
+========================================================= */
+
+.page-title{
+    position:relative;
+    padding-bottom:14px;
+    margin-bottom:20px;
+    border-bottom:1px solid var(--line);
+}
+
+.page-title::before{
+    content:"DPWH • PLANNING & DESIGN SECTION";
+    display:block;
+    margin-bottom:6px;
+    color:var(--orange);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:1.4px;
+}
+
+.page-title::after{
+    content:"PDS / 001";
+    position:absolute;
+    right:0;
+    bottom:10px;
+    color:rgba(7,59,99,.35);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    letter-spacing:1px;
+}
+
+.page-title h1{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:30px;
+    font-weight:600;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+}
+
+.page-title p{
+    margin-top:5px;
+    color:var(--muted);
+    font-size:9px;
+}
+
+/* Technical corner marks */
+
+.page-title h1::before{
+    content:"";
+    display:inline-block;
+    width:12px;
+    height:12px;
+    margin-right:9px;
+    border-left:2px solid var(--orange);
+    border-top:2px solid var(--orange);
+    vertical-align:2px;
+}
+
+/* Section headings */
+
+.section-heading{
+    margin-bottom:12px;
+}
+
+.section-heading h2{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+}
+
+.section-heading p{
+    margin-top:3px;
+    color:var(--muted);
+    font-size:8px;
+}
+
+.section-heading::after{
+    width:42px;
+    height:3px;
+    margin-top:7px;
+    background:var(--orange);
+}
+
+/* Blueprint labels */
+
+.eyebrow{
+    color:var(--orange);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+}
+
+/* Mobile */
+
+@media(max-width:650px){
+
+    .page-title h1{
+        font-size:24px;
+    }
+
+    .page-title::after{
+        display:none;
+    }
+
+    .page-title{
+        padding-bottom:11px;
+    }
+
+    .section-heading h2{
+        font-size:17px;
+    }
+}
+/* =========================================================
+   STEP 10 — TECHNICAL STAT CARDS
+========================================================= */
+
+.stats-grid{
+    gap:12px;
+}
+
+.stat-card{
+    position:relative;
+    min-height:125px;
+    padding:18px 18px 16px;
+    border:1px solid #c8d6df;
+    border-top:3px solid var(--blue);
+    border-radius:3px;
+    background:
+        linear-gradient(rgba(7,59,99,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.025) 1px,transparent 1px),
+        #fff;
+    background-size:18px 18px;
+    box-shadow:0 4px 14px rgba(3,44,73,.07);
+}
+
+.stat-card:nth-child(2){
+    border-top-color:var(--orange);
+}
+
+.stat-card:nth-child(3){
+    border-top-color:var(--success);
+}
+
+.stat-card:nth-child(4){
+    border-top-color:var(--blue-2);
+}
+
+.stat-card:hover{
+    transform:translateY(-3px);
+    border-color:#9fb7c5;
+    box-shadow:0 9px 24px rgba(3,44,73,.12);
+}
+
+.stat-card::before{
+    content:"";
+    position:absolute;
+    left:7px;
+    top:7px;
+    width:9px;
+    height:9px;
+    border-left:1px solid var(--blue);
+    border-top:1px solid var(--blue);
+}
+
+.stat-card::after{
+    content:"";
+    position:absolute;
+    right:8px;
+    bottom:8px;
+    width:32px;
+    height:18px;
+    border-right:1px solid rgba(7,59,99,.18);
+    border-bottom:1px solid rgba(7,59,99,.18);
+}
+
+.stat-label{
+    color:#657680;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+
+.stat-number{
+    margin-top:10px;
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:34px;
+    font-weight:600;
+    line-height:1;
+}
+
+.stat-change{
+    margin-top:7px;
+    color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+}
+
+.stat-arrow{
+    color:var(--orange);
+    font-size:17px;
+}
+/* =========================================================
+   STEP 11 — TECHNICAL QUICK ACTIONS
+========================================================= */
+
+.quick-grid{
+    gap:12px;
+}
+
+.quick-card{
+    position:relative;
+    min-height:82px;
+    padding:14px 15px;
+    border:1px solid #c8d6df;
+    border-radius:3px;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(3,44,73,.06);
+    overflow:hidden;
+}
+
+.quick-card::before{
+    width:4px;
+    top:0;
+    bottom:0;
+    left:0;
+    background:var(--orange);
+}
+
+.quick-card::after{
+    content:"";
+    position:absolute;
+    right:7px;
+    bottom:7px;
+    width:18px;
+    height:18px;
+    border-right:1px solid rgba(7,59,99,.18);
+    border-bottom:1px solid rgba(7,59,99,.18);
+}
+
+.quick-card:hover{
+    transform:translateY(-3px);
+    border-color:#9fb7c5;
+    background:#f8fbfd;
+    box-shadow:0 9px 22px rgba(3,44,73,.10);
+}
+
+.quick-icon{
+    width:42px;
+    height:42px;
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:3px;
+    background:var(--blue);
+    color:#fff;
+    font-family:"Oswald",sans-serif;
+    font-size:18px;
+}
+
+.quick-card strong{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:12px;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+}
+
+.quick-card span{
+    margin-top:4px;
+    color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    letter-spacing:.2px;
+}
+
+.quick-card b{
+    color:var(--orange);
+    font-size:17px;
+}
+/* =========================================================
+   STEP 12 — TECHNICAL DATA PANELS
+========================================================= */
+
+.two-column{
+    gap:14px;
+}
+
+.panel{
+    border:1px solid #c8d6df;
+    border-radius:3px;
+    background:#fff;
+    box-shadow:0 4px 14px rgba(3,44,73,.07);
+}
+
+.panel-header{
+    position:relative;
+    min-height:58px;
+    padding:14px 17px;
+    border-bottom:2px solid var(--blue);
+    background:
+        linear-gradient(rgba(7,59,99,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.025) 1px,transparent 1px),
+        #f8fafb;
+    background-size:18px 18px;
+}
+
+.panel-header::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:var(--orange);
+}
+
+.panel-header h2{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:17px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+}
+
+.panel-header .eyebrow{
+    color:var(--orange);
+}
+
+.panel-body{
+    background:#fff;
+}
+
+.panel:hover{
+    border-color:#a9bdc9;
+    box-shadow:0 8px 20px rgba(3,44,73,.10);
+}
+
+.panel-header::after{
+    content:"DPWH / PDS";
+    position:absolute;
+    right:14px;
+    bottom:6px;
+    color:rgba(7,59,99,.22);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:6px;
+    letter-spacing:1px;
+}
+/* =========================================================
+   STEP 13 — ENGINEERING PROJECT REGISTER
+========================================================= */
+
+.project-table{
+    border:1px solid #c4d3dc;
+    border-radius:3px;
+    background:#fff;
+    box-shadow:0 5px 16px rgba(3,44,73,.07);
+}
+
+.table-header{
+    min-height:46px;
+    padding:0 15px;
+    display:grid;
+    align-items:center;
+    border-bottom:3px solid var(--orange);
+    background:var(--blue-dark);
+    color:#fff;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    font-weight:700;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+}
+
+.project-row{
+    min-height:68px;
+    border-bottom:1px solid #e1e8ec;
+    background:#fff;
+    transition:.18s ease;
+}
+
+.project-row:hover{
+    background:#f2f7fa;
+    box-shadow:inset 4px 0 0 var(--orange);
+}
+
+.project-row:last-child{
+    border-bottom:0;
+}
+
+.project-row strong{
+    color:var(--blue-dark);
+    font-size:10px;
+    font-weight:700;
+}
+
+.project-row small{
+    color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+}
+
+.project-row .status{
+    border-radius:2px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    font-weight:700;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+}
+
+/* Register numbering */
+
+.project-row::before{
+    content:"";
+    color:rgba(7,59,99,.30);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+}
+
+/* Technical register footer */
+
+.project-table::after{
+    content:"PDS PROJECT REGISTER  •  DPWH";
+    display:block;
+    padding:8px 15px;
+    border-top:1px solid #d7e1e7;
+    background:#f6f9fb;
+    color:rgba(7,59,99,.45);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:6px;
+    letter-spacing:1px;
+    text-align:right;
+}
+/* =========================================================
+   STEP 14 — TECHNICAL DOCUMENT CARDS
+========================================================= */
+
+.document-grid{
+    gap:12px;
+}
+
+.document-card{
+    position:relative;
+    min-height:145px;
+    padding:18px 18px 16px 21px;
+    border:1px solid #c8d6df;
+    border-radius:3px;
+    border-top:2px solid var(--blue);
+    background:
+        linear-gradient(rgba(7,59,99,.022) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.022) 1px,transparent 1px),
+        #fff;
+    background-size:18px 18px;
+    box-shadow:0 4px 13px rgba(3,44,73,.06);
+    overflow:hidden;
+    transition:.18s ease;
+}
+
+.document-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:12px;
+    bottom:12px;
+    width:4px;
+    background:var(--orange);
+}
+
+.document-card::after{
+    content:"DOC";
+    position:absolute;
+    right:10px;
+    bottom:8px;
+    color:rgba(7,59,99,.20);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:6px;
+    letter-spacing:1px;
+}
+
+.document-card:hover{
+    transform:translateY(-3px);
+    border-color:#9fb7c5;
+    box-shadow:0 9px 22px rgba(3,44,73,.11);
+}
+
+.document-card h3,
+.document-card strong{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.2px;
+}
+
+.document-card p{
+    margin-top:6px;
+    color:var(--muted);
+    font-size:8px;
+    line-height:1.6;
+}
+
+.document-card .document-meta{
+    margin-top:12px;
+    padding-top:9px;
+    border-top:1px solid #dce5ea;
+    color:var(--blue-2);
+    font-family:"IBM Plex Mono",
+       /* =========================================================
+   STEP 15 — PDS TEAM / PERSONNEL CARDS
+========================================================= */
+
+.team-grid{
+    gap:12px;
+}
+
+.team-card{
+    position:relative;
+    min-height:170px;
+    padding:20px 16px;
+    border:1px solid #c8d6df;
+    border-top:3px solid var(--blue);
+    border-radius:3px;
+    background:
+        linear-gradient(rgba(7,59,99,.022) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.022) 1px,transparent 1px),
+        #fff;
+    background-size:18px 18px;
+    box-shadow:0 4px 13px rgba(3,44,73,.06);
+    overflow:hidden;
+    transition:.18s ease;
+}
+
+.team-card::before{
+    content:"PDS";
+    position:absolute;
+    top:9px;
+    right:10px;
+    color:rgba(7,59,99,.18);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:6px;
+    letter-spacing:1px;
+}
+
+.team-card:hover{
+    transform:translateY(-3px);
+    border-color:#9fb7c5;
+    box-shadow:0 9px 22px rgba(3,44,73,.11);
+}
+
+.team-card .avatar{
+    width:52px;
+    height:52px;
+    margin:0 auto 12px;
+    border:2px solid var(--orange);
+    border-radius:50%;
+    background:var(--blue);
+    color:#fff;
+    font-family:"Oswald",sans-serif;
+    font-size:15px;
+    box-shadow:0 0 0 4px rgba(224,138,43,.08);
+}
+
+.team-card strong{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+}
+
+.team-card small{
+    margin-top:5px;
+    color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+}
+
+.team-card::after{
+    content:"";
+    position:absolute;
+    left:10px;
+    bottom:9px;
+    width:18px;
+    height:18px;
+    border-left:1px solid rgba(7,59,99,.18);
+    border-bottom:1px solid rgba(7,59,99,.18);
+}
+/* =========================================================
+   STEP 16 — DPWH TECHNICAL LOGIN SCREEN
+========================================================= */
+
+#authScreen{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:
+        linear-gradient(rgba(7,59,99,.055) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.055) 1px,transparent 1px),
+        #edf2f5;
+    background-size:32px 32px;
+}
+
+#authScreen::before{
+    content:"";
+    position:absolute;
+    width:620px;
+    height:620px;
+    left:-260px;
+    top:-230px;
+    border:1px solid rgba(7,59,99,.15);
+    border-radius:50%;
+    box-shadow:
+        0 0 0 35px rgba(7,59,99,.025),
+        0 0 0 70px rgba(7,59,99,.02);
+}
+
+#authScreen::after{
+    content:"DPWH • PDS • PLANNING & DESIGN";
+    position:absolute;
+    right:30px;
+    bottom:25px;
+    color:rgba(7,59,99,.25);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    letter-spacing:1.2px;
+}
+
+.auth-container{
+    position:relative;
+    z-index:2;
+    width:min(430px,calc(100% - 35px));
+    padding:32px;
+    border:1px solid #bdced8;
+    border-top:4px solid var(--orange);
+    border-radius:4px;
+    background:#fff;
+    box-shadow:0 20px 55px rgba(3,44,73,.18);
+}
+
+.auth-container::before{
+    content:"PDS / AUTH-001";
+    position:absolute;
+    top:10px;
+    right:15px;
+    color:rgba(7,59,99,.3);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:6px;
+    letter-spacing:1px;
+}
+
+.auth-logo{
+    width:72px;
+    height:72px;
+    margin:0 auto 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid var(--orange);
+    border-radius:50%;
+    background:var(--blue);
+    color:#fff;
+    font-family:"Oswald",sans-serif;
+    font-size:14px;
+    font-weight:700;
+    box-shadow:0 0 0 6px rgba(224,138,43,.08);
+}
+
+.auth-container h1{
+    color:var(--blue-dark);
+    font-family:"Oswald",sans-serif;
+    font-size:27px;
+    font-weight:600;
+    text-align:center;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+}
+
+.auth-container p{
+    margin:6px 0 22px;
+    color:var(--muted);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    text-align:center;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+}
+
+.auth-container input{
+    width:100%;
+    height:44px;
+    margin-bottom:11px;
+    padding:0 12px;
+    border:1px solid #c6d4dc;
+    border-radius:3px;
+    outline:none;
+    background:#f9fbfc;
+    color:var(--text);
+    font-size:10px;
+}
+
+.auth-container input:focus{
+    border-color:var(--blue);
+    background:#fff;
+    box-shadow:0 0 0 3px rgba(7,59,99,.06);
+}
+
+.auth-container button{
+    width:100%;
+    height:44px;
+    margin-top:5px;
+    border:1px solid var(--blue);
+    border-radius:3px;
+    background:var(--blue);
+    color:#fff;
+    font-family:"Oswald",sans-serif;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+}
+
+.auth-container button:hover{
+    background:var(--blue-dark);
+    border-color:var(--blue-dark);
+}
+
+@media(max-width:650px){
+    .auth-container{
+        padding:25px 20px;
+    }
+
+    #authScreen::after{
+        display:none;
+    }
+}
+/* =========================================================
+   STEP 17 — RESPONSIVE DPWH LAYOUT
+========================================================= */
+
+@media (max-width:1150px){
+
+    .stats-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .quick-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .document-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .team-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .department-orders-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:850px){
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:transform .25s ease;
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .main{
+        width:100%;
+        margin-left:0;
+    }
+
+    .topbar{
+        left:0;
+        right:0;
+    }
+
+    .content{
+        width:100%;
+        padding-left:20px;
+        padding-right:20px;
+    }
+
+    .two-column{
+        grid-template-columns:1fr;
+    }
+
+    .hero{
+        min-height:200px;
+    }
+
+    .hero > div:first-child{
+        max-width:100%;
+    }
+
+    .hero::before,
+    .hero::after{
+        opacity:.16;
+    }
+
+    .page::before{
+        display:none;
+    }
+}
+
+@media (max-width:650px){
+
+    .content{
+        padding-left:14px;
+        padding-right:14px;
+        padding-bottom:80px;
+    }
+
+    .stats-grid,
+    .quick-grid,
+    .document-grid,
+    .team-grid,
+    .department-orders-grid{
+        grid-template-columns:1fr;
+    }
+
+    .hero{
+        min-height:210px;
+        padding:22px;
+    }
+
+    .hero h1{
+        font-size:25px;
+    }
+
+    .hero p{
+        font-size:9px;
+    }
+
+    .page-title h1{
+        font-size:23px;
+    }
+
+    .page-title::after{
+        display:none;
+    }
+
+    .table-header{
+        overflow-x:auto;
+    }
+
+    .project-table{
+        overflow-x:auto;
+    }
+
+    .project-row{
+        min-width:650px;
+    }
+
+    .pds-ai-chatbot{
+        left:10px;
+        right:10px;
+        width:auto;
+    }
+
+    .pds-ai-launcher{
+        right:14px;
+        bottom:78px;
+    }
+}
+/* =========================================================
+   STEP 18 — FINAL DPWH TECHNICAL POLISH
+========================================================= */
+
+body{
+    color:var(--text);
+    background:var(--bg);
+}
+
+/* Technical page background */
+
+.page{
+    position:relative;
+}
+
+.page::after{
+    content:"";
+    position:absolute;
+    right:18px;
+    bottom:18px;
+    width:70px;
+    height:70px;
+    border-right:1px solid rgba(7,59,99,.12);
+    border-bottom:1px solid rgba(7,59,99,.12);
+    pointer-events:none;
+}
+
+/* Buttons */
+
+.button{
+    border-radius:3px;
+    font-family:"Inter",sans-serif;
+    font-weight:600;
+}
+
+.button.primary{
+    background:var(--blue);
+    border-color:var(--blue);
+}
+
+.button.primary:hover{
+    background:var(--blue-dark);
+}
+
+.button.secondary{
+    color:var(--blue);
+    border-color:#b9cbd5;
+    background:#fff;
+}
+
+.button.secondary:hover{
+    color:#fff;
+    background:var(--blue);
+}
+
+/* Links */
+
+a{
+    color:var(--blue-2);
+}
+
+a:hover{
+    color:var(--orange);
+}
+
+/* Inputs */
+
+input,
+select,
+textarea{
+    font-family:"Inter",sans-serif;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+    border-color:var(--blue-2)!important;
+    box-shadow:0 0 0 3px rgba(7,59,99,.06)!important;
+}
+
+/* Orange technical divider */
+
+hr{
+    border:0;
+    border-top:1px solid var(--line);
+}
+
+/* Selection */
+
+::selection{
+    background:var(--blue);
+    color:#fff;
+}
+
+/* Technical labels */
+
+small,
+.muted{
+    color:var(--muted);
+}
+
+/* Final mobile cleanup */
+
+@media(max-width:650px){
+
+    .page::after{
+        display:none;
+    }
+
+    .page-title::before{
+        font-size:7px;
+    }
+
+    .hero{
+        background-size:20px 20px;
+    }
+}
