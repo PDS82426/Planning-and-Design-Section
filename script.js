@@ -3479,55 +3479,96 @@ function setupAuthForms() {
 
 /* =========================================================
    AUTH STATE LISTENER
+   Keeps the user signed in after page refresh
 ========================================================= */
 
 db.auth.onAuthStateChange(
-    async (
-        event,
-        session
-    ) => {
+    async (event, session) => {
 
         console.log(
             "Supabase Auth:",
             event
         );
 
+        /* ---------------------------------------------
+           USER SIGNED IN / SESSION RESTORED
+        --------------------------------------------- */
 
-        if (
-            event === "SIGNED_IN" &&
-            session
-        ) {
+        if (session?.user) {
 
             currentUser =
                 session.user;
 
+            /*
+               IMPORTANT:
+               Do NOT show the login screen here.
+               Supabase has already restored the session.
+            */
+
+            if (
+                event === "SIGNED_IN" ||
+                event === "INITIAL_SESSION" ||
+                event === "TOKEN_REFRESHED"
+            ) {
+
+                await loadApplication();
+
+            }
+
+            return;
         }
 
 
-        if (
-            event === "SIGNED_OUT"
-        ) {
+        /* ---------------------------------------------
+           USER SIGNED OUT
+        --------------------------------------------- */
 
-            currentUser =
-                null;
+        if (event === "SIGNED_OUT") {
 
-            currentProfile =
-                null;
+            currentUser = null;
+
+            currentProfile = null;
+
+
+            const app =
+                document.getElementById("app");
+
+            const authScreen =
+                document.getElementById("authScreen");
+
+
+            if (app) {
+
+                app.style.display =
+                    "none";
+
+            }
+
+
+            if (authScreen) {
+
+                authScreen.style.display =
+                    "flex";
+
+            }
+
+
+            showLogin();
 
         }
 
     }
 );
 
-
 /* =========================================================
    INITIALIZE
+   Restores Supabase session before showing login screen
 ========================================================= */
 
 async function initializePDSHub() {
 
     console.log(
-        "PDS Hub initializing..."
+        "PDS initializing..."
     );
 
 
@@ -3538,6 +3579,34 @@ async function initializePDSHub() {
     setupNavigation();
 
     setupGlobalSearch();
+
+
+    const authScreen =
+        document.getElementById("authScreen");
+
+    const app =
+        document.getElementById("app");
+
+
+    /*
+       Hide both screens temporarily while
+       Supabase checks the existing session.
+    */
+
+    if (authScreen) {
+
+        authScreen.style.display =
+            "none";
+
+    }
+
+
+    if (app) {
+
+        app.style.display =
+            "none";
+
+    }
 
 
     try {
@@ -3555,34 +3624,6 @@ async function initializePDSHub() {
                 error
             );
 
-            showLogin();
-
-            return;
-
-        }
-
-
-        if (data?.session) {
-
-            currentUser =
-                data.session.user;
-
-
-            await loadApplication();
-
-        } else {
-
-            const authScreen =
-                document.getElementById(
-                    "authScreen"
-                );
-
-
-            const app =
-                document.getElementById(
-                    "app"
-                );
-
 
             if (authScreen) {
 
@@ -3592,17 +3633,63 @@ async function initializePDSHub() {
             }
 
 
-            if (app) {
-
-                app.style.display =
-                    "none";
-
-            }
-
-
             showLogin();
 
+            return;
+
         }
+
+
+        /*
+           EXISTING SESSION FOUND
+        */
+
+        if (data?.session?.user) {
+
+            console.log(
+                "Existing Supabase session restored."
+            );
+
+
+            currentUser =
+                data.session.user;
+
+
+            await loadApplication();
+
+
+            return;
+
+        }
+
+
+        /*
+           NO SESSION
+        */
+
+        console.log(
+            "No active Supabase session."
+        );
+
+
+        if (app) {
+
+            app.style.display =
+                "none";
+
+        }
+
+
+        if (authScreen) {
+
+            authScreen.style.display =
+                "flex";
+
+        }
+
+
+        showLogin();
+
 
     } catch (error) {
 
@@ -3612,12 +3699,27 @@ async function initializePDSHub() {
         );
 
 
+        if (app) {
+
+            app.style.display =
+                "none";
+
+        }
+
+
+        if (authScreen) {
+
+            authScreen.style.display =
+                "flex";
+
+        }
+
+
         showLogin();
 
     }
 
 }
-
 
 /* =========================================================
    START
