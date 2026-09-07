@@ -4266,3 +4266,269 @@ img {
     }
 }
 ```
+/* =========================================================
+   PDS HUB — DPWH SIDEBAR BRANDING
+   STEP 1
+========================================================= */
+
+.sidebar .brand {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    min-height: 94px;
+    padding: 18px 18px 20px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.045),
+            rgba(255,255,255,0)
+        );
+
+    border-bottom: 1px solid rgba(255,255,255,.16);
+
+    overflow: hidden;
+}
+
+/* Technical blueprint line */
+.sidebar .brand::after {
+    content: "";
+    position: absolute;
+
+    left: 18px;
+    right: 18px;
+    bottom: 0;
+
+    height: 2px;
+
+    background: #e08a2b;
+}
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.brand-logo-wrap {
+    position: relative;
+
+    width: 58px;
+    height: 58px;
+
+    flex: 0 0 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-logo-ring {
+    width: 54px;
+    height: 54px;
+
+    border: 2px solid rgba(255,255,255,.85);
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255,255,255,.10) 0%,
+            rgba(255,255,255,.025) 55%,
+            transparent 56%
+        );
+
+    box-shadow:
+        0 0 0 3px rgba(255,255,255,.06),
+        inset 0 0 0 1px rgba(255,255,255,.12);
+}
+
+/* Drafting crosshair */
+.brand-logo-ring::before,
+.brand-logo-ring::after {
+    content: "";
+    position: absolute;
+
+    background: rgba(255,255,255,.30);
+}
+
+.brand-logo-ring::before {
+    width: 70px;
+    height: 1px;
+}
+
+.brand-logo-ring::after {
+    width: 1px;
+    height: 70px;
+}
+
+.brand-logo-inner {
+    position: relative;
+    z-index: 2;
+
+    width: 42px;
+    height: 42px;
+
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255,255,255,.65);
+
+    color: #ffffff;
+
+    font-family: "Oswald", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+
+    background: #123d59;
+}
+
+/* =========================================================
+   BRAND TEXT
+========================================================= */
+
+.brand-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.brand-agency {
+    color: rgba(255,255,255,.72);
+
+    font-family: "IBM Plex Mono", monospace;
+
+    font-size: 7px;
+    line-height: 1.45;
+
+    letter-spacing: .75px;
+    text-transform: uppercase;
+}
+
+.brand-divider {
+    width: 34px;
+    height: 2px;
+
+    margin: 6px 0 5px;
+
+    background: #e08a2b;
+}
+
+.sidebar .brand-name {
+    margin: 0;
+
+    color: #ffffff;
+
+    font-family: "Oswald", sans-serif;
+
+    font-size: 22px;
+    line-height: 1;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    text-transform: uppercase;
+}
+
+.sidebar .brand-subtitle {
+    margin-top: 5px;
+
+    color: rgba(255,255,255,.72);
+
+    font-family: "IBM Plex Mono", monospace;
+
+    font-size: 7px;
+    line-height: 1.35;
+
+    letter-spacing: .55px;
+
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   SIDEBAR NAV — SUPPORT THE NEW BRANDING
+========================================================= */
+
+.sidebar {
+    background:
+        linear-gradient(
+            180deg,
+            #092f49 0%,
+            #0d3d5c 48%,
+            #092d45 100%
+        );
+}
+
+.sidebar .navigation {
+    padding-top: 18px;
+}
+
+.sidebar .nav-item {
+    border-left: 3px solid transparent;
+}
+
+.sidebar .nav-item:hover {
+    border-left-color: rgba(224,138,43,.65);
+}
+
+.sidebar .nav-item.active {
+    border-left-color: #e08a2b;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(224,138,43,.16),
+            rgba(255,255,255,.04)
+        );
+}
+
+.sidebar .nav-item.active::before {
+    background: #e08a2b;
+}
+
+/* =========================================================
+   SIDEBAR BOTTOM
+========================================================= */
+
+.sidebar .help-box {
+    border-color: rgba(255,255,255,.14);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.075),
+            rgba(255,255,255,.025)
+        );
+}
+
+.sidebar .help-box button {
+    color: #f1a04c;
+}
+
+.sidebar .profile {
+    border-top-color: rgba(255,255,255,.14);
+}
+
+/* =========================================================
+   MOBILE BRAND
+========================================================= */
+
+.mobile-brand .brand-mark {
+    background: #123d59;
+    border: 1px solid rgba(255,255,255,.35);
+}
+
+.mobile-brand strong {
+    font-family: "Oswald", sans-serif;
+    letter-spacing: 1px;
+}
