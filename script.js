@@ -24,7 +24,7 @@ const SUPABASE_URL =
  * DO NOT use the service_role key.
  */
 const SUPABASE_ANON_KEY =
-    "PASTE_YOUR_CURRENT_SUPABASE_PUBLISHABLE_KEY_HERE";
+    "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
 
 
 /* =========================================================
