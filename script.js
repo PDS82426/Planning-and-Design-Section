@@ -7,13 +7,18 @@
    • Supabase Authentication
    • Persistent Login Session
    • Dashboard
-   • Project Register
-   • Document Library
+   • Projects
+   • Documents
+   • Standards & Guidelines
    • Department Orders
-   • Team
+   • Forms & Templates
+   • Announcements
+   • PDS AI Assistant
+   • About PDS
+   • Contact Us
    • Profile
-   • Section-to-section navigation
-   • Quick Action navigation
+   • Section Navigation
+   • Quick Action Navigation
    • Global Search
    • Project Modal
    • Document Upload
@@ -50,6 +55,8 @@ let currentProfile = null;
 let modalMode = "project";
 
 let pdsAIHistory = [];
+
+let cachedDocuments = [];
 
 let appLoading = false;
 let navigationReady = false;
@@ -164,15 +171,25 @@ function showLogin() {
         document.getElementById("app");
 
     if (authScreen) {
-        authScreen.style.display = "flex";
+
+        authScreen.style.display =
+            "flex";
+
     }
 
     if (app) {
-        app.style.display = "none";
+
+        app.style.display =
+            "none";
+
     }
 
 }
 
+
+/* =========================================================
+   REGISTER SCREEN
+========================================================= */
 
 function showRegister() {
 
@@ -198,14 +215,20 @@ function clearAuthMessages() {
     const registerMessage =
         document.getElementById("registerMessage");
 
+
     if (loginMessage) {
+
         loginMessage.textContent = "";
         loginMessage.className = "";
+
     }
 
+
     if (registerMessage) {
+
         registerMessage.textContent = "";
         registerMessage.className = "";
+
     }
 
 }
@@ -219,7 +242,9 @@ function authMessage(
     const loginMessage =
         document.getElementById("loginMessage");
 
-    if (!loginMessage) return;
+    if (!loginMessage) {
+        return;
+    }
 
     loginMessage.textContent =
         message || "";
@@ -244,13 +269,15 @@ async function registerUser(
 
         clearAuthMessages();
 
+
         const {
             data,
             error
         } =
             await db.auth.signUp({
 
-                email,
+                email: email.trim(),
+
                 password,
 
                 options: {
@@ -280,10 +307,6 @@ async function registerUser(
 
         }
 
-
-        /*
-            Create profile if a profile table exists.
-        */
 
         try {
 
@@ -319,11 +342,13 @@ async function registerUser(
             error
         );
 
+
         authMessage(
             error.message ||
             "Registration failed.",
             "error"
         );
+
 
         return null;
 
@@ -341,7 +366,9 @@ async function createProfile(
     fullName = ""
 ) {
 
-    if (!user) return;
+    if (!user) {
+        return;
+    }
 
 
     try {
@@ -380,7 +407,7 @@ async function createProfile(
         if (error) {
 
             console.warn(
-                "Profile upsert:",
+                "Profile upsert warning:",
                 error
             );
 
@@ -390,7 +417,7 @@ async function createProfile(
     catch(error) {
 
         console.warn(
-            "Profile creation:",
+            "Profile creation warning:",
             error
         );
 
@@ -412,6 +439,7 @@ async function loginUser(
 
         clearAuthMessages();
 
+
         authMessage(
             "Signing in...",
             "info"
@@ -424,7 +452,9 @@ async function loginUser(
         } =
             await db.auth.signInWithPassword({
 
-                email,
+                email:
+                    email.trim(),
+
                 password
 
             });
@@ -435,20 +465,65 @@ async function loginUser(
         }
 
 
-        currentUser =
-            data?.user || null;
+        if (!data?.user) {
 
-
-        if (!currentUser) {
-
-            authMessage(
-                "Unable to retrieve user account.",
-                "error"
+            throw new Error(
+                "Login succeeded but no user account was returned."
             );
 
-            return;
+        }
+
+
+        currentUser =
+            data.user;
+
+
+        console.log(
+            "PDS: Login successful:",
+            currentUser.email
+        );
+
+
+        /*
+            IMPORTANT:
+            Show the application immediately.
+            This prevents the user from becoming
+            trapped on the Sign In screen.
+        */
+
+        const authScreen =
+            document.getElementById(
+                "authScreen"
+            );
+
+        const app =
+            document.getElementById(
+                "app"
+            );
+
+
+        if (authScreen) {
+
+            authScreen.style.display =
+                "none";
 
         }
+
+
+        if (app) {
+
+            app.style.display =
+                "flex";
+
+        }
+
+
+        showPage(
+            "dashboard",
+            {
+                skipScroll: true
+            }
+        );
 
 
         authMessage(
@@ -457,15 +532,21 @@ async function loginUser(
         );
 
 
+        /*
+            Load application data.
+        */
+
         await loadApplication();
+
 
     }
     catch(error) {
 
         console.error(
-            "Login error:",
+            "PDS Login Error:",
             error
         );
+
 
         authMessage(
             error.message ||
@@ -503,22 +584,34 @@ async function signOut() {
 
 
         const app =
-            document.getElementById("app");
+            document.getElementById(
+                "app"
+            );
 
         const authScreen =
-            document.getElementById("authScreen");
+            document.getElementById(
+                "authScreen"
+            );
 
 
         if (app) {
-            app.style.display = "none";
+
+            app.style.display =
+                "none";
+
         }
 
+
         if (authScreen) {
-            authScreen.style.display = "flex";
+
+            authScreen.style.display =
+                "flex";
+
         }
 
 
         clearAuthMessages();
+
 
         console.log(
             "PDS: Signed out."
@@ -551,6 +644,17 @@ async function loadApplication() {
     appLoading = true;
 
 
+    const authScreen =
+        document.getElementById(
+            "authScreen"
+        );
+
+    const app =
+        document.getElementById(
+            "app"
+        );
+
+
     try {
 
         const {
@@ -580,37 +684,73 @@ async function loadApplication() {
         }
 
 
-        currentUser = user;
+        currentUser =
+            user;
 
 
-        await loadProfile();
+        /*
+            Profile failure must NOT prevent login.
+        */
+
+        try {
+
+            await loadProfile();
+
+        }
+        catch(profileError) {
+
+            console.warn(
+                "PDS: Profile loading failed:",
+                profileError
+            );
 
 
-        const authScreen =
-            document.getElementById("authScreen");
+            currentProfile = {
 
-        const app =
-            document.getElementById("app");
+                id:
+                    user.id,
 
+                email:
+                    user.email || "",
 
-        if (authScreen) {
-            authScreen.style.display = "none";
+                full_name:
+                    user.user_metadata?.full_name ||
+                    user.email ||
+                    "PDS User",
+
+                role:
+                    "PLANNING & DESIGN"
+
+            };
+
         }
 
+
+        /*
+            SHOW APPLICATION
+        */
+
+        if (authScreen) {
+
+            authScreen.style.display =
+                "none";
+
+        }
+
+
         if (app) {
-            app.style.display = "flex";
+
+            app.style.display =
+                "flex";
+
         }
 
 
         updateUserInterface();
 
 
-        await refreshAll();
-
-
         /*
-            IMPORTANT:
-            Dashboard is now the default page.
+            Always start at Dashboard.
         */
 
         showPage(
@@ -620,13 +760,92 @@ async function loadApplication() {
             }
         );
 
+
+        /*
+            Load application data.
+            Data errors must not send the user
+            back to Sign In.
+        */
+
+        try {
+
+            await refreshAll();
+
+        }
+        catch(dataError) {
+
+            console.warn(
+                "PDS: Some application data could not load:",
+                dataError
+            );
+
+        }
+
+
+        /*
+            Ensure Dashboard remains visible.
+        */
+
+        showPage(
+            "dashboard",
+            {
+                skipScroll: true
+            }
+        );
+
+
+        console.log(
+            "PDS: Application loaded successfully."
+        );
+
     }
     catch(error) {
 
         console.error(
-            "Application loading error:",
+            "PDS: Application loading error:",
             error
         );
+
+
+        /*
+            If the user is authenticated,
+            never trap them on Sign In.
+        */
+
+        if (currentUser) {
+
+            if (authScreen) {
+
+                authScreen.style.display =
+                    "none";
+
+            }
+
+
+            if (app) {
+
+                app.style.display =
+                    "flex";
+
+            }
+
+
+            updateUserInterface();
+
+
+            showPage(
+                "dashboard",
+                {
+                    skipScroll: true
+                }
+            );
+
+        }
+        else {
+
+            showLogin();
+
+        }
 
     }
     finally {
@@ -658,39 +877,32 @@ async function loadProfile() {
             await db
                 .from("profiles")
                 .select("*")
-                .eq("id", currentUser.id)
+                .eq(
+                    "id",
+                    currentUser.id
+                )
                 .maybeSingle();
 
 
         if (error) {
 
             console.warn(
-                "Profile load:",
+                "Profile load warning:",
                 error
             );
 
-            currentProfile = null;
-
-            return;
-
-        }
-
-
-        currentProfile =
-            data || null;
-
-
-        if (!currentProfile) {
 
             currentProfile = {
 
-                id: currentUser.id,
+                id:
+                    currentUser.id,
 
                 email:
                     currentUser.email || "",
 
                 full_name:
                     currentUser.user_metadata?.full_name ||
+                    currentUser.email ||
                     "PDS User",
 
                 role:
@@ -698,7 +910,30 @@ async function loadProfile() {
 
             };
 
+
+            return;
+
         }
+
+
+        currentProfile =
+            data || {
+
+                id:
+                    currentUser.id,
+
+                email:
+                    currentUser.email || "",
+
+                full_name:
+                    currentUser.user_metadata?.full_name ||
+                    currentUser.email ||
+                    "PDS User",
+
+                role:
+                    "PLANNING & DESIGN"
+
+            };
 
     }
     catch(error) {
@@ -707,6 +942,25 @@ async function loadProfile() {
             "Profile error:",
             error
         );
+
+
+        currentProfile = {
+
+            id:
+                currentUser.id,
+
+            email:
+                currentUser.email || "",
+
+            full_name:
+                currentUser.user_metadata?.full_name ||
+                currentUser.email ||
+                "PDS User",
+
+            role:
+                "PLANNING & DESIGN"
+
+        };
 
     }
 
@@ -750,65 +1004,86 @@ function updateUserInterface() {
         getInitials(name);
 
 
-    const sidebarUserName =
-        document.getElementById(
-            "sidebarUserName"
-        );
+    const elements = {
 
-    const sidebarUserRole =
-        document.getElementById(
-            "sidebarUserRole"
-        );
+        sidebarUserName:
+            document.getElementById(
+                "sidebarUserName"
+            ),
 
-    const sidebarAvatar =
-        document.getElementById(
-            "sidebarAvatar"
-        );
+        sidebarUserRole:
+            document.getElementById(
+                "sidebarUserRole"
+            ),
 
-    const topAvatar =
-        document.getElementById(
-            "topAvatar"
-        );
+        sidebarAvatar:
+            document.getElementById(
+                "sidebarAvatar"
+            ),
 
-    const profileName =
-        document.getElementById(
-            "profileName"
-        );
+        topAvatar:
+            document.getElementById(
+                "topAvatar"
+            ),
 
-    const profileEmail =
-        document.getElementById(
-            "profileEmail"
-        );
+        profileName:
+            document.getElementById(
+                "profileName"
+            ),
+
+        profileEmail:
+            document.getElementById(
+                "profileEmail"
+            )
+
+    };
 
 
-    if (sidebarUserName) {
-        sidebarUserName.textContent =
+    if (elements.sidebarUserName) {
+
+        elements.sidebarUserName.textContent =
             name;
+
     }
 
-    if (sidebarUserRole) {
-        sidebarUserRole.textContent =
+
+    if (elements.sidebarUserRole) {
+
+        elements.sidebarUserRole.textContent =
             role;
+
     }
 
-    if (sidebarAvatar) {
-        sidebarAvatar.textContent =
+
+    if (elements.sidebarAvatar) {
+
+        elements.sidebarAvatar.textContent =
             initials;
+
     }
 
-    if (topAvatar) {
-        topAvatar.textContent =
+
+    if (elements.topAvatar) {
+
+        elements.topAvatar.textContent =
             initials;
+
     }
 
-    if (profileName) {
-        profileName.textContent =
+
+    if (elements.profileName) {
+
+        elements.profileName.textContent =
             name;
+
     }
 
-    if (profileEmail) {
-        profileEmail.textContent =
+
+    if (elements.profileEmail) {
+
+        elements.profileEmail.textContent =
             email;
+
     }
 
 }
@@ -826,7 +1101,7 @@ function getInitials(name) {
 
 
     const words =
-        name
+        String(name)
             .trim()
             .split(/\s+/)
             .filter(Boolean);
@@ -860,26 +1135,65 @@ function normalizePageId(pageId) {
         overview:
             "dashboard",
 
-        orders:
-            "department-orders",
+        dashboard:
+            "dashboard",
 
-        standards:
-            "documents",
+        myprojects:
+            "projects",
 
-        forms:
-            "documents",
+        project:
+            "projects",
 
         content:
             "documents",
 
-        myprojects:
-            "projects"
+        document:
+            "documents",
+
+        orders:
+            "department-orders",
+
+        departmentorders:
+            "department-orders",
+
+        standards:
+            "standards-guidelines",
+
+        guidelines:
+            "standards-guidelines",
+
+        forms:
+            "forms-templates",
+
+        templates:
+            "forms-templates",
+
+        news:
+            "announcements",
+
+        announcement:
+            "announcements",
+
+        ai:
+            "pds-ai-assistant",
+
+        pdsai:
+            "pds-ai-assistant",
+
+        about:
+            "aboutpds",
+
+        contact:
+            "contact-us",
+
+        userprofile:
+            "profile"
 
     };
 
 
     return (
-        aliases[pageId] ||
+        aliases[String(pageId).toLowerCase()] ||
         pageId ||
         "dashboard"
     );
@@ -888,7 +1202,7 @@ function normalizePageId(pageId) {
 
 
 /* =========================================================
-   GET PDS PAGE SECTIONS
+   GET ALL PDS PAGE SECTIONS
 ========================================================= */
 
 function getPDSPages() {
@@ -900,10 +1214,6 @@ function getPDSPages() {
             "#app section[data-section]"
         );
 
-
-    /*
-        Fallback for older versions.
-    */
 
     if (!pages.length) {
 
@@ -924,8 +1234,7 @@ function getPDSPages() {
 /* =========================================================
    SHOW PAGE
    ---------------------------------------------------------
-   THIS IS THE MAIN NAVIGATION FUNCTION.
-   Only one section is visible at a time.
+   ONLY ONE SECTION IS DISPLAYED AT A TIME.
 ========================================================= */
 
 function showPage(
@@ -952,20 +1261,13 @@ function showPage(
     }
 
 
-    /*
-        Find requested section.
-    */
-
     let selectedPage =
         Array.from(pages).find(
             page =>
-                page.id === requestedPage
+                page.id ===
+                requestedPage
         );
 
-
-    /*
-        Try data-section.
-    */
 
     if (!selectedPage) {
 
@@ -978,10 +1280,6 @@ function showPage(
 
     }
 
-
-    /*
-        Try data-page-section.
-    */
 
     if (!selectedPage) {
 
@@ -1004,7 +1302,8 @@ function showPage(
         selectedPage =
             Array.from(pages).find(
                 page =>
-                    page.id === "dashboard"
+                    page.id ===
+                    "dashboard"
             );
 
     }
@@ -1023,21 +1322,16 @@ function showPage(
 
 
     /* =====================================================
-       HIDE ALL SECTIONS
+       HIDE EVERY SECTION
     ===================================================== */
 
     pages.forEach(page => {
 
-        page.classList.remove(
-            "active"
-        );
+        page.classList.remove("active");
 
-        page.classList.remove(
-            "active-page"
-        );
+        page.classList.remove("active-page");
 
-        page.style.display =
-            "none";
+        page.style.display = "none";
 
     });
 
@@ -1046,16 +1340,11 @@ function showPage(
        SHOW SELECTED SECTION
     ===================================================== */
 
-    selectedPage.classList.add(
-        "active"
-    );
+    selectedPage.classList.add("active");
 
-    selectedPage.classList.add(
-        "active-page"
-    );
+    selectedPage.classList.add("active-page");
 
-    selectedPage.style.display =
-        "block";
+    selectedPage.style.display = "block";
 
 
     /* =====================================================
@@ -1073,9 +1362,7 @@ function showPage(
 
     navigationItems.forEach(item => {
 
-        item.classList.remove(
-            "active"
-        );
+        item.classList.remove("active");
 
 
         const itemPage =
@@ -1093,13 +1380,89 @@ function showPage(
             normalizePageId(selectedPage.id)
         ) {
 
-            item.classList.add(
-                "active"
-            );
+            item.classList.add("active");
 
         }
 
     });
+
+
+    /* =====================================================
+       UPDATE PAGE TITLE
+    ===================================================== */
+
+    const pageTitle =
+        document.getElementById(
+            "pageTitle"
+        );
+
+
+    const topbarTitle =
+        document.querySelector(
+            ".topbar-title"
+        );
+
+
+    const titles = {
+
+        dashboard:
+            "Dashboard",
+
+        projects:
+            "Projects",
+
+        documents:
+            "Documents",
+
+        "standards-guidelines":
+            "Standards & Guidelines",
+
+        "department-orders":
+            "Department Orders",
+
+        "forms-templates":
+            "Forms & Templates",
+
+        announcements:
+            "Announcements",
+
+        "pds-ai-assistant":
+            "PDS AI Assistant",
+
+        aboutpds:
+            "About PDS",
+
+        "contact-us":
+            "Contact Us",
+
+        profile:
+            "Profile"
+
+    };
+
+
+    const title =
+        titles[selectedPage.id] ||
+        "Planning & Design Section";
+
+
+    if (pageTitle) {
+
+        pageTitle.textContent =
+            title;
+
+    }
+
+
+    if (
+        topbarTitle &&
+        topbarTitle !== pageTitle
+    ) {
+
+        topbarTitle.textContent =
+            title;
+
+    }
 
 
     /* =====================================================
@@ -1115,26 +1478,26 @@ function showPage(
 
         case "projects":
 
-            if (
-                typeof loadProjects ===
-                "function"
-            ) {
-
-                loadProjects();
-
-            }
+            loadProjects();
 
             break;
 
 
         case "documents":
 
+            loadDocuments();
+
+            break;
+
+
+        case "standards-guidelines":
+
             if (
-                typeof loadDocuments ===
+                typeof loadStandardsGuidelines ===
                 "function"
             ) {
 
-                loadDocuments();
+                loadStandardsGuidelines();
 
             }
 
@@ -1148,16 +1511,67 @@ function showPage(
             break;
 
 
-        case "team":
+        case "forms-templates":
 
             if (
-                typeof loadTeam ===
+                typeof loadFormsTemplates ===
                 "function"
             ) {
 
-                loadTeam();
+                loadFormsTemplates();
 
             }
+
+            break;
+
+
+        case "announcements":
+
+            if (
+                typeof loadAnnouncements ===
+                "function"
+            ) {
+
+                loadAnnouncements();
+
+            }
+
+            break;
+
+
+        case "pds-ai-assistant":
+
+            /*
+                If a full AI input exists in the section,
+                focus it.
+            */
+
+            setTimeout(
+                function() {
+
+                    const fullAIInput =
+                        document.querySelector(
+                            "#pds-ai-assistant #aiInput, " +
+                            "#pds-ai-assistant textarea"
+                        );
+
+                    if (fullAIInput) {
+                        fullAIInput.focus();
+                    }
+
+                },
+                50
+            );
+
+            break;
+
+
+        case "aboutpds":
+
+            break;
+
+
+        case "contact-us":
 
             break;
 
@@ -1172,7 +1586,7 @@ function showPage(
 
 
     /* =====================================================
-       RETURN TO TOP
+       SCROLL TO TOP
     ===================================================== */
 
     if (!options.skipScroll) {
@@ -1212,6 +1626,7 @@ function setupNavigation() {
 
 
     if (
+        navigationReady ||
         sidebar.dataset.navigationReady ===
         "true"
     ) {
@@ -1221,12 +1636,14 @@ function setupNavigation() {
     }
 
 
+    navigationReady = true;
+
     sidebar.dataset.navigationReady =
         "true";
 
 
     /* =====================================================
-       MOUSE CLICK
+       CLICK
     ===================================================== */
 
     sidebar.addEventListener(
@@ -1253,7 +1670,7 @@ function setupNavigation() {
 
 
             /*
-                Sign Out is handled separately.
+                Sign Out handled separately.
             */
 
             if (
@@ -1279,6 +1696,7 @@ function setupNavigation() {
 
 
             event.preventDefault();
+
             event.stopPropagation();
 
 
@@ -1289,7 +1707,7 @@ function setupNavigation() {
 
 
     /* =====================================================
-       KEYBOARD NAVIGATION
+       KEYBOARD
     ===================================================== */
 
     sidebar.addEventListener(
@@ -1341,6 +1759,7 @@ function setupNavigation() {
 
 
             event.preventDefault();
+
 
             showPage(page);
 
@@ -1460,13 +1879,12 @@ function setupGlobalSearch() {
 
 
             const match =
-                pages.find(page => {
-
-                    return page.innerText
-                        .toLowerCase()
-                        .includes(query);
-
-                });
+                pages.find(
+                    page =>
+                        page.innerText
+                            .toLowerCase()
+                            .includes(query)
+                );
 
 
             if (match) {
@@ -1491,12 +1909,12 @@ function setupGlobalSearch() {
 
 
 /* =========================================================
-   REFRESH ALL DATA
+   REFRESH ALL
 ========================================================= */
 
 async function refreshAll() {
 
-    await Promise.allSettled([
+    const jobs = [
 
         loadProjects(),
 
@@ -1504,7 +1922,12 @@ async function refreshAll() {
 
         loadTeam()
 
-    ]);
+    ];
+
+
+    await Promise.allSettled(
+        jobs
+    );
 
 }
 
@@ -1547,7 +1970,6 @@ async function loadProjects() {
             data || []
         );
 
-
     }
     catch(error) {
 
@@ -1561,14 +1983,12 @@ async function loadProjects() {
 
             list.innerHTML = `
 
-                <div
-                    style="
-                        padding:30px;
-                        text-align:center;
-                        color:var(--muted);
-                        font-size:9px;
-                    "
-                >
+                <div style="
+                    padding:30px;
+                    text-align:center;
+                    color:var(--muted);
+                    font-size:9px;
+                ">
                     Unable to load projects.
                 </div>
 
@@ -1670,14 +2090,12 @@ function renderProjects(
 
         list.innerHTML = `
 
-            <div
-                style="
-                    padding:35px;
-                    text-align:center;
-                    color:var(--muted);
-                    font-size:9px;
-                "
-            >
+            <div style="
+                padding:35px;
+                text-align:center;
+                color:var(--muted);
+                font-size:9px;
+            ">
                 No projects registered.
             </div>
 
@@ -1824,18 +2242,14 @@ async function openProject(
 
         content.innerHTML = `
 
-            <div
-                class="project-details"
-            >
+            <div class="project-details">
 
                 <h3>
                     ${escapeHTML(title)}
                 </h3>
 
                 <p>
-                    <strong>
-                        Location:
-                    </strong>
+                    <strong>Location:</strong>
                     ${escapeHTML(
                         data.location ||
                         data.project_location ||
@@ -1844,9 +2258,7 @@ async function openProject(
                 </p>
 
                 <p>
-                    <strong>
-                        Status:
-                    </strong>
+                    <strong>Status:</strong>
                     ${escapeHTML(
                         data.status ||
                         "—"
@@ -1854,9 +2266,7 @@ async function openProject(
                 </p>
 
                 <p>
-                    <strong>
-                        Description:
-                    </strong>
+                    <strong>Description:</strong>
                     ${escapeHTML(
                         data.description ||
                         "—"
@@ -1887,9 +2297,6 @@ async function openProject(
 /* =========================================================
    DOCUMENTS
 ========================================================= */
-
-let cachedDocuments = [];
-
 
 async function loadDocuments() {
 
@@ -1929,7 +2336,6 @@ async function loadDocuments() {
             cachedDocuments
         );
 
-
     }
     catch(error) {
 
@@ -1943,14 +2349,12 @@ async function loadDocuments() {
 
             list.innerHTML = `
 
-                <div
-                    style="
-                        padding:35px;
-                        text-align:center;
-                        color:var(--muted);
-                        font-size:9px;
-                    "
-                >
+                <div style="
+                    padding:35px;
+                    text-align:center;
+                    color:var(--muted);
+                    font-size:9px;
+                ">
                     Unable to load documents.
                 </div>
 
@@ -2000,14 +2404,12 @@ function renderDocuments(
 
         list.innerHTML = `
 
-            <div
-                style="
-                    padding:35px;
-                    text-align:center;
-                    color:var(--muted);
-                    font-size:9px;
-                "
-            >
+            <div style="
+                padding:35px;
+                text-align:center;
+                color:var(--muted);
+                font-size:9px;
+            ">
                 No documents uploaded.
             </div>
 
@@ -2061,13 +2463,11 @@ function renderDocuments(
                         </div>
 
 
-                        <div
-                            style="
-                                display:flex;
-                                gap:6px;
-                                flex-wrap:wrap;
-                            "
-                        >
+                        <div style="
+                            display:flex;
+                            gap:6px;
+                            flex-wrap:wrap;
+                        ">
 
                             <button
                                 class="button secondary"
@@ -2076,6 +2476,7 @@ function renderDocuments(
                             >
                                 OPEN
                             </button>
+
 
                             <button
                                 class="button secondary"
@@ -2166,7 +2567,7 @@ function setupDocumentSearch() {
 
 
 /* =========================================================
-   UPLOAD DOCUMENT BUTTON
+   DOCUMENT UPLOAD BUTTON
 ========================================================= */
 
 function setupDocumentUpload() {
@@ -2280,10 +2681,6 @@ async function uploadDocument(
     }
 
 
-    /*
-        50 MB maximum.
-    */
-
     const maxSize =
         50 * 1024 * 1024;
 
@@ -2298,11 +2695,10 @@ async function uploadDocument(
 
 
     const safeFileName =
-        file.name
-            .replace(
-                /[^a-zA-Z0-9._-]/g,
-                "_"
-            );
+        file.name.replace(
+            /[^a-zA-Z0-9._-]/g,
+            "_"
+        );
 
 
     const filePath =
@@ -2314,10 +2710,6 @@ async function uploadDocument(
 
 
     try {
-
-        /*
-            Upload to Supabase Storage.
-        */
 
         const {
             data: uploadData,
@@ -2344,10 +2736,6 @@ async function uploadDocument(
             filePath;
 
 
-        /*
-            Save document metadata.
-        */
-
         const {
             data,
             error
@@ -2357,7 +2745,6 @@ async function uploadDocument(
                 .insert({
 
                     title:
-
                         title ||
                         file.name,
 
@@ -2383,16 +2770,12 @@ async function uploadDocument(
 
         if (error) {
 
-            /*
-                Roll back storage upload
-                if database insert fails.
-            */
-
             await db.storage
                 .from("documents")
                 .remove([
                     uploadedPath
                 ]);
+
 
             throw error;
 
@@ -2408,6 +2791,7 @@ async function uploadDocument(
             "Document upload error:",
             error
         );
+
 
         throw error;
 
@@ -2513,7 +2897,9 @@ function setupDocumentForm() {
 
                 form.reset();
 
+
                 closeDocumentModal();
+
 
                 await loadDocuments();
 
@@ -2526,6 +2912,7 @@ function setupDocumentForm() {
             catch(error) {
 
                 console.error(
+                    "Upload error:",
                     error
                 );
 
@@ -2621,9 +3008,7 @@ async function openDocument(
         }
 
 
-        if (
-            signedData?.signedUrl
-        ) {
+        if (signedData?.signedUrl) {
 
             window.open(
                 signedData.signedUrl,
@@ -2703,10 +3088,6 @@ async function deleteDocument(
             data.file_path;
 
 
-        /*
-            Delete storage object.
-        */
-
         if (path) {
 
             const {
@@ -2732,10 +3113,6 @@ async function deleteDocument(
         }
 
 
-        /*
-            Delete database record.
-        */
-
         const {
             error:
                 deleteError
@@ -2755,7 +3132,6 @@ async function deleteDocument(
 
 
         await loadDocuments();
-
 
     }
     catch(error) {
@@ -2781,10 +3157,6 @@ async function deleteDocument(
 ========================================================= */
 
 async function loadTeam() {
-
-    /*
-        Supports both teamGrid and older teamList.
-    */
 
     const container =
         document.getElementById(
@@ -2830,15 +3202,9 @@ async function loadTeam() {
     catch(error) {
 
         console.warn(
-            "Team load:",
+            "Team load warning:",
             error
         );
-
-
-        /*
-            Keep the default HTML team card
-            if the profiles table cannot be loaded.
-        */
 
     }
 
@@ -2947,19 +3313,20 @@ function displayDepartmentOrders(
     }
 
 
-    if (!orders || !orders.length) {
+    if (
+        !orders ||
+        !orders.length
+    ) {
 
         grid.innerHTML = `
 
-            <div
-                style="
-                    padding:35px;
-                    text-align:center;
-                    color:var(--muted);
-                    font-size:9px;
-                    grid-column:1/-1;
-                "
-            >
+            <div style="
+                padding:35px;
+                text-align:center;
+                color:var(--muted);
+                font-size:9px;
+                grid-column:1/-1;
+            ">
                 No Department Orders found.
             </div>
 
@@ -2976,13 +3343,9 @@ function displayDepartmentOrders(
 
                 return `
 
-                    <div
-                        class="department-order"
-                    >
+                    <div class="department-order">
 
-                        <div
-                            class="date-label"
-                        >
+                        <div class="date-label">
                             ${escapeHTML(
                                 order.categoryName ||
                                 "DPWH REFERENCE"
@@ -3032,7 +3395,7 @@ function displayDepartmentOrders(
 
 
 /* =========================================================
-   DEPARTMENT ORDER SEARCH / FILTER
+   DEPARTMENT ORDER FILTER
 ========================================================= */
 
 function filterDepartmentOrders() {
@@ -3060,13 +3423,11 @@ function filterDepartmentOrders() {
 
 
     const category =
-        categoryInput?.value ||
-        "";
+        categoryInput?.value || "";
 
 
     const year =
-        yearInput?.value ||
-        "";
+        yearInput?.value || "";
 
 
     const filtered =
@@ -3084,8 +3445,7 @@ function filterDepartmentOrders() {
                         order.description +
                         " " +
                         order.categoryName
-                    )
-                        .toLowerCase();
+                    ).toLowerCase();
 
 
                 const matchesSearch =
@@ -3153,7 +3513,7 @@ function filterDepartmentOrders() {
 
 
 /* =========================================================
-   CLEAR DEPARTMENT ORDER SEARCH
+   CLEAR ORDER FILTER
 ========================================================= */
 
 function clearOrdersSearch() {
@@ -3322,8 +3682,10 @@ function setupProjectModal() {
             function() {
 
                 if (modal) {
+
                     modal.style.display =
                         "none";
+
                 }
 
             }
@@ -3367,12 +3729,10 @@ function setupDocumentModal() {
             "documentModal"
         );
 
-
     const close =
         document.getElementById(
             "closeDocumentModal"
         );
-
 
     const cancel =
         document.getElementById(
@@ -3424,7 +3784,7 @@ function setupDocumentModal() {
 
 
 /* =========================================================
-   MODAL FORM SETUP
+   MODAL SETUP
 ========================================================= */
 
 function setupModalForm() {
@@ -3449,7 +3809,7 @@ function setupModalForm() {
 
 
 /* =========================================================
-   AUTH FORMS
+   AUTH FORM SETUP
 ========================================================= */
 
 function setupAuthForms() {
@@ -3530,13 +3890,13 @@ function setupAuthForms() {
 
         logoutButton.addEventListener(
             "click",
-            function(event) {
+            async function(event) {
 
                 event.preventDefault();
 
                 event.stopPropagation();
 
-                signOut();
+                await signOut();
 
             }
         );
@@ -3547,7 +3907,7 @@ function setupAuthForms() {
 
 
 /* =========================================================
-   PDS AI
+   PDS AI SETUP
 ========================================================= */
 
 function setupPDSAI() {
@@ -3596,10 +3956,6 @@ function setupPDSAI() {
     aiReady = true;
 
 
-    /* =====================================================
-       OPEN AI
-    ===================================================== */
-
     launcher.addEventListener(
         "click",
         function() {
@@ -3607,11 +3963,14 @@ function setupPDSAI() {
             chatbot.style.display =
                 "flex";
 
+
             setTimeout(
                 function() {
 
                     if (input) {
+
                         input.focus();
+
                     }
 
                 },
@@ -3621,10 +3980,6 @@ function setupPDSAI() {
         }
     );
 
-
-    /* =====================================================
-       CLOSE AI
-    ===================================================== */
 
     if (close) {
 
@@ -3641,10 +3996,6 @@ function setupPDSAI() {
     }
 
 
-    /* =====================================================
-       SEND
-    ===================================================== */
-
     if (send) {
 
         send.addEventListener(
@@ -3654,10 +4005,6 @@ function setupPDSAI() {
 
     }
 
-
-    /* =====================================================
-       ENTER TO SEND
-    ===================================================== */
 
     if (input) {
 
@@ -3685,7 +4032,7 @@ function setupPDSAI() {
 
 
 /* =========================================================
-   ADD AI MESSAGE
+   APPEND AI MESSAGE
 ========================================================= */
 
 function appendAIMessage(
@@ -3763,10 +4110,6 @@ async function askPDSAI() {
     }
 
 
-    /*
-        Show user's message.
-    */
-
     appendAIMessage(
         "user",
         message
@@ -3774,16 +4117,11 @@ async function askPDSAI() {
 
 
     /*
-        IMPORTANT:
-        Clear input immediately after sending.
+        CLEAR IMMEDIATELY
     */
 
     input.value = "";
 
-
-    /*
-        Show thinking message.
-    */
 
     const thinking =
         appendAIMessage(
@@ -3805,11 +4143,9 @@ async function askPDSAI() {
                     body: {
 
                         message:
-
                             message,
 
                         history:
-
                             pdsAIHistory
 
                     }
@@ -3841,10 +4177,6 @@ async function askPDSAI() {
         }
 
 
-        /*
-            Replace thinking message.
-        */
-
         if (thinking) {
 
             thinking.textContent =
@@ -3860,10 +4192,6 @@ async function askPDSAI() {
 
         }
 
-
-        /*
-            Store complete conversation.
-        */
 
         pdsAIHistory.push({
 
@@ -3885,7 +4213,6 @@ async function askPDSAI() {
                 answer
 
         });
-
 
     }
     catch(error) {
@@ -3923,84 +4250,6 @@ async function askPDSAI() {
 
 
     input.focus();
-
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHTML(
-    value
-) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
-}
-
-
-/* =========================================================
-   ESCAPE JAVASCRIPT STRING
-========================================================= */
-
-function escapeJS(
-    value
-) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(value)
-        .replace(
-            /\\/g,
-            "\\\\"
-        )
-        .replace(
-            /'/g,
-            "\\'"
-        )
-        .replace(
-            /"/g,
-            '\\"'
-        );
 
 }
 
@@ -4108,14 +4357,96 @@ function setupNotificationButton() {
 
 
 /* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   ESCAPE JS
+========================================================= */
+
+function escapeJS(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /\\/g,
+            "\\\\"
+        )
+
+        .replace(
+            /'/g,
+            "\\'"
+        )
+
+        .replace(
+            /"/g,
+            '\\"'
+        );
+
+}
+
+
+/* =========================================================
    INITIALIZE PDS
 ========================================================= */
 
 async function initializePDSHub() {
-
-    /*
-        Prevent duplicate initialization.
-    */
 
     if (
         document.body.dataset
@@ -4139,7 +4470,7 @@ async function initializePDSHub() {
 
 
     /* =====================================================
-       INITIAL UI
+       INITIAL SCREEN
     ===================================================== */
 
     const authScreen =
@@ -4192,19 +4523,6 @@ async function initializePDSHub() {
     setupRefreshButton();
 
     setupNotificationButton();
-
-
-    /*
-        Dashboard is the default page
-        even before authentication.
-    */
-
-    showPage(
-        "dashboard",
-        {
-            skipScroll: true
-        }
-    );
 
 
     /* =====================================================
@@ -4274,37 +4592,9 @@ db.auth.onAuthStateChange(
         );
 
 
-        if (
-            session?.user
-        ) {
-
-            currentUser =
-                session.user;
-
-
-            /*
-                loadApplication has its own
-                duplicate-load protection.
-            */
-
-            if (
-                event ===
-                    "SIGNED_IN" ||
-                event ===
-                    "INITIAL_SESSION" ||
-                event ===
-                    "TOKEN_REFRESHED"
-            ) {
-
-                await loadApplication();
-
-            }
-
-
-            return;
-
-        }
-
+        /* -------------------------------------------------
+           SIGNED OUT
+        ------------------------------------------------- */
 
         if (
             event ===
@@ -4345,12 +4635,47 @@ db.auth.onAuthStateChange(
             }
 
 
-            showPage(
-                "dashboard",
-                {
-                    skipScroll: true
-                }
-            );
+            return;
+
+        }
+
+
+        /* -------------------------------------------------
+           NO SESSION
+        ------------------------------------------------- */
+
+        if (!session?.user) {
+
+            return;
+
+        }
+
+
+        currentUser =
+            session.user;
+
+
+        /*
+            loginUser() and initializePDSHub()
+            already handle SIGNED_IN / INITIAL_SESSION.
+
+            Do not call loadApplication again while
+            another load is running.
+        */
+
+        if (appLoading) {
+            return;
+        }
+
+
+        if (
+            event ===
+            "INITIAL_SESSION" ||
+            event ===
+            "TOKEN_REFRESHED"
+        ) {
+
+            await loadApplication();
 
         }
 
