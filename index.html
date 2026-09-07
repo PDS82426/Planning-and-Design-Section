@@ -191,4 +191,1952 @@
                         this.nextElementSibling.style.display='flex';
                     "
                 >
-                <div
+                <div class="brand-logo-ring" style="display:none;">
+                    <div class="brand-logo-inner">DPWH</div>
+                </div>
+            </div>
+
+            <div class="brand-copy">
+                <div class="brand-agency">DPWH</div>
+                <div class="brand-subtitle">
+                    Department of Public Works<br>and Highways
+                </div>
+            </div>
+
+        </div>
+
+        <!-- NAVIGATION -->
+        <nav class="navigation">
+
+            <div class="nav-section-title">MAIN</div>
+
+            <div class="nav-item active" data-section="dashboard" role="button" tabindex="0">
+                <span>⌂</span>
+                <span>Dashboard</span>
+            </div>
+
+            <div class="nav-item" data-section="projects" role="button" tabindex="0">
+                <span>◫</span>
+                <span>Projects</span>
+            </div>
+
+            <div class="nav-item" data-section="documents" role="button" tabindex="0">
+                <span>▤</span>
+                <span>Documents</span>
+            </div>
+
+            <div class="nav-item" data-section="standards-guidelines" role="button" tabindex="0">
+                <span>◈</span>
+                <span>Standards &amp; Guidelines</span>
+            </div>
+
+            <div class="nav-item" data-section="department-orders" role="button" tabindex="0">
+                <span>▥</span>
+                <span>Department Orders</span>
+            </div>
+
+            <div class="nav-item" data-section="forms-templates" role="button" tabindex="0">
+                <span>▣</span>
+                <span>Forms &amp; Templates</span>
+            </div>
+
+            <div class="nav-item" data-section="announcements" role="button" tabindex="0">
+                <span>◔</span>
+                <span>News &amp; Announcements</span>
+            </div>
+
+            <div class="nav-item" data-section="pds-ai-assistant" role="button" tabindex="0">
+                <span>✦</span>
+                <span>PDS AI Assistant</span>
+            </div>
+
+            <div class="nav-section-title">SYSTEM</div>
+
+            <div class="nav-item" data-section="aboutpds" role="button" tabindex="0">
+                <span>ⓘ</span>
+                <span>About PDS</span>
+            </div>
+
+            <div class="nav-item" data-section="contact-us" role="button" tabindex="0">
+                <span>☎</span>
+                <span>Contact Us</span>
+            </div>
+
+            <div class="nav-item" data-section="profile" role="button" tabindex="0">
+                <span>◎</span>
+                <span>Profile</span>
+            </div>
+
+            <div class="nav-item" id="logoutButton" role="button" tabindex="0">
+                <span>⇥</span>
+                <span>Sign Out</span>
+            </div>
+
+        </nav>
+
+        <div class="sidebar-help">
+            <strong>PDS CONTROL DESK</strong>
+            <p>Planning, design, technical documents, project monitoring and engineering references.</p>
+        </div>
+
+        <div class="sidebar-profile">
+            <div class="avatar" id="sidebarAvatar">PDS</div>
+            <div>
+                <strong id="sidebarUserName">PDS User</strong>
+                <small id="sidebarUserRole">PLANNING &amp; DESIGN</small>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="main">
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <div class="mobile-brand">
+                    <div class="brand-mark">PDS</div>
+                </div>
+
+                <div class="search-container">
+                    <span>⌕</span>
+                    <input type="search" id="globalSearch" placeholder="Search documents, projects...">
+                </div>
+
+            </div>
+
+            <div class="topbar-right">
+
+                <button class="icon-button" id="notificationButton" type="button" title="Notifications">
+                    ◉
+                </button>
+
+                <button class="icon-button" id="refreshButton" type="button" title="Refresh">
+                    ↻
+                </button>
+
+                <div class="top-avatar" id="topAvatar">PDS</div>
+
+            </div>
+
+        </header>
+
+        <!-- =================================================
+             CONTENT
+        ================================================== -->
+
+        <div class="content">
+
+
+
+            <!-- =================================================
+                 01 — DASHBOARD
+            ================================================== -->
+
+            <section
+                id="dashboard"
+                class="page-section active"
+                data-page-section="dashboard"
+                data-section="dashboard"
+            >
+
+                <div class="page">
+
+                    <div class="page-title">
+                        <div>
+                            <div class="date-label">DPWH • PLANNING & DESIGN SECTION</div>
+                            <h1>Dashboard</h1>
+                            <p>Planning & Design Section Control Desk</p>
+                        </div>
+                    </div>
+
+                    <!-- HERO -->
+                    <div class="hero">
+                        <div class="hero-content">
+                            <div class="date-label">WELCOME TO</div>
+                            <h1>Planning and Design Unit</h1>
+                            <p>
+                                We plan today for a better tomorrow. Delivering quality
+                                infrastructure through innovative planning and sustainable design.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- AT A GLANCE -->
+                    <div style="height:18px;"></div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Projects</div>
+                            <div class="stat-number" id="totalProjects">0</div>
+                            <div class="stat-change">REGISTERED PDS PROJECTS</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Ongoing</div>
+                            <div class="stat-number" id="ongoingProjects">0</div>
+                            <div class="stat-change positive">ACTIVE PROJECTS</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Completed</div>
+                            <div class="stat-number" id="completedProjects">0</div>
+                            <div class="stat-change">COMPLETED PROJECTS</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Documents</div>
+                            <div class="stat-number" id="totalDocuments">0</div>
+                            <div class="stat-change warning">DOCUMENT CONTROL</div>
+                        </div>
+                    </div>
+
+                    <!-- QUICK ACTIONS -->
+                    <div class="section-heading">
+                        <h2>Quick Access</h2>
+                    </div>
+
+                    <div class="quick-grid">
+                        <div class="quick-card" data-section-target="projects" role="button" tabindex="0">
+                            <div class="quick-icon">P</div>
+                            <div>
+                                <strong>Program of Work</strong>
+                                <span>Create and manage Program of Work</span>
+                            </div>
+                        </div>
+
+                        <div class="quick-card" data-section-target="documents" role="button" tabindex="0">
+                            <div class="quick-icon">D</div>
+                            <div>
+                                <strong>DUPA</strong>
+                                <span>Generate and manage DUPA documents</span>
+                            </div>
+                        </div>
+
+                        <div class="quick-card" data-section-target="documents" role="button" tabindex="0">
+                            <div class="quick-icon">A</div>
+                            <div>
+                                <strong>ABC</strong>
+                                <span>Prepare and compute ABC estimates</span>
+                            </div>
+                        </div>
+
+                        <div class="quick-card" data-section-target="forms-templates" role="button" tabindex="0">
+                            <div class="quick-icon">F</div>
+                            <div>
+                                <strong>Forms & Templates</strong>
+                                <span>Download forms and templates</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RECENT PROJECTS + ANNOUNCEMENTS + QUICK LINKS -->
+                    <div style="height:20px;"></div>
+                    <div class="two-column">
+
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h2>Recent Projects</h2>
+                                <button class="button secondary" type="button" data-section-target="projects">
+                                    View all
+                                </button>
+                            </div>
+                            <div class="panel-body" id="dashboardRecentProjects">
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Construction of Malindig Bridge</strong>
+                                        <span>Marinduque</span>
+                                        <span>Updated: May 19, 2026</span>
+                                    </div>
+                                    <span class="status ongoing">On Going</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Multi-Purpose Building (Barangay Hall)</strong>
+                                        <span>Bauan, Batangas</span>
+                                        <span>Updated: May 18, 2026</span>
+                                    </div>
+                                    <span class="status ongoing">On Going</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Construction of Road, Barangay Poblacion</strong>
+                                        <span>Batangas City</span>
+                                        <span>Updated: May 17, 2026</span>
+                                    </div>
+                                    <span class="status bidding">For Bidding</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Flood Control Structure along Taal River</strong>
+                                        <span>Taal, Batangas</span>
+                                        <span>Updated: May 16, 2026</span>
+                                    </div>
+                                    <span class="status hold">On Hold</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h2>Announcements</h2>
+                                <button class="button secondary" type="button" data-section-target="announcements">
+                                    View all
+                                </button>
+                            </div>
+                            <div class="panel-body" id="announcementPanel">
+
+                                <div class="announce-item">
+                                    <div class="row">
+                                        <strong>New Department Order Released</strong>
+                                        <span class="pill-new">New</span>
+                                    </div>
+                                    <p>DO 12, s. 2025 — Updated Guidelines on the Implementation of Infrastructure Projects</p>
+                                    <time>May 15, 2026</time>
+                                </div>
+
+                                <div class="announce-item">
+                                    <strong>PDS Training Schedule</strong>
+                                    <p>Training on Civil 3D and Plan Preparation</p>
+                                    <time>May 22–24, 2026 &nbsp;·&nbsp; May 14, 2026</time>
+                                </div>
+
+                                <div class="announce-item">
+                                    <strong>Reminder: Submission of POW</strong>
+                                    <p>Please submit your Program of Work for FY 2027 on or before May 30, 2026.</p>
+                                    <time>May 13, 2026</time>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- QUICK LINKS -->
+                    <div style="height:20px;"></div>
+                    <div class="two-column" style="grid-template-columns:1fr;">
+                        <div class="panel" style="max-width:320px;">
+                            <div class="panel-header">
+                                <h2>Quick Links</h2>
+                            </div>
+                            <div class="panel-body">
+                                <a class="quick-link" href="https://www.dpwh.gov.ph/" target="_blank" rel="noopener">
+                                    <span class="dot"></span> DPWH Official Website <span>↗</span>
+                                </a>
+                                <a class="quick-link" href="https://www.philgeps.gov.ph/" target="_blank" rel="noopener">
+                                    <span class="dot"></span> PhilGEPS <span>↗</span>
+                                </a>
+                                <a class="quick-link" href="#" data-section-target="documents">
+                                    <span class="dot"></span> e-Submission Portal <span>↗</span>
+                                </a>
+                                <a class="quick-link" href="#" data-section-target="projects">
+                                    <span class="dot"></span> Project Monitoring System <span>↗</span>
+                                </a>
+                                <a class="quick-link" href="#" data-section-target="documents">
+                                    <span class="dot"></span> DPWH Library <span>↗</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DOCUMENT CATEGORIES + CALENDAR -->
+                    <div style="height:20px;"></div>
+                    <div class="two-column">
+
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h2>Document Categories</h2>
+                            </div>
+                            <div class="panel-body pad">
+                                <div class="doc-categories">
+                                    <div class="doc-category">
+                                        <div class="dot-icon" style="background:var(--blue);">DO</div>
+                                        <div><strong>24</strong><span>Department Orders</span></div>
+                                    </div>
+                                    <div class="doc-category">
+                                        <div class="dot-icon" style="background:var(--green);">DS</div>
+                                        <div><strong>18</strong><span>Design Standards</span></div>
+                                    </div>
+                                    <div class="doc-category">
+                                        <div class="dot-icon" style="background:var(--amber);">MG</div>
+                                        <div><strong>31</strong><span>Manuals & Guides</span></div>
+                                    </div>
+                                    <div class="doc-category">
+                                        <div class="dot-icon" style="background:var(--purple);">FT</div>
+                                        <div><strong>45</strong><span>Forms & Templates</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h2>Calendar</h2>
+                                <button class="button secondary" type="button">View calendar</button>
+                            </div>
+                            <div class="panel-body">
+                                <div class="cal-event">
+                                    <div class="cal-date"><span class="m">MAY</span><span class="d">20</span></div>
+                                    <div class="cal-info">
+                                        <strong>PDS Coordination Meeting</strong>
+                                        <span>9:00 AM – 12:00 PM</span>
+                                        <span>PDS Conference Room</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 02 — PROJECTS
+            ================================================== -->
+
+            <section
+                id="projects"
+                class="page-section"
+                data-page-section="projects"
+                data-section="projects"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / PROJECT CONTROL
+                            </div>
+
+                            <h1>
+                                Projects
+                            </h1>
+
+                            <p>
+                                Planning & Design Project Register
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            Project Register
+                        </h2>
+
+                        <p>
+                            View and manage PDS project records.
+                        </p>
+
+                    </div>
+
+
+                    <div class="project-table">
+
+
+                        <div
+                            class="table-header"
+                            style="
+                                grid-template-columns:
+                                2fr
+                                1.3fr
+                                1fr
+                                1fr;
+                            "
+                        >
+
+                            <div>
+                                PROJECT
+                            </div>
+
+                            <div>
+                                LOCATION
+                            </div>
+
+                            <div>
+                                STATUS
+                            </div>
+
+                            <div>
+                                ACTION
+                            </div>
+
+                        </div>
+
+
+                        <div id="projectList">
+
+                            <div
+                                style="
+                                    padding:30px;
+                                    text-align:center;
+                                    color:var(--muted);
+                                    font-size:9px;
+                                "
+                            >
+                                Loading projects...
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 03 — DOCUMENTS
+            ================================================== -->
+
+            <section
+                id="documents"
+                class="page-section"
+                data-page-section="documents"
+                data-section="documents"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / DOCUMENT CONTROL
+                            </div>
+
+                            <h1>
+                                Documents
+                            </h1>
+
+                            <p>
+                                PDS Technical Document Control
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            Document Library
+                        </h2>
+
+                        <p>
+                            Upload, search and manage technical documents.
+                        </p>
+
+                    </div>
+
+
+                    <div class="library">
+
+
+                        <div class="library-toolbar">
+
+
+                            <div
+                                style="
+                                    display:flex;
+                                    flex-wrap:wrap;
+                                    gap:8px;
+                                    align-items:center;
+                                "
+                            >
+
+
+                                <button
+                                    class="button primary"
+                                    id="uploadDocumentButton"
+                                    type="button"
+                                >
+                                    + UPLOAD DOCUMENT
+                                </button>
+
+
+                                <input
+                                    type="search"
+                                    id="documentSearch"
+                                    placeholder="SEARCH DOCUMENTS..."
+                                    style="
+                                        height:36px;
+                                        min-width:250px;
+                                        padding:0 10px;
+                                        border:1px solid #c7d5de;
+                                        border-radius:3px;
+                                    "
+                                >
+
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div id="libraryList">
+
+                            <div
+                                style="
+                                    padding:35px;
+                                    text-align:center;
+                                    color:var(--muted);
+                                    font-size:9px;
+                                "
+                            >
+                                Loading documents...
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 04 — STANDARDS & GUIDELINES
+            ================================================== -->
+
+            <section
+                id="standards-guidelines"
+                class="page-section"
+                data-page-section="standards-guidelines"
+                data-section="standards-guidelines"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / TECHNICAL REFERENCES
+                            </div>
+
+                            <h1>
+                                Standards & Guidelines
+                            </h1>
+
+                            <p>
+                                Planning, Design and Engineering Technical References
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            Technical Standards
+                        </h2>
+
+                        <p>
+                            Reference materials for planning,
+                            engineering and design activities.
+                        </p>
+
+                    </div>
+
+
+                    <div class="quick-grid">
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                RD
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Road Design
+                                </strong>
+
+                                <span>
+                                    Geometric and pavement design references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                GD
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Geotechnical
+                                </strong>
+
+                                <span>
+                                    Soil investigation and foundation references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                HY
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Hydrology
+                                </strong>
+
+                                <span>
+                                    Drainage and hydraulic references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                ST
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Structural
+                                </strong>
+
+                                <span>
+                                    Structural design references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 05 — DEPARTMENT ORDERS
+            ================================================== -->
+
+            <section
+                id="department-orders"
+                class="page-section"
+                data-page-section="department-orders"
+                data-section="department-orders"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                DPWH / OFFICIAL ISSUANCES
+                            </div>
+
+                            <h1>
+                                Department Orders
+                            </h1>
+
+                            <p>
+                                DPWH Department Orders and Technical References
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            Department Orders
+                        </h2>
+
+                        <p>
+                            Official references used by the Planning & Design Section.
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="department-orders-grid"
+                        id="departmentOrdersGrid"
+                    >
+
+                        <div class="department-order">
+
+                            <strong>
+                                Loading...
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 06 — FORMS & TEMPLATES
+            ================================================== -->
+
+            <section
+                id="forms-templates"
+                class="page-section"
+                data-page-section="forms-templates"
+                data-section="forms-templates"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / STANDARD FORMS
+                            </div>
+
+                            <h1>
+                                Forms & Templates
+                            </h1>
+
+                            <p>
+                                Planning & Design Section forms and working templates
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            PDS Forms
+                        </h2>
+
+                        <p>
+                            Frequently used forms and templates.
+                        </p>
+
+                    </div>
+
+
+                    <div class="quick-grid">
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                POW
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Program of Work
+                                </strong>
+
+                                <span>
+                                    POW preparation template
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                D
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    DUPA
+                                </strong>
+
+                                <span>
+                                    Detailed Unit Price Analysis
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                ABC
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ABC
+                                </strong>
+
+                                <span>
+                                    Approved Budget for the Contract
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                QC
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Quantity Calculation
+                                </strong>
+
+                                <span>
+                                    Engineering quantity worksheets
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 07 — ANNOUNCEMENTS
+            ================================================== -->
+
+            <section
+                id="announcements"
+                class="page-section"
+                data-page-section="announcements"
+                data-section="announcements"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / SECTION NOTICES
+                            </div>
+
+                            <h1>
+                                Announcements
+                            </h1>
+
+                            <p>
+                                Planning & Design Section notices and updates
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+
+                        <div class="panel-header">
+
+                            <h2>
+                                PDS Announcements
+                            </h2>
+
+                        </div>
+
+
+                        <div class="panel-body">
+
+
+                            <div
+                                class="announcement"
+                            >
+
+                                <strong>
+                                    Planning & Design Section
+                                </strong>
+
+                                <p>
+                                    This area is reserved for official
+                                    PDS announcements, technical reminders,
+                                    deadlines and section notices.
+                                </p>
+
+                            </div>
+
+
+                            <div
+                                class="announcement"
+                            >
+
+                                <strong>
+                                    Technical Reference Updates
+                                </strong>
+
+                                <p>
+                                    Department Orders, standards and
+                                    technical references may be maintained
+                                    through the PDS document control system.
+                                </p>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 08 — PDS AI ASSISTANT
+            ================================================== -->
+
+            <section
+                id="pds-ai-assistant"
+                class="page-section"
+                data-page-section="pds-ai-assistant"
+                data-section="pds-ai-assistant"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / ARTIFICIAL INTELLIGENCE
+                            </div>
+
+                            <h1>
+                                PDS AI Assistant
+                            </h1>
+
+                            <p>
+                                Planning & Design technical assistance
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS AI
+                                </h2>
+
+                                <div class="status active">
+                                    ONLINE
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <p>
+                                    PDS AI can assist with Planning &
+                                    Design questions, technical references,
+                                    project documentation and engineering
+                                    workflows.
+                                </p>
+
+
+                                <div
+                                    style="
+                                        margin-top:18px;
+                                        padding:15px;
+                                        border:1px solid #d5e0e7;
+                                        background:#f5f8fa;
+                                    "
+                                >
+
+                                    <strong>
+                                        Use the PDS AI button
+                                    </strong>
+
+                                    <p
+                                        style="
+                                            margin-top:6px;
+                                            color:var(--muted);
+                                        "
+                                    >
+                                        The floating AI button is available
+                                        at the lower-right corner of the screen.
+                                    </p>
+
+                                </div>
+
+
+                                <button
+                                    class="button primary"
+                                    type="button"
+                                    style="margin-top:15px;"
+                                    id="openFullPDSAI"
+                                >
+                                    OPEN PDS AI
+                                </button>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    AI Scope
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <ul
+                                    style="
+                                        margin:0;
+                                        padding-left:20px;
+                                        line-height:2;
+                                    "
+                                >
+
+                                    <li>
+                                        Planning & Design
+                                    </li>
+
+                                    <li>
+                                        Project documentation
+                                    </li>
+
+                                    <li>
+                                        DPWH references
+                                    </li>
+
+                                    <li>
+                                        Technical standards
+                                    </li>
+
+                                    <li>
+                                        Engineering workflows
+                                    </li>
+
+                                </ul>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 09 — ABOUT PDS
+            ================================================== -->
+
+            <section
+                id="aboutpds"
+                class="page-section"
+                data-page-section="aboutpds"
+                data-section="aboutpds"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                DPWH / PLANNING & DESIGN
+                            </div>
+
+                            <h1>
+                                About PDS
+                            </h1>
+
+                            <p>
+                                Planning & Design Section
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Planning & Design Section
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <p>
+                                    The Planning & Design Section supports
+                                    project planning, engineering design,
+                                    preparation of technical documents,
+                                    project development and related
+                                    technical coordination.
+                                </p>
+
+
+                                <p
+                                    style="margin-top:14px;"
+                                >
+                                    This PDS system provides a centralized
+                                    digital workspace for project information,
+                                    documents, standards, forms and
+                                    technical references.
+                                </p>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS Functions
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <ul
+                                    style="
+                                        margin:0;
+                                        padding-left:20px;
+                                        line-height:2;
+                                    "
+                                >
+
+                                    <li>
+                                        Project Planning
+                                    </li>
+
+                                    <li>
+                                        Engineering Design
+                                    </li>
+
+                                    <li>
+                                        Technical Documentation
+                                    </li>
+
+                                    <li>
+                                        Cost Estimation
+                                    </li>
+
+                                    <li>
+                                        Standards & Guidelines
+                                    </li>
+
+                                    <li>
+                                        Project Coordination
+                                    </li>
+
+                                </ul>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 10 — CONTACT US
+            ================================================== -->
+
+            <section
+                id="contact-us"
+                class="page-section"
+                data-page-section="contact-us"
+                data-section="contact-us"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / CONTACT
+                            </div>
+
+                            <h1>
+                                Contact Us
+                            </h1>
+
+                            <p>
+                                Planning & Design Section contact information
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS Control Desk
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <div class="contact-item">
+
+                                    <strong>
+                                        Planning & Design Section
+                                    </strong>
+
+                                    <p>
+                                        Department of Public Works and Highways
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    class="contact-item"
+                                    style="margin-top:18px;"
+                                >
+
+                                    <strong>
+                                        Office
+                                    </strong>
+
+                                    <p>
+                                        Planning & Design Section
+                                    </p>
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Technical Support
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <p>
+                                    For project, document and technical
+                                    reference concerns, coordinate with
+                                    the Planning & Design Section.
+                                </p>
+
+
+                                <div
+                                    class="status active"
+                                    style="margin-top:18px;"
+                                >
+                                    PDS CONTROL DESK
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 11 — PROFILE
+            ================================================== -->
+
+            <section
+                id="profile"
+                class="page-section"
+                data-page-section="profile"
+                data-section="profile"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / USER ACCOUNT
+                            </div>
+
+                            <h1>
+                                Profile
+                            </h1>
+
+                            <p>
+                                PDS User Account
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Account Information
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <div class="date-label">
+                                    CURRENT USER
+                                </div>
+
+
+                                <h2
+                                    id="profileName"
+                                    style="
+                                        margin-top:8px;
+                                        color:var(--blue-dark);
+                                        font-family:'Oswald',sans-serif;
+                                    "
+                                >
+                                    PDS User
+                                </h2>
+
+
+                                <p
+                                    id="profileEmail"
+                                    style="
+                                        margin-top:5px;
+                                        color:var(--muted);
+                                        font-size:9px;
+                                    "
+                                >
+                                    —
+                                </p>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Access
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <div class="status active">
+                                    AUTHENTICATED
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+        </div>
+
+    </main>
+
+
+
+    <!-- =====================================================
+         PDS AI FLOATING LAUNCHER
+    ====================================================== -->
+
+    <button
+        class="pds-ai-launcher"
+        id="pdsAiLauncher"
+        type="button"
+        aria-label="Open PDS AI"
+        title="PDS AI"
+    >
+
+        <span class="pds-ai-icon">
+            AI
+        </span>
+
+        <span class="pds-ai-online"></span>
+
+    </button>
+
+
+
+    <!-- =====================================================
+         PDS AI CHATBOT
+    ====================================================== -->
+
+    <div
+        class="pds-ai-chatbot"
+        id="pdsAiChatbot"
+        style="display:none;"
+    >
+
+
+        <div class="pds-ai-chat-header">
+
+
+            <div>
+
+                <strong>
+                    PDS AI
+                </strong>
+
+                <small>
+                    Planning & Design Assistant
+                </small>
+
+            </div>
+
+
+            <button
+                class="pds-ai-chat-close"
+                id="pdsAiClose"
+                type="button"
+                aria-label="Close PDS AI"
+            >
+                ×
+            </button>
+
+
+        </div>
+
+
+
+        <div
+            class="pds-ai-messages"
+            id="aiResponse"
+        >
+
+
+            <div class="pds-ai-message pds-ai-bot">
+
+                <strong>
+                    PDS AI
+                </strong>
+
+                <div style="margin-top:4px;">
+
+                    Hello. I am PDS AI.
+                    How can I assist you with Planning & Design?
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+
+        <div class="pds-ai-input-area">
+
+
+            <input
+                type="text"
+                id="aiInput"
+                placeholder="Ask PDS AI..."
+                autocomplete="off"
+            >
+
+
+            <button
+                id="pdsAiSend"
+                type="button"
+                aria-label="Send message"
+            >
+                ➤
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         PROJECT MODAL
+    ====================================================== -->
+
+    <div
+        id="projectModal"
+        class="modal"
+        style="display:none;"
+    >
+
+
+        <div class="modal-box">
+
+
+            <div class="modal-header">
+
+
+                <h2>
+                    Project
+                </h2>
+
+
+                <button
+                    type="button"
+                    id="closeProjectModal"
+                >
+                    ×
+                </button>
+
+
+            </div>
+
+
+            <div
+                id="projectModalContent"
+                class="modal-content"
+            ></div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         DOCUMENT MODAL
+    ====================================================== -->
+
+    <div
+        id="documentModal"
+        class="modal"
+        style="display:none;"
+    >
+
+
+        <div class="modal-box">
+
+
+            <div class="modal-header">
+
+
+                <h2>
+                    Upload Document
+                </h2>
+
+
+                <button
+                    type="button"
+                    id="closeDocumentModal"
+                >
+                    ×
+                </button>
+
+
+            </div>
+
+
+            <div class="modal-content">
+
+
+                <form id="documentForm">
+
+
+                    <input
+                        type="text"
+                        id="documentTitle"
+                        placeholder="Document Title"
+                        required
+                    >
+
+
+                    <input
+                        type="file"
+                        id="documentFile"
+                        required
+                    >
+
+
+                    <div class="modal-actions">
+
+
+                        <button
+                            type="button"
+                            class="button secondary"
+                            id="cancelDocument"
+                        >
+                            CANCEL
+                        </button>
+
+
+                        <button
+                            type="submit"
+                            class="button primary"
+                        >
+                            UPLOAD
+                        </button>
+
+
+                    </div>
+
+
+                </form>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     PDS JAVASCRIPT
+========================================================= -->
+
+<script src="script.js"></script>
+
+
+</body>
+</html>
