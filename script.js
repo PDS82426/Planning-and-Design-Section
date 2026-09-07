@@ -4106,36 +4106,7 @@ document.addEventListener(
 
     }
 );
-async function askPDSAI() {
 
-    const input =
-        document.getElementById("aiInput");
-
-    const message =
-        input.value.trim();
-
-    if (!message) return;
-
-    const {
-        data,
-        error
-    } = await db.functions.invoke(
-        "PDS-AI",
-        {
-            body: {
-                message: message
-            }
-        }
-    );
-
-    if (error) {
-        console.error(error);
-        return;
-    }
-
-    console.log(data);
-
-}
 /* =========================================================
    PDS AI ASSISTANT — FREE
    Uses Google Gemini API through Supabase Edge Function
