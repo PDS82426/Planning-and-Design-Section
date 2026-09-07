@@ -789,7 +789,179 @@ function getInitials(name) {
         .toUpperCase() || "U";
 
 }
+/* =========================================================
+   PDS AI — CHAT
+========================================================= */
 
+async function askPDSAI() {
+
+    const input =
+        document.getElementById("aiInput");
+
+    const responseBox =
+        document.getElementById("aiResponse");
+
+    if (!input || !responseBox) {
+        return;
+    }
+
+    const message =
+        input.value.trim();
+
+    if (!message) {
+        return;
+    }
+
+
+    /* =====================================================
+       SHOW USER MESSAGE
+    ===================================================== */
+
+    const userMessage =
+        document.createElement("div");
+
+    userMessage.className =
+        "pds-ai-message pds-ai-user";
+
+    userMessage.textContent =
+        message;
+
+    responseBox.appendChild(
+        userMessage
+    );
+
+
+    /* =====================================================
+       CLEAR INPUT
+    ===================================================== */
+
+    input.value = "";
+
+    input.focus();
+
+
+    /* =====================================================
+       THINKING MESSAGE
+    ===================================================== */
+
+    const thinkingMessage =
+        document.createElement("div");
+
+    thinkingMessage.className =
+        "pds-ai-message pds-ai-bot";
+
+    thinkingMessage.textContent =
+        "PDS AI is thinking...";
+
+    responseBox.appendChild(
+        thinkingMessage
+    );
+
+
+    responseBox.scrollTop =
+        responseBox.scrollHeight;
+
+
+    try {
+
+        /* =================================================
+           SEND MESSAGE + HISTORY
+        ================================================= */
+
+        const {
+            data,
+            error
+        } = await db.functions.invoke(
+            "PDS-AI",
+            {
+                body: {
+
+                    message: message,
+
+                    history:
+                        pdsAIHistory
+
+                }
+            }
+        );
+
+
+        /* =================================================
+           ERROR
+        ================================================= */
+
+        if (error) {
+
+            console.error(
+                "PDS AI ERROR:",
+                error
+            );
+
+            thinkingMessage.textContent =
+                "PDS AI could not respond.";
+
+            return;
+        }
+
+
+        /* =================================================
+           GET COMPLETE ANSWER
+        ================================================= */
+
+        const answer =
+            data?.answer ||
+            data?.response ||
+            data?.message ||
+            "No response received from PDS AI.";
+
+
+        thinkingMessage.textContent =
+            answer;
+
+
+        /* =================================================
+           SAVE CONVERSATION
+        ================================================= */
+
+        pdsAIHistory.push({
+
+            role: "user",
+
+            text: message
+
+        });
+
+
+        pdsAIHistory.push({
+
+            role: "model",
+
+            text: answer
+
+        });
+
+
+        /* =================================================
+           SHOW NEWEST MESSAGE
+        ================================================= */
+
+        responseBox.scrollTop =
+            responseBox.scrollHeight;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS AI REQUEST ERROR:",
+            error
+        );
+
+        thinkingMessage.textContent =
+            "PDS AI could not respond.";
+
+    }
+
+}
 
 /* =========================================================
    PAGE NAVIGATION
