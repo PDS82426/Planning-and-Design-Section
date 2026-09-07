@@ -4267,106 +4267,217 @@ img {
 }
 ```
 /* =========================================================
-   PDS HUB — DPWH SIDEBAR BRANDING
-   STEP 1
+   PDS HUB — COMPLETE DPWH / TECHNICAL SIDEBAR
+   STEP 2
 ========================================================= */
 
-.sidebar .brand {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 14px;
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
 
-    min-height: 94px;
-    padding: 18px 18px 20px;
+    width: 255px;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    color: #ffffff;
 
     background:
         linear-gradient(
             180deg,
-            rgba(255,255,255,.045),
-            rgba(255,255,255,0)
+            #082d46 0%,
+            #0b3b59 48%,
+            #072b43 100%
         );
 
-    border-bottom: 1px solid rgba(255,255,255,.16);
+    border-right: 1px solid rgba(255,255,255,.12);
+
+    box-shadow:
+        8px 0 30px rgba(0,0,0,.12);
 
     overflow: hidden;
+
+    z-index: 2000;
 }
 
-/* Technical blueprint line */
-.sidebar .brand::after {
+
+/* =========================================================
+   BLUEPRINT BACKGROUND DETAIL
+========================================================= */
+
+.sidebar::before {
     content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    opacity: .28;
+
+    background-image:
+        linear-gradient(
+            rgba(159,195,230,.08) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(159,195,230,.08) 1px,
+            transparent 1px
+        );
+
+    background-size: 32px 32px;
+}
+
+
+/* Large technical circle */
+
+.sidebar::after {
+    content: "";
+
     position: absolute;
 
-    left: 18px;
-    right: 18px;
+    width: 310px;
+    height: 310px;
+
+    right: -190px;
+    bottom: 100px;
+
+    border:
+        1px solid rgba(159,195,230,.10);
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 0 0 24px rgba(159,195,230,.025),
+        0 0 0 48px rgba(159,195,230,.02);
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.sidebar .brand {
+    position: relative;
+    z-index: 2;
+
+    min-height: 108px;
+
+    padding: 17px 17px 16px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.07),
+            rgba(255,255,255,.015)
+        );
+
+    border-bottom:
+        1px solid rgba(255,255,255,.13);
+}
+
+
+/* Orange technical line */
+
+.sidebar .brand::after {
+    content: "";
+
+    position: absolute;
+
+    left: 17px;
+    right: 17px;
     bottom: 0;
 
-    height: 2px;
+    height: 3px;
 
     background: #e08a2b;
 }
 
+
 /* =========================================================
-   LOGO
+   DPWH LOGO AREA
 ========================================================= */
 
 .brand-logo-wrap {
     position: relative;
 
-    width: 58px;
-    height: 58px;
+    width: 61px;
+    height: 61px;
 
-    flex: 0 0 58px;
+    flex: 0 0 61px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.brand-logo-ring {
-    width: 54px;
-    height: 54px;
 
-    border: 2px solid rgba(255,255,255,.85);
-    border-radius: 50%;
+.brand-logo-ring {
+    position: relative;
+
+    width: 55px;
+    height: 55px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    position: relative;
+    border:
+        2px solid rgba(255,255,255,.88);
+
+    border-radius: 50%;
 
     background:
         radial-gradient(
             circle,
-            rgba(255,255,255,.10) 0%,
-            rgba(255,255,255,.025) 55%,
-            transparent 56%
+            rgba(255,255,255,.12),
+            rgba(255,255,255,.025) 58%,
+            transparent 59%
         );
 
     box-shadow:
-        0 0 0 3px rgba(255,255,255,.06),
+        0 0 0 3px rgba(255,255,255,.045),
         inset 0 0 0 1px rgba(255,255,255,.12);
 }
 
-/* Drafting crosshair */
-.brand-logo-ring::before,
-.brand-logo-ring::after {
-    content: "";
-    position: absolute;
 
-    background: rgba(255,255,255,.30);
-}
+/* Crosshair */
 
 .brand-logo-ring::before {
-    width: 70px;
+    content: "";
+
+    position: absolute;
+
+    width: 69px;
     height: 1px;
+
+    background: rgba(255,255,255,.28);
 }
 
+
 .brand-logo-ring::after {
+    content: "";
+
+    position: absolute;
+
     width: 1px;
-    height: 70px;
+    height: 69px;
+
+    background: rgba(255,255,255,.28);
 }
+
+
+/* Center */
 
 .brand-logo-inner {
     position: relative;
@@ -4375,47 +4486,60 @@ img {
     width: 42px;
     height: 42px;
 
-    border-radius: 50%;
-
     display: flex;
     align-items: center;
     justify-content: center;
 
-    border: 1px solid rgba(255,255,255,.65);
+    border:
+        1px solid rgba(255,255,255,.65);
+
+    border-radius: 50%;
 
     color: #ffffff;
 
-    font-family: "Oswald", sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-
     background: #123d59;
+
+    font-family: "Oswald", sans-serif;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 1px;
 }
+
 
 /* =========================================================
    BRAND TEXT
 ========================================================= */
 
 .brand-copy {
+    position: relative;
+    z-index: 2;
+
     min-width: 0;
     flex: 1;
 }
 
+
 .brand-agency {
-    color: rgba(255,255,255,.72);
+    color: rgba(255,255,255,.68);
 
-    font-family: "IBM Plex Mono", monospace;
+    font-family:
+        "IBM Plex Mono",
+        monospace;
 
-    font-size: 7px;
+    font-size: 6.5px;
+
     line-height: 1.45;
 
-    letter-spacing: .75px;
+    letter-spacing: .7px;
+
     text-transform: uppercase;
 }
 
+
 .brand-divider {
-    width: 34px;
+    width: 30px;
     height: 2px;
 
     margin: 6px 0 5px;
@@ -4423,101 +4547,471 @@ img {
     background: #e08a2b;
 }
 
+
 .sidebar .brand-name {
     margin: 0;
 
     color: #ffffff;
 
-    font-family: "Oswald", sans-serif;
+    font-family:
+        "Oswald",
+        sans-serif;
 
     font-size: 22px;
-    line-height: 1;
+
+    line-height: .95;
 
     font-weight: 700;
 
-    letter-spacing: 1.5px;
+    letter-spacing: 1.4px;
 
     text-transform: uppercase;
 }
+
 
 .sidebar .brand-subtitle {
     margin-top: 5px;
 
-    color: rgba(255,255,255,.72);
+    color: rgba(255,255,255,.65);
 
-    font-family: "IBM Plex Mono", monospace;
+    font-family:
+        "IBM Plex Mono",
+        monospace;
 
-    font-size: 7px;
-    line-height: 1.35;
+    font-size: 6.5px;
 
-    letter-spacing: .55px;
+    line-height: 1.4;
+
+    letter-spacing: .45px;
 
     text-transform: uppercase;
 }
 
+
 /* =========================================================
-   SIDEBAR NAV — SUPPORT THE NEW BRANDING
+   NAVIGATION
 ========================================================= */
 
-.sidebar {
-    background:
-        linear-gradient(
-            180deg,
-            #092f49 0%,
-            #0d3d5c 48%,
-            #092d45 100%
-        );
+.sidebar .navigation {
+    position: relative;
+    z-index: 2;
+
+    flex: 1;
+
+    padding:
+        20px 11px 12px;
+
+    overflow-y: auto;
 }
 
-.sidebar .navigation {
-    padding-top: 18px;
+
+/* Scrollbar */
+
+.sidebar .navigation::-webkit-scrollbar {
+    width: 4px;
 }
+
+.sidebar .navigation::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar .navigation::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.15);
+}
+
+
+/* =========================================================
+   NAV ITEM
+========================================================= */
 
 .sidebar .nav-item {
-    border-left: 3px solid transparent;
+    position: relative;
+
+    min-height: 45px;
+
+    margin-bottom: 4px;
+
+    padding:
+        0 12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    color: rgba(255,255,255,.68);
+
+    border-left:
+        3px solid transparent;
+
+    border-radius: 4px;
+
+    text-decoration: none;
+
+    font-family:
+        "Inter",
+        sans-serif;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    transition:
+        background .18s ease,
+        color .18s ease,
+        border-color .18s ease,
+        transform .18s ease;
 }
+
+
+/* Icon */
+
+.sidebar .nav-item > span:first-child {
+    width: 22px;
+
+    flex: 0 0 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: rgba(255,255,255,.55);
+
+    font-size: 17px;
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+}
+
+
+/* Hover */
 
 .sidebar .nav-item:hover {
-    border-left-color: rgba(224,138,43,.65);
+    color: #ffffff;
+
+    background:
+        rgba(255,255,255,.075);
+
+    border-left-color:
+        rgba(224,138,43,.55);
+
+    transform: translateX(2px);
 }
 
+
+.sidebar .nav-item:hover > span:first-child {
+    color: #e08a2b;
+}
+
+
+/* Active */
+
 .sidebar .nav-item.active {
-    border-left-color: #e08a2b;
+    color: #ffffff;
 
     background:
         linear-gradient(
             90deg,
-            rgba(224,138,43,.16),
-            rgba(255,255,255,.04)
+            rgba(224,138,43,.18),
+            rgba(255,255,255,.055)
         );
+
+    border-left-color: #e08a2b;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.035),
+        inset 0 -1px 0 rgba(255,255,255,.025);
 }
 
-.sidebar .nav-item.active::before {
-    background: #e08a2b;
+
+.sidebar .nav-item.active > span:first-child {
+    color: #e08a2b;
 }
+
+
+/* Active indicator */
+
+.sidebar .nav-item.active::after {
+    content: "";
+
+    position: absolute;
+
+    right: 8px;
+
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: #e08a2b;
+
+    box-shadow:
+        0 0 8px rgba(224,138,43,.55);
+}
+
+
+/* =========================================================
+   PROJECT BADGE
+========================================================= */
+
+.sidebar .nav-item .badge {
+    width: auto;
+    min-width: 21px;
+    height: 21px;
+
+    margin-left: auto;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 6px;
+
+    color: #ffffff;
+
+    background: rgba(224,138,43,.9);
+
+    border-radius: 3px;
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 9px;
+
+    font-weight: 600;
+}
+
 
 /* =========================================================
    SIDEBAR BOTTOM
 ========================================================= */
 
-.sidebar .help-box {
-    border-color: rgba(255,255,255,.14);
+.sidebar .sidebar-bottom {
+    position: relative;
+    z-index: 2;
+
+    padding: 12px 12px 14px;
 
     background:
         linear-gradient(
-            145deg,
-            rgba(255,255,255,.075),
-            rgba(255,255,255,.025)
+            180deg,
+            transparent,
+            rgba(0,0,0,.12)
         );
 }
 
-.sidebar .help-box button {
-    color: #f1a04c;
+
+/* =========================================================
+   HELP BOX
+========================================================= */
+
+.sidebar .help-box {
+    position: relative;
+
+    padding: 14px;
+
+    margin-bottom: 12px;
+
+    background:
+        rgba(255,255,255,.055);
+
+    border:
+        1px solid rgba(255,255,255,.13);
+
+    border-radius: 5px;
+
+    overflow: hidden;
 }
 
-.sidebar .profile {
-    border-top-color: rgba(255,255,255,.14);
+
+.sidebar .help-box::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 3px;
+    height: 100%;
+
+    background: #e08a2b;
 }
+
+
+.sidebar .help-box strong {
+    display: block;
+
+    color: #ffffff;
+
+    font-family:
+        "Oswald",
+        sans-serif;
+
+    font-size: 14px;
+
+    letter-spacing: .4px;
+}
+
+
+.sidebar .help-box p {
+    margin:
+        5px 0 10px;
+
+    color: rgba(255,255,255,.55);
+
+    font-size: 10px;
+
+    line-height: 1.5;
+}
+
+
+.sidebar .help-box button {
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #f0a04c;
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 9px;
+
+    cursor: pointer;
+}
+
+
+.sidebar .help-box button:hover {
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.sidebar .profile {
+    min-height: 48px;
+
+    padding-top: 12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    border-top:
+        1px solid rgba(255,255,255,.12);
+}
+
+
+.sidebar .avatar {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #ffffff;
+
+    background:
+        #123d59;
+
+    border:
+        1px solid rgba(255,255,255,.25);
+
+    border-radius: 50%;
+
+    font-family:
+        "Oswald",
+        sans-serif;
+
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+
+.sidebar .profile-info {
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.sidebar .profile-info strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: #ffffff;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+.sidebar .profile-info small {
+    display: block;
+
+    margin-top: 2px;
+
+    overflow: hidden;
+
+    color: rgba(255,255,255,.48);
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 8px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+.sidebar .dots {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+
+    color: rgba(255,255,255,.55);
+
+    background: transparent;
+
+    border-radius: 4px;
+
+    cursor: pointer;
+
+    font-size: 18px;
+}
+
+
+.sidebar .dots:hover {
+    color: #ffffff;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
 
 /* =========================================================
    MOBILE BRAND
@@ -4525,10 +5019,60 @@ img {
 
 .mobile-brand .brand-mark {
     background: #123d59;
-    border: 1px solid rgba(255,255,255,.35);
+
+    border:
+        1px solid rgba(255,255,255,.28);
 }
 
-.mobile-brand strong {
-    font-family: "Oswald", sans-serif;
-    letter-spacing: 1px;
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 850px) {
+
+    .sidebar {
+        box-shadow:
+            10px 0 35px rgba(0,0,0,.25);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .sidebar .brand {
+        min-height: 92px;
+    }
+
+    .brand-logo-wrap {
+        width: 52px;
+        height: 52px;
+        flex-basis: 52px;
+    }
+
+    .brand-logo-ring {
+        width: 48px;
+        height: 48px;
+    }
+
+    .brand-logo-inner {
+        width: 37px;
+        height: 37px;
+
+        font-size: 9px;
+    }
+
+    .brand-agency {
+        font-size: 5.8px;
+    }
+
+    .sidebar .brand-name {
+        font-size: 19px;
+    }
+
+    .sidebar .brand-subtitle {
+        font-size: 5.8px;
+    }
+
 }
