@@ -1,5 +1,5 @@
 /* =========================================================
-   PDS HUB — PLANNING & DESIGN SECTION
+   PDS — PLANNING & DESIGN SECTION
    DPWH TECHNICAL / BLUEPRINT INTERFACE
    UI ONLY — HTML + JS FUNCTIONS PRESERVED
 ========================================================= */
@@ -4705,5 +4705,38 @@ small,
 
     .hero{
         background-size:20px 20px;
+    }
+}
+/* =========================================================
+   STEP 19 — ACTUAL DPWH LOGO
+========================================================= */
+
+.sidebar .brand-logo-wrap{
+    width:61px;
+    height:61px;
+    flex:0 0 61px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.22));
+}
+
+.sidebar .dpwh-logo{
+    width:58px;
+    height:58px;
+    display:block;
+    object-fit:contain;
+}
+
+@media(max-width:650px){
+    .sidebar .brand-logo-wrap{
+        width:52px;
+        height:52px;
+        flex-basis:52px;
+    }
+
+    .sidebar .dpwh-logo{
+        width:49px;
+        height:49px;
     }
 }
