@@ -3448,3 +3448,65 @@ textarea:focus-visible{
         transition-duration:.01ms!important;
     }
 }
+/* =========================================================
+   PDS — SIDEBAR SECTION NAVIGATION
+   SHOW ONE SECTION AT A TIME
+========================================================= */
+
+/* Main application content */
+#app {
+    position: relative;
+}
+
+/* All navigable sections are hidden by default */
+#app .page-section,
+#app section[data-section] {
+    display: none;
+}
+
+/* Only the active section is visible */
+#app .page-section.active,
+#app section[data-section].active {
+    display: block;
+}
+
+/* Prevent the old long-page layout */
+.main-content,
+.content,
+.dashboard-content {
+    min-height: calc(100vh - var(--topbar));
+}
+
+/* Sidebar navigation */
+.sidebar .nav-item,
+.sidebar .nav-link,
+.sidebar button[data-section] {
+    cursor: pointer;
+}
+
+/* Active sidebar item */
+.sidebar .nav-item.active,
+.sidebar .nav-link.active,
+.sidebar button[data-section].active {
+    background: rgba(255,255,255,.10);
+    color: #ffffff;
+    border-left: 3px solid var(--orange);
+}
+
+/* Smooth visual transition */
+#app .page-section.active,
+#app section[data-section].active {
+    animation: pdsSectionIn .18s ease;
+}
+
+@keyframes pdsSectionIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
