@@ -1,23 +1,62 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>PDS — Planning & Design Section</title>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        PDS — Planning & Design Section
+    </title>
+
 
     <!-- =====================================================
-         STYLES
+         PDS STYLES
     ====================================================== -->
-    <link rel="stylesheet" href="style.css">
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+
+    <!-- =====================================================
+         GOOGLE FONTS
+    ====================================================== -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
 
     <!-- =====================================================
          SUPABASE
     ====================================================== -->
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 
+
 <body>
+
 
 <!-- =========================================================
      AUTH SCREEN
@@ -27,49 +66,112 @@
 
     <div class="auth-container">
 
+
+        <!-- DPWH LOGO -->
+
         <div class="auth-logo">
             DPWH
         </div>
 
-        <h1>Planning & Design</h1>
+
+        <!-- TITLE -->
+
+        <h1>
+            Planning & Design
+        </h1>
+
 
         <p>
             Department of Public Works and Highways
         </p>
 
+
+        <div class="auth-section-label">
+            PLANNING & DESIGN SECTION
+        </div>
+
+
+        <!-- LOGIN -->
+
         <form id="loginForm">
 
-            <input
-                type="email"
-                id="loginEmail"
-                placeholder="Email Address"
-                autocomplete="email"
-                required
-            >
 
-            <input
-                type="password"
-                id="loginPassword"
-                placeholder="Password"
-                autocomplete="current-password"
-                required
-            >
+            <div class="form-group">
 
-            <button type="submit">
+                <label for="loginEmail">
+                    EMAIL ADDRESS
+                </label>
+
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="Email Address"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="loginPassword">
+                    PASSWORD
+                </label>
+
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="auth-button"
+            >
                 SIGN IN
             </button>
 
+
         </form>
 
-        <div id="loginMessage"></div>
+
+        <div
+            id="loginMessage"
+            class="auth-message"
+        ></div>
+
+
+        <div class="auth-footer">
+
+            <span>
+                PDS CONTROL DESK
+            </span>
+
+            <span>
+                •
+            </span>
+
+            <span>
+                DPWH
+            </span>
+
+        </div>
+
 
     </div>
 
 </div>
 
 
+
 <!-- =========================================================
-     APPLICATION
+     MAIN APPLICATION
 ========================================================= -->
 
 <div id="app">
@@ -81,34 +183,40 @@
 
     <aside class="sidebar">
 
-        <!-- BRAND -->
+
+        <!-- =================================================
+             BRAND
+        ================================================== -->
 
         <div class="brand">
 
-            <div class="brand-logo-wrap">
 
-                <!--
-                    If your actual DPWH logo file already exists,
-                    change this src to your existing logo path.
-                -->
+            <div class="brand-logo-wrap">
 
                 <img
                     src="assets/dpwh-logo.png"
                     alt="DPWH Logo"
                     class="dpwh-logo"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    onerror="
+                        this.style.display='none';
+                        this.nextElementSibling.style.display='flex';
+                    "
                 >
+
 
                 <div
                     class="brand-logo-ring"
                     style="display:none;"
                 >
+
                     <div class="brand-logo-inner">
                         DPWH
                     </div>
+
                 </div>
 
             </div>
+
 
             <div class="brand-copy">
 
@@ -128,7 +236,9 @@
 
             </div>
 
+
         </div>
+
 
 
         <!-- =================================================
@@ -137,12 +247,13 @@
 
         <nav class="navigation">
 
+
             <div class="nav-section-title">
                 MAIN
             </div>
 
 
-            <!-- DASHBOARD -->
+            <!-- 01 DASHBOARD -->
 
             <div
                 class="nav-item active"
@@ -151,7 +262,9 @@
                 tabindex="0"
             >
 
-                <span>01</span>
+                <span>
+                    01
+                </span>
 
                 <span>
                     Dashboard
@@ -160,7 +273,7 @@
             </div>
 
 
-            <!-- PROJECTS -->
+            <!-- 02 PROJECTS -->
 
             <div
                 class="nav-item"
@@ -169,7 +282,9 @@
                 tabindex="0"
             >
 
-                <span>02</span>
+                <span>
+                    02
+                </span>
 
                 <span>
                     Projects
@@ -178,7 +293,7 @@
             </div>
 
 
-            <!-- DOCUMENTS -->
+            <!-- 03 DOCUMENTS -->
 
             <div
                 class="nav-item"
@@ -187,7 +302,9 @@
                 tabindex="0"
             >
 
-                <span>03</span>
+                <span>
+                    03
+                </span>
 
                 <span>
                     Documents
@@ -196,7 +313,27 @@
             </div>
 
 
-            <!-- DEPARTMENT ORDERS -->
+            <!-- 04 STANDARDS -->
+
+            <div
+                class="nav-item"
+                data-section="standards-guidelines"
+                role="button"
+                tabindex="0"
+            >
+
+                <span>
+                    04
+                </span>
+
+                <span>
+                    Standards & Guidelines
+                </span>
+
+            </div>
+
+
+            <!-- 05 DEPARTMENT ORDERS -->
 
             <div
                 class="nav-item"
@@ -205,7 +342,9 @@
                 tabindex="0"
             >
 
-                <span>04</span>
+                <span>
+                    05
+                </span>
 
                 <span>
                     Department Orders
@@ -214,23 +353,109 @@
             </div>
 
 
-            <!-- TEAM -->
+            <!-- 06 FORMS -->
 
             <div
                 class="nav-item"
-                data-section="team"
+                data-section="forms-templates"
                 role="button"
                 tabindex="0"
             >
 
-                <span>05</span>
+                <span>
+                    06
+                </span>
 
                 <span>
-                    Team
+                    Forms & Templates
                 </span>
 
             </div>
 
+
+            <!-- 07 ANNOUNCEMENTS -->
+
+            <div
+                class="nav-item"
+                data-section="announcements"
+                role="button"
+                tabindex="0"
+            >
+
+                <span>
+                    07
+                </span>
+
+                <span>
+                    Announcements
+                </span>
+
+            </div>
+
+
+            <!-- 08 PDS AI -->
+
+            <div
+                class="nav-item"
+                data-section="pds-ai-assistant"
+                role="button"
+                tabindex="0"
+            >
+
+                <span>
+                    08
+                </span>
+
+                <span>
+                    PDS AI Assistant
+                </span>
+
+            </div>
+
+
+            <!-- 09 ABOUT -->
+
+            <div
+                class="nav-item"
+                data-section="aboutpds"
+                role="button"
+                tabindex="0"
+            >
+
+                <span>
+                    09
+                </span>
+
+                <span>
+                    About PDS
+                </span>
+
+            </div>
+
+
+            <!-- 10 CONTACT -->
+
+            <div
+                class="nav-item"
+                data-section="contact-us"
+                role="button"
+                tabindex="0"
+            >
+
+                <span>
+                    10
+                </span>
+
+                <span>
+                    Contact Us
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 SYSTEM
+            ================================================== -->
 
             <div class="nav-section-title">
                 SYSTEM
@@ -246,7 +471,9 @@
                 tabindex="0"
             >
 
-                <span>06</span>
+                <span>
+                    11
+                </span>
 
                 <span>
                     Profile
@@ -255,7 +482,7 @@
             </div>
 
 
-            <!-- LOGOUT -->
+            <!-- SIGN OUT -->
 
             <div
                 class="nav-item"
@@ -264,7 +491,9 @@
                 tabindex="0"
             >
 
-                <span>07</span>
+                <span>
+                    12
+                </span>
 
                 <span>
                     Sign Out
@@ -272,7 +501,9 @@
 
             </div>
 
+
         </nav>
+
 
 
         <!-- =================================================
@@ -282,26 +513,32 @@
         <div class="sidebar-help">
 
             <strong>
-                PDS Control Desk
+                PDS CONTROL DESK
             </strong>
 
             <p>
-                Planning, design, project documentation
-                and technical reference management.
+                Planning, design, technical documents,
+                project monitoring and engineering references.
             </p>
 
         </div>
 
 
+
         <!-- =================================================
-             SIDEBAR PROFILE
+             SIDEBAR USER
         ================================================== -->
 
         <div class="sidebar-profile">
 
-            <div class="avatar" id="sidebarAvatar">
+
+            <div
+                class="avatar"
+                id="sidebarAvatar"
+            >
                 PDS
             </div>
+
 
             <div>
 
@@ -315,14 +552,16 @@
 
             </div>
 
+
         </div>
+
 
     </aside>
 
 
 
     <!-- =====================================================
-         MAIN
+         MAIN AREA
     ====================================================== -->
 
     <main class="main">
@@ -334,7 +573,9 @@
 
         <header class="topbar">
 
+
             <div class="topbar-left">
+
 
                 <div class="mobile-brand">
 
@@ -347,22 +588,28 @@
 
                 <div class="search-container">
 
+
                     <span>
                         ⌕
                     </span>
 
+
                     <input
                         type="search"
                         id="globalSearch"
-                        placeholder="SEARCH PROJECTS, DOCUMENTS, DEPARTMENT ORDERS..."
+                        placeholder="SEARCH PDS..."
                     >
 
+
                 </div>
+
 
             </div>
 
 
+
             <div class="topbar-right">
+
 
                 <button
                     class="icon-button"
@@ -373,6 +620,7 @@
                     ◉
                 </button>
 
+
                 <button
                     class="icon-button"
                     id="refreshButton"
@@ -382,6 +630,7 @@
                     ↻
                 </button>
 
+
                 <div
                     class="top-avatar"
                     id="topAvatar"
@@ -389,7 +638,9 @@
                     PDS
                 </div>
 
+
             </div>
+
 
         </header>
 
@@ -400,6 +651,7 @@
         ================================================== -->
 
         <div class="content">
+
 
 
             <!-- =================================================
@@ -415,43 +667,60 @@
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            Dashboard
-                        </h1>
-
-                        <p>
-                            Planning & Design Section Control Desk
-                        </p>
-
-                    </div>
-
-
-                    <!-- HERO -->
-
-                    <div class="hero">
-
-                        <div class="hero-content">
+                        <div>
 
                             <div class="date-label">
                                 DPWH • PLANNING & DESIGN SECTION
                             </div>
 
                             <h1>
+                                Dashboard
+                            </h1>
+
+                            <p>
+                                Planning & Design Section Control Desk
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- HERO -->
+
+                    <div class="hero">
+
+
+                        <div class="hero-content">
+
+
+                            <div class="date-label">
+                                ENGINEERING • PLANNING • DESIGN
+                            </div>
+
+
+                            <h1>
                                 Engineering.
+                                <br>
                                 Planning.
+                                <br>
                                 Design.
                             </h1>
+
 
                             <p>
                                 Centralized workspace for project planning,
                                 technical documents, Department Orders,
-                                project monitoring and PDS coordination.
+                                standards, forms and PDS coordination.
                             </p>
 
 
                             <div class="hero-actions">
+
 
                                 <button
                                     class="button primary"
@@ -461,6 +730,7 @@
                                     VIEW PROJECTS
                                 </button>
 
+
                                 <button
                                     class="button secondary"
                                     type="button"
@@ -469,18 +739,37 @@
                                     DOCUMENT LIBRARY
                                 </button>
 
+
                             </div>
+
 
                         </div>
 
+
+                        <div class="hero-blueprint">
+
+                            <div class="blueprint-grid"></div>
+
+                            <div class="blueprint-label">
+                                PDS / ENGINEERING CONTROL
+                            </div>
+
+                            <div class="blueprint-lines"></div>
+
+                        </div>
+
+
                     </div>
+
 
 
                     <!-- STATISTICS -->
 
                     <div style="height:18px;"></div>
 
+
                     <div class="stats-grid">
+
 
                         <div class="stat-card">
 
@@ -561,12 +850,15 @@
 
                         </div>
 
+
                     </div>
+
 
 
                     <!-- QUICK ACTIONS -->
 
                     <div style="height:20px;"></div>
+
 
                     <div class="section-heading">
 
@@ -583,9 +875,12 @@
 
                     <div class="quick-grid">
 
+
                         <div
                             class="quick-card"
                             data-section-target="projects"
+                            role="button"
+                            tabindex="0"
                         >
 
                             <div class="quick-icon">
@@ -607,9 +902,12 @@
                         </div>
 
 
+
                         <div
                             class="quick-card"
                             data-section-target="documents"
+                            role="button"
+                            tabindex="0"
                         >
 
                             <div class="quick-icon">
@@ -631,9 +929,12 @@
                         </div>
 
 
+
                         <div
                             class="quick-card"
                             data-section-target="department-orders"
+                            role="button"
+                            tabindex="0"
                         >
 
                             <div class="quick-icon">
@@ -655,39 +956,47 @@
                         </div>
 
 
+
                         <div
                             class="quick-card"
-                            data-section-target="team"
+                            data-section-target="pds-ai-assistant"
+                            role="button"
+                            tabindex="0"
                         >
 
                             <div class="quick-icon">
-                                T
+                                AI
                             </div>
 
                             <div>
 
                                 <strong>
-                                    PDS Team
+                                    PDS AI
                                 </strong>
 
                                 <span>
-                                    Section Personnel
+                                    Planning Assistant
                                 </span>
 
                             </div>
 
                         </div>
 
+
                     </div>
+
 
 
                     <!-- TWO COLUMN -->
 
                     <div style="height:20px;"></div>
 
+
                     <div class="two-column">
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -695,9 +1004,19 @@
                                     PDS Announcements
                                 </h2>
 
+                                <button
+                                    class="button secondary"
+                                    type="button"
+                                    data-section-target="announcements"
+                                >
+                                    VIEW ALL
+                                </button>
+
                             </div>
 
+
                             <div class="panel-body">
+
 
                                 <div
                                     class="announcement"
@@ -715,12 +1034,16 @@
 
                                 </div>
 
+
                             </div>
+
 
                         </div>
 
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -729,6 +1052,7 @@
                                 </h2>
 
                             </div>
+
 
                             <div
                                 class="panel-body"
@@ -739,6 +1063,7 @@
                                     SYSTEM ONLINE
                                 </div>
 
+
                                 <p
                                     style="
                                         margin-top:10px;
@@ -746,15 +1071,20 @@
                                         font-size:8px;
                                     "
                                 >
-                                    PDS project, document and reference
-                                    management services are available.
+                                    PDS project, document and
+                                    technical reference services
+                                    are available.
                                 </p>
+
 
                             </div>
 
+
                         </div>
 
+
                     </div>
+
 
                 </div>
 
@@ -775,15 +1105,24 @@
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            Projects
-                        </h1>
+                        <div>
 
-                        <p>
-                            Planning & Design Project Register
-                        </p>
+                            <div class="date-label">
+                                PDS / PROJECT CONTROL
+                            </div>
+
+                            <h1>
+                                Projects
+                            </h1>
+
+                            <p>
+                                Planning & Design Project Register
+                            </p>
+
+                        </div>
 
                     </div>
 
@@ -802,6 +1141,7 @@
 
 
                     <div class="project-table">
+
 
                         <div
                             class="table-header"
@@ -833,13 +1173,6 @@
                         </div>
 
 
-                        <!--
-                            IMPORTANT:
-
-                            Keep this ID because the existing
-                            JavaScript can populate this area.
-                        -->
-
                         <div id="projectList">
 
                             <div
@@ -855,7 +1188,9 @@
 
                         </div>
 
+
                     </div>
+
 
                 </div>
 
@@ -876,15 +1211,24 @@
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            Documents
-                        </h1>
+                        <div>
 
-                        <p>
-                            PDS Technical Document Control
-                        </p>
+                            <div class="date-label">
+                                PDS / DOCUMENT CONTROL
+                            </div>
+
+                            <h1>
+                                Documents
+                            </h1>
+
+                            <p>
+                                PDS Technical Document Control
+                            </p>
+
+                        </div>
 
                     </div>
 
@@ -904,7 +1248,9 @@
 
                     <div class="library">
 
+
                         <div class="library-toolbar">
+
 
                             <div
                                 style="
@@ -915,6 +1261,7 @@
                                 "
                             >
 
+
                                 <button
                                     class="button primary"
                                     id="uploadDocumentButton"
@@ -922,6 +1269,7 @@
                                 >
                                     + UPLOAD DOCUMENT
                                 </button>
+
 
                                 <input
                                     type="search"
@@ -936,7 +1284,9 @@
                                     "
                                 >
 
+
                             </div>
+
 
                         </div>
 
@@ -956,7 +1306,9 @@
 
                         </div>
 
+
                     </div>
+
 
                 </div>
 
@@ -965,7 +1317,152 @@
 
 
             <!-- =================================================
-                 04 — DEPARTMENT ORDERS
+                 04 — STANDARDS & GUIDELINES
+            ================================================== -->
+
+            <section
+                id="standards-guidelines"
+                class="page-section"
+                data-page-section="standards-guidelines"
+                data-section="standards-guidelines"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / TECHNICAL REFERENCES
+                            </div>
+
+                            <h1>
+                                Standards & Guidelines
+                            </h1>
+
+                            <p>
+                                Planning, Design and Engineering Technical References
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="section-heading">
+
+                        <h2>
+                            Technical Standards
+                        </h2>
+
+                        <p>
+                            Reference materials for planning,
+                            engineering and design activities.
+                        </p>
+
+                    </div>
+
+
+                    <div class="quick-grid">
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                RD
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Road Design
+                                </strong>
+
+                                <span>
+                                    Geometric and pavement design references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                GD
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Geotechnical
+                                </strong>
+
+                                <span>
+                                    Soil investigation and foundation references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                HY
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Hydrology
+                                </strong>
+
+                                <span>
+                                    Drainage and hydraulic references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                ST
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Structural
+                                </strong>
+
+                                <span>
+                                    Structural design references
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 05 — DEPARTMENT ORDERS
             ================================================== -->
 
             <section
@@ -977,15 +1474,24 @@
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            Department Orders
-                        </h1>
+                        <div>
 
-                        <p>
-                            DPWH Department Orders and Technical References
-                        </p>
+                            <div class="date-label">
+                                DPWH / OFFICIAL ISSUANCES
+                            </div>
+
+                            <h1>
+                                Department Orders
+                            </h1>
+
+                            <p>
+                                DPWH Department Orders and Technical References
+                            </p>
+
+                        </div>
 
                     </div>
 
@@ -1011,81 +1517,13 @@
                         <div class="department-order">
 
                             <strong>
-                                DO 75, s. 2024
+                                Loading...
                             </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
-
-                        </div>
-
-
-                        <div class="department-order">
-
-                            <strong>
-                                DO 159, s. 2022
-                            </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
-
-                        </div>
-
-
-                        <div class="department-order">
-
-                            <strong>
-                                DO 37, s. 2021
-                            </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
-
-                        </div>
-
-
-                        <div class="department-order">
-
-                            <strong>
-                                DO 120, s. 2019
-                            </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
-
-                        </div>
-
-
-                        <div class="department-order">
-
-                            <strong>
-                                DO 27, s. 2019
-                            </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
-
-                        </div>
-
-
-                        <div class="department-order">
-
-                            <strong>
-                                DO 28, s. 2019
-                            </strong>
-
-                            <p>
-                                Department Order Reference
-                            </p>
 
                         </div>
 
                     </div>
+
 
                 </div>
 
@@ -1094,27 +1532,36 @@
 
 
             <!-- =================================================
-                 05 — TEAM
+                 06 — FORMS & TEMPLATES
             ================================================== -->
 
             <section
-                id="team"
+                id="forms-templates"
                 class="page-section"
-                data-page-section="team"
-                data-section="team"
+                data-page-section="forms-templates"
+                data-section="forms-templates"
             >
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            PDS Team
-                        </h1>
+                        <div>
 
-                        <p>
-                            Planning & Design Section Personnel
-                        </p>
+                            <div class="date-label">
+                                PDS / STANDARD FORMS
+                            </div>
+
+                            <h1>
+                                Forms & Templates
+                            </h1>
+
+                            <p>
+                                Planning & Design Section forms and working templates
+                            </p>
+
+                        </div>
 
                     </div>
 
@@ -1122,40 +1569,105 @@
                     <div class="section-heading">
 
                         <h2>
-                            Section Personnel
+                            PDS Forms
                         </h2>
 
                         <p>
-                            Planning and Design Section team members.
+                            Frequently used forms and templates.
                         </p>
 
                     </div>
 
 
-                    <div
-                        class="team-grid"
-                        id="teamGrid"
-                    >
+                    <div class="quick-grid">
 
-                        <!-- Existing JavaScript can populate this -->
 
-                        <div class="team-card">
+                        <div class="quick-card">
 
-                            <div class="avatar">
-                                PDS
+                            <div class="quick-icon">
+                                POW
                             </div>
 
-                            <strong>
-                                Planning & Design
-                            </strong>
+                            <div>
 
-                            <small>
-                                Section Personnel
-                            </small>
+                                <strong>
+                                    Program of Work
+                                </strong>
+
+                                <span>
+                                    POW preparation template
+                                </span>
+
+                            </div>
 
                         </div>
 
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                D
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    DUPA
+                                </strong>
+
+                                <span>
+                                    Detailed Unit Price Analysis
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                ABC
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ABC
+                                </strong>
+
+                                <span>
+                                    Approved Budget for the Contract
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                QC
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Quantity Calculation
+                                </strong>
+
+                                <span>
+                                    Engineering quantity worksheets
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
                     </div>
+
 
                 </div>
 
@@ -1164,7 +1676,562 @@
 
 
             <!-- =================================================
-                 06 — PROFILE
+                 07 — ANNOUNCEMENTS
+            ================================================== -->
+
+            <section
+                id="announcements"
+                class="page-section"
+                data-page-section="announcements"
+                data-section="announcements"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / SECTION NOTICES
+                            </div>
+
+                            <h1>
+                                Announcements
+                            </h1>
+
+                            <p>
+                                Planning & Design Section notices and updates
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+
+                        <div class="panel-header">
+
+                            <h2>
+                                PDS Announcements
+                            </h2>
+
+                        </div>
+
+
+                        <div class="panel-body">
+
+
+                            <div
+                                class="announcement"
+                            >
+
+                                <strong>
+                                    Planning & Design Section
+                                </strong>
+
+                                <p>
+                                    This area is reserved for official
+                                    PDS announcements, technical reminders,
+                                    deadlines and section notices.
+                                </p>
+
+                            </div>
+
+
+                            <div
+                                class="announcement"
+                            >
+
+                                <strong>
+                                    Technical Reference Updates
+                                </strong>
+
+                                <p>
+                                    Department Orders, standards and
+                                    technical references may be maintained
+                                    through the PDS document control system.
+                                </p>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 08 — PDS AI ASSISTANT
+            ================================================== -->
+
+            <section
+                id="pds-ai-assistant"
+                class="page-section"
+                data-page-section="pds-ai-assistant"
+                data-section="pds-ai-assistant"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / ARTIFICIAL INTELLIGENCE
+                            </div>
+
+                            <h1>
+                                PDS AI Assistant
+                            </h1>
+
+                            <p>
+                                Planning & Design technical assistance
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS AI
+                                </h2>
+
+                                <div class="status active">
+                                    ONLINE
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <p>
+                                    PDS AI can assist with Planning &
+                                    Design questions, technical references,
+                                    project documentation and engineering
+                                    workflows.
+                                </p>
+
+
+                                <div
+                                    style="
+                                        margin-top:18px;
+                                        padding:15px;
+                                        border:1px solid #d5e0e7;
+                                        background:#f5f8fa;
+                                    "
+                                >
+
+                                    <strong>
+                                        Use the PDS AI button
+                                    </strong>
+
+                                    <p
+                                        style="
+                                            margin-top:6px;
+                                            color:var(--muted);
+                                        "
+                                    >
+                                        The floating AI button is available
+                                        at the lower-right corner of the screen.
+                                    </p>
+
+                                </div>
+
+
+                                <button
+                                    class="button primary"
+                                    type="button"
+                                    style="margin-top:15px;"
+                                    id="openFullPDSAI"
+                                >
+                                    OPEN PDS AI
+                                </button>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    AI Scope
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:20px;"
+                            >
+
+                                <ul
+                                    style="
+                                        margin:0;
+                                        padding-left:20px;
+                                        line-height:2;
+                                    "
+                                >
+
+                                    <li>
+                                        Planning & Design
+                                    </li>
+
+                                    <li>
+                                        Project documentation
+                                    </li>
+
+                                    <li>
+                                        DPWH references
+                                    </li>
+
+                                    <li>
+                                        Technical standards
+                                    </li>
+
+                                    <li>
+                                        Engineering workflows
+                                    </li>
+
+                                </ul>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 09 — ABOUT PDS
+            ================================================== -->
+
+            <section
+                id="aboutpds"
+                class="page-section"
+                data-page-section="aboutpds"
+                data-section="aboutpds"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                DPWH / PLANNING & DESIGN
+                            </div>
+
+                            <h1>
+                                About PDS
+                            </h1>
+
+                            <p>
+                                Planning & Design Section
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Planning & Design Section
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <p>
+                                    The Planning & Design Section supports
+                                    project planning, engineering design,
+                                    preparation of technical documents,
+                                    project development and related
+                                    technical coordination.
+                                </p>
+
+
+                                <p
+                                    style="margin-top:14px;"
+                                >
+                                    This PDS system provides a centralized
+                                    digital workspace for project information,
+                                    documents, standards, forms and
+                                    technical references.
+                                </p>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS Functions
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <ul
+                                    style="
+                                        margin:0;
+                                        padding-left:20px;
+                                        line-height:2;
+                                    "
+                                >
+
+                                    <li>
+                                        Project Planning
+                                    </li>
+
+                                    <li>
+                                        Engineering Design
+                                    </li>
+
+                                    <li>
+                                        Technical Documentation
+                                    </li>
+
+                                    <li>
+                                        Cost Estimation
+                                    </li>
+
+                                    <li>
+                                        Standards & Guidelines
+                                    </li>
+
+                                    <li>
+                                        Project Coordination
+                                    </li>
+
+                                </ul>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 10 — CONTACT US
+            ================================================== -->
+
+            <section
+                id="contact-us"
+                class="page-section"
+                data-page-section="contact-us"
+                data-section="contact-us"
+            >
+
+                <div class="page">
+
+
+                    <div class="page-title">
+
+                        <div>
+
+                            <div class="date-label">
+                                PDS / CONTACT
+                            </div>
+
+                            <h1>
+                                Contact Us
+                            </h1>
+
+                            <p>
+                                Planning & Design Section contact information
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="two-column">
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    PDS Control Desk
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <div class="contact-item">
+
+                                    <strong>
+                                        Planning & Design Section
+                                    </strong>
+
+                                    <p>
+                                        Department of Public Works and Highways
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    class="contact-item"
+                                    style="margin-top:18px;"
+                                >
+
+                                    <strong>
+                                        Office
+                                    </strong>
+
+                                    <p>
+                                        Planning & Design Section
+                                    </p>
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="panel">
+
+
+                            <div class="panel-header">
+
+                                <h2>
+                                    Technical Support
+                                </h2>
+
+                            </div>
+
+
+                            <div
+                                class="panel-body"
+                                style="padding:22px;"
+                            >
+
+                                <p>
+                                    For project, document and technical
+                                    reference concerns, coordinate with
+                                    the Planning & Design Section.
+                                </p>
+
+
+                                <div
+                                    class="status active"
+                                    style="margin-top:18px;"
+                                >
+                                    PDS CONTROL DESK
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 11 — PROFILE
             ================================================== -->
 
             <section
@@ -1176,22 +2243,33 @@
 
                 <div class="page">
 
+
                     <div class="page-title">
 
-                        <h1>
-                            Profile
-                        </h1>
+                        <div>
 
-                        <p>
-                            PDS User Account
-                        </p>
+                            <div class="date-label">
+                                PDS / USER ACCOUNT
+                            </div>
+
+                            <h1>
+                                Profile
+                            </h1>
+
+                            <p>
+                                PDS User Account
+                            </p>
+
+                        </div>
 
                     </div>
 
 
                     <div class="two-column">
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -1201,6 +2279,7 @@
 
                             </div>
 
+
                             <div
                                 class="panel-body"
                                 style="padding:20px;"
@@ -1209,6 +2288,7 @@
                                 <div class="date-label">
                                     CURRENT USER
                                 </div>
+
 
                                 <h2
                                     id="profileName"
@@ -1221,6 +2301,7 @@
                                     PDS User
                                 </h2>
 
+
                                 <p
                                     id="profileEmail"
                                     style="
@@ -1232,12 +2313,16 @@
                                     —
                                 </p>
 
+
                             </div>
+
 
                         </div>
 
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -1246,6 +2331,7 @@
                                 </h2>
 
                             </div>
+
 
                             <div
                                 class="panel-body"
@@ -1256,16 +2342,19 @@
                                     AUTHENTICATED
                                 </div>
 
+
                             </div>
+
 
                         </div>
 
+
                     </div>
+
 
                 </div>
 
             </section>
-
 
 
         </div>
@@ -1275,7 +2364,7 @@
 
 
     <!-- =====================================================
-         PDS AI FLOATING BUTTON
+         PDS AI FLOATING LAUNCHER
     ====================================================== -->
 
     <button
@@ -1306,7 +2395,9 @@
         style="display:none;"
     >
 
+
         <div class="pds-ai-chat-header">
+
 
             <div>
 
@@ -1330,17 +2421,16 @@
                 ×
             </button>
 
+
         </div>
 
 
-        <!-- =================================================
-             AI MESSAGE AREA
-        ================================================== -->
 
         <div
             class="pds-ai-messages"
             id="aiResponse"
         >
+
 
             <div class="pds-ai-message pds-ai-bot">
 
@@ -1349,20 +2439,21 @@
                 </strong>
 
                 <div style="margin-top:4px;">
+
                     Hello. I am PDS AI.
                     How can I assist you with Planning & Design?
+
                 </div>
 
             </div>
 
+
         </div>
 
 
-        <!-- =================================================
-             AI INPUT
-        ================================================== -->
 
         <div class="pds-ai-input-area">
+
 
             <input
                 type="text"
@@ -1370,6 +2461,7 @@
                 placeholder="Ask PDS AI..."
                 autocomplete="off"
             >
+
 
             <button
                 id="pdsAiSend"
@@ -1379,7 +2471,9 @@
                 ➤
             </button>
 
+
         </div>
+
 
     </div>
 
@@ -1395,13 +2489,17 @@
         style="display:none;"
     >
 
+
         <div class="modal-box">
 
+
             <div class="modal-header">
+
 
                 <h2>
                     Project
                 </h2>
+
 
                 <button
                     type="button"
@@ -1410,15 +2508,18 @@
                     ×
                 </button>
 
+
             </div>
+
 
             <div
                 id="projectModalContent"
                 class="modal-content"
-            >
-            </div>
+            ></div>
+
 
         </div>
+
 
     </div>
 
@@ -1434,13 +2535,17 @@
         style="display:none;"
     >
 
+
         <div class="modal-box">
 
+
             <div class="modal-header">
+
 
                 <h2>
                     Upload Document
                 </h2>
+
 
                 <button
                     type="button"
@@ -1449,13 +2554,15 @@
                     ×
                 </button>
 
+
             </div>
 
-            <div
-                class="modal-content"
-            >
+
+            <div class="modal-content">
+
 
                 <form id="documentForm">
+
 
                     <input
                         type="text"
@@ -1464,13 +2571,16 @@
                         required
                     >
 
+
                     <input
                         type="file"
                         id="documentFile"
                         required
                     >
 
+
                     <div class="modal-actions">
+
 
                         <button
                             type="button"
@@ -1480,6 +2590,7 @@
                             CANCEL
                         </button>
 
+
                         <button
                             type="submit"
                             class="button primary"
@@ -1487,56 +2598,33 @@
                             UPLOAD
                         </button>
 
+
                     </div>
+
 
                 </form>
 
+
             </div>
+
 
         </div>
 
-    </div>
 
+    </div>
 
 
 </div>
 
 
+
 <!-- =========================================================
-     JAVASCRIPT
+     PDS JAVASCRIPT
 ========================================================= -->
 
 <script src="script.js"></script>
 
 
-<!-- =========================================================
-     BASIC SECTION TARGET SUPPORT
-     The main navigation logic will be placed in script.js.
-========================================================= -->
-
-<script>
-document.addEventListener("click", function(event){
-
-    const target = event.target.closest("[data-section-target]");
-
-    if(!target) return;
-
-    const sectionName =
-        target.getAttribute("data-section-target");
-
-    if(!sectionName) return;
-
-    const navItem =
-        document.querySelector(
-            `.sidebar .nav-item[data-section="${sectionName}"]`
-        );
-
-    if(navItem){
-        navItem.click();
-    }
-
-});
-</script>
-
 </body>
 </html>
+```
