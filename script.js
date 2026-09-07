@@ -1,31 +1,8 @@
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT.JS
-   =========================================================
-   FEATURES
-   ---------------------------------------------------------
-   • Supabase Authentication
-   • Persistent Login Session
-   • Dashboard
-   • Projects
-   • Documents
-   • Standards & Guidelines
-   • Department Orders
-   • Forms & Templates
-   • Announcements
-   • PDS AI Assistant
-   • About PDS
-   • Contact Us
-   • Profile
-   • Section Navigation
-   • Quick Action Navigation
-   • Global Search
-   • Project Modal
-   • Document Upload
-   • Document Search
-   • Document Open / Delete
-   • PDS AI Floating Chatbot
-   ========================================================= */
+   PDS ONLY
+========================================================= */
 
 
 /* =========================================================
@@ -46,24 +23,68 @@ const db =
 
 
 /* =========================================================
-   GLOBAL VARIABLES
+   GLOBAL STATE
 ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
 
-let modalMode = "project";
+let cachedProjects = [];
+let cachedDocuments = [];
 
 let pdsAIHistory = [];
 
-let cachedDocuments = [];
-
 let appLoading = false;
+
 let navigationReady = false;
 let authFormsReady = false;
 let modalReady = false;
 let searchReady = false;
 let aiReady = false;
+let refreshReady = false;
+let notificationReady = false;
+
+
+/* =========================================================
+   PAGE TITLES
+========================================================= */
+
+const pageTitles = {
+
+    dashboard:
+        "Dashboard",
+
+    projects:
+        "Projects",
+
+    documents:
+        "Documents",
+
+    "standards-guidelines":
+        "Standards & Guidelines",
+
+    "department-orders":
+        "Department Orders",
+
+    "forms-templates":
+        "Forms & Templates",
+
+    announcements:
+        "Announcements",
+
+    "pds-ai-assistant":
+        "PDS AI Assistant",
+
+    aboutpds:
+        "About PDS",
+
+    "contact-us":
+        "Contact Us",
+
+    profile:
+        "Profile"
+
+};
 
 
 /* =========================================================
@@ -75,12 +96,19 @@ const planningDesignOrders = [
     {
         number: "DO 75",
         year: "2024",
+
         title:
             "Guidelines for the Conduct of Geotechnical Investigation for all DPWH Infrastructure",
+
         description:
             "Guidelines for geotechnical investigation for proposed DPWH infrastructure projects and preparation of design documents.",
-        category: "geotechnical",
-        categoryName: "Geotechnical",
+
+        category:
+            "geotechnical",
+
+        categoryName:
+            "Geotechnical",
+
         url:
             "https://www.dpwh.gov.ph/dpwh/sites/default/files/issuances/do_075_s2024.pdf"
     },
@@ -88,13 +116,19 @@ const planningDesignOrders = [
     {
         number: "DO 159",
         year: "2022",
+
         title:
             "Implementation of the Social and Environmental Management System Operations Manual",
+
         description:
             "Reference for environmental and social considerations during project development and implementation.",
-        category: "planning",
+
+        category:
+            "planning",
+
         categoryName:
             "Planning & Project Development",
+
         url:
             "https://www.dpwh.gov.ph/dpwh/issuances/department-order/26980"
     },
@@ -102,13 +136,19 @@ const planningDesignOrders = [
     {
         number: "DO 37",
         year: "2021",
+
         title:
             "Infrastructure Right-of-Way Related Guidelines",
+
         description:
             "Reference related to Infrastructure Right-of-Way activities supporting project development.",
-        category: "row",
+
+        category:
+            "row",
+
         categoryName:
             "Right-of-Way",
+
         url:
             "https://www.dpwh.gov.ph/"
     },
@@ -116,13 +156,19 @@ const planningDesignOrders = [
     {
         number: "DO 120",
         year: "2019",
+
         title:
             "Road Network Definition and Inventory Update Manual and Visual Road Condition Assessment Manual",
+
         description:
             "Reference for road network information, inventory and visual road condition assessment.",
-        category: "roads",
+
+        category:
+            "roads",
+
         categoryName:
             "Roads",
+
         url:
             "https://www.dpwh.gov.ph/"
     },
@@ -130,13 +176,19 @@ const planningDesignOrders = [
     {
         number: "DO 27",
         year: "2019",
+
         title:
             "Manual on Streamflow — 2018 Edition",
+
         description:
             "Technical reference for streamflow information used in hydrologic studies and infrastructure planning.",
-        category: "hydrology",
+
+        category:
+            "hydrology",
+
         categoryName:
             "Hydrology & Drainage",
+
         url:
             "https://www.dpwh.gov.ph/"
     },
@@ -144,13 +196,19 @@ const planningDesignOrders = [
     {
         number: "DO 28",
         year: "2019",
+
         title:
             "Cost Estimation Manual for Low Rise Buildings and High Rise Buildings",
+
         description:
             "Reference for preparation and evaluation of construction cost estimates for building projects.",
-        category: "standards",
+
+        category:
+            "standards",
+
         categoryName:
             "Standards & Manuals",
+
         url:
             "https://www.dpwh.gov.ph/"
     }
@@ -170,17 +228,17 @@ function showLogin() {
     const app =
         document.getElementById("app");
 
+
     if (authScreen) {
 
-        authScreen.style.display =
-            "flex";
+        authScreen.style.display = "flex";
 
     }
+
 
     if (app) {
 
-        app.style.display =
-            "none";
+        app.style.display = "none";
 
     }
 
@@ -188,48 +246,20 @@ function showLogin() {
 
 
 /* =========================================================
-   REGISTER SCREEN
-========================================================= */
-
-function showRegister() {
-
-    const loginForm =
-        document.getElementById("loginForm");
-
-    if (loginForm) {
-        loginForm.reset();
-    }
-
-}
-
-
-/* =========================================================
-   AUTH MESSAGES
+   AUTH MESSAGE
 ========================================================= */
 
 function clearAuthMessages() {
 
-    const loginMessage =
+    const message =
         document.getElementById("loginMessage");
 
-    const registerMessage =
-        document.getElementById("registerMessage");
-
-
-    if (loginMessage) {
-
-        loginMessage.textContent = "";
-        loginMessage.className = "";
-
+    if (!message) {
+        return;
     }
 
-
-    if (registerMessage) {
-
-        registerMessage.textContent = "";
-        registerMessage.className = "";
-
-    }
+    message.textContent = "";
+    message.className = "";
 
 }
 
@@ -239,195 +269,24 @@ function authMessage(
     type = "error"
 ) {
 
-    const loginMessage =
+    const element =
         document.getElementById("loginMessage");
 
-    if (!loginMessage) {
+    if (!element) {
         return;
     }
 
-    loginMessage.textContent =
+    element.textContent =
         message || "";
 
-    loginMessage.className =
+    element.className =
         type;
 
 }
 
 
 /* =========================================================
-   REGISTER USER
-========================================================= */
-
-async function registerUser(
-    email,
-    password,
-    fullName = ""
-) {
-
-    try {
-
-        clearAuthMessages();
-
-
-        const {
-            data,
-            error
-        } =
-            await db.auth.signUp({
-
-                email: email.trim(),
-
-                password,
-
-                options: {
-
-                    data: {
-                        full_name: fullName
-                    }
-
-                }
-
-            });
-
-
-        if (error) {
-            throw error;
-        }
-
-
-        if (!data?.user) {
-
-            authMessage(
-                "Registration could not be completed.",
-                "error"
-            );
-
-            return null;
-
-        }
-
-
-        try {
-
-            await createProfile(
-                data.user,
-                fullName
-            );
-
-        }
-        catch(profileError) {
-
-            console.warn(
-                "Profile creation warning:",
-                profileError
-            );
-
-        }
-
-
-        authMessage(
-            "Registration successful. Please check your email if confirmation is required.",
-            "success"
-        );
-
-
-        return data.user;
-
-    }
-    catch(error) {
-
-        console.error(
-            "Registration error:",
-            error
-        );
-
-
-        authMessage(
-            error.message ||
-            "Registration failed.",
-            "error"
-        );
-
-
-        return null;
-
-    }
-
-}
-
-
-/* =========================================================
-   CREATE PROFILE
-========================================================= */
-
-async function createProfile(
-    user,
-    fullName = ""
-) {
-
-    if (!user) {
-        return;
-    }
-
-
-    try {
-
-        const profileData = {
-
-            id: user.id,
-
-            email:
-                user.email || "",
-
-            full_name:
-                fullName ||
-                user.user_metadata?.full_name ||
-                "",
-
-            role:
-                "PLANNING & DESIGN"
-
-        };
-
-
-        const {
-            error
-        } =
-            await db
-                .from("profiles")
-                .upsert(
-                    profileData,
-                    {
-                        onConflict: "id"
-                    }
-                );
-
-
-        if (error) {
-
-            console.warn(
-                "Profile upsert warning:",
-                error
-            );
-
-        }
-
-    }
-    catch(error) {
-
-        console.warn(
-            "Profile creation warning:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   LOGIN USER
+   LOGIN
 ========================================================= */
 
 async function loginUser(
@@ -435,16 +294,15 @@ async function loginUser(
     password
 ) {
 
+    clearAuthMessages();
+
+    authMessage(
+        "Signing in...",
+        "info"
+    );
+
+
     try {
-
-        clearAuthMessages();
-
-
-        authMessage(
-            "Signing in...",
-            "info"
-        );
-
 
         const {
             data,
@@ -468,7 +326,7 @@ async function loginUser(
         if (!data?.user) {
 
             throw new Error(
-                "Login succeeded but no user account was returned."
+                "No user account was returned."
             );
 
         }
@@ -479,71 +337,29 @@ async function loginUser(
 
 
         console.log(
-            "PDS: Login successful:",
-            currentUser.email
+            "PDS: Login successful."
         );
 
 
         /*
-            IMPORTANT:
-            Show the application immediately.
-            This prevents the user from becoming
-            trapped on the Sign In screen.
+           SHOW APP IMMEDIATELY
         */
 
-        const authScreen =
-            document.getElementById(
-                "authScreen"
-            );
-
-        const app =
-            document.getElementById(
-                "app"
-            );
-
-
-        if (authScreen) {
-
-            authScreen.style.display =
-                "none";
-
-        }
-
-
-        if (app) {
-
-            app.style.display =
-                "flex";
-
-        }
-
-
-        showPage(
-            "dashboard",
-            {
-                skipScroll: true
-            }
-        );
-
-
-        authMessage(
-            "Signed in successfully.",
-            "success"
-        );
+        showApplication();
 
 
         /*
-            Load application data.
+           Load profile/data after
+           the interface is visible.
         */
 
         await loadApplication();
-
 
     }
     catch(error) {
 
         console.error(
-            "PDS Login Error:",
+            "PDS login error:",
             error
         );
 
@@ -553,6 +369,37 @@ async function loginUser(
             "Unable to sign in.",
             "error"
         );
+
+    }
+
+}
+
+
+/* =========================================================
+   SHOW APPLICATION
+========================================================= */
+
+function showApplication() {
+
+    const authScreen =
+        document.getElementById("authScreen");
+
+    const app =
+        document.getElementById("app");
+
+
+    if (authScreen) {
+
+        authScreen.style.display =
+            "none";
+
+    }
+
+
+    if (app) {
+
+        app.style.display =
+            "flex";
 
     }
 
@@ -580,37 +427,43 @@ async function signOut() {
 
         currentUser = null;
         currentProfile = null;
+
+        cachedProjects = [];
+        cachedDocuments = [];
+
         pdsAIHistory = [];
 
 
-        const app =
+        const chatbot =
             document.getElementById(
-                "app"
-            );
-
-        const authScreen =
-            document.getElementById(
-                "authScreen"
+                "pdsAiChatbot"
             );
 
 
-        if (app) {
+        if (chatbot) {
 
-            app.style.display =
+            chatbot.style.display =
                 "none";
 
         }
 
 
-        if (authScreen) {
-
-            authScreen.style.display =
-                "flex";
-
-        }
-
+        showLogin();
 
         clearAuthMessages();
+
+
+        const loginForm =
+            document.getElementById(
+                "loginForm"
+            );
+
+
+        if (loginForm) {
+
+            loginForm.reset();
+
+        }
 
 
         console.log(
@@ -621,7 +474,7 @@ async function signOut() {
     catch(error) {
 
         console.error(
-            "Sign out error:",
+            "PDS sign out error:",
             error
         );
 
@@ -644,17 +497,6 @@ async function loadApplication() {
     appLoading = true;
 
 
-    const authScreen =
-        document.getElementById(
-            "authScreen"
-        );
-
-    const app =
-        document.getElementById(
-            "app"
-        );
-
-
     try {
 
         const {
@@ -669,11 +511,7 @@ async function loadApplication() {
         }
 
 
-        const user =
-            data?.user;
-
-
-        if (!user) {
+        if (!data?.user) {
 
             currentUser = null;
 
@@ -685,72 +523,29 @@ async function loadApplication() {
 
 
         currentUser =
-            user;
+            data.user;
 
 
         /*
-            Profile failure must NOT prevent login.
+           PROFILE IS OPTIONAL.
+           Failure here must NOT prevent login.
         */
 
-        try {
-
-            await loadProfile();
-
-        }
-        catch(profileError) {
-
-            console.warn(
-                "PDS: Profile loading failed:",
-                profileError
-            );
-
-
-            currentProfile = {
-
-                id:
-                    user.id,
-
-                email:
-                    user.email || "",
-
-                full_name:
-                    user.user_metadata?.full_name ||
-                    user.email ||
-                    "PDS User",
-
-                role:
-                    "PLANNING & DESIGN"
-
-            };
-
-        }
+        await loadProfile();
 
 
         /*
-            SHOW APPLICATION
+           SHOW APPLICATION
         */
 
-        if (authScreen) {
-
-            authScreen.style.display =
-                "none";
-
-        }
-
-
-        if (app) {
-
-            app.style.display =
-                "flex";
-
-        }
+        showApplication();
 
 
         updateUserInterface();
 
 
         /*
-            Always start at Dashboard.
+           ALWAYS START AT DASHBOARD
         */
 
         showPage(
@@ -762,76 +557,36 @@ async function loadApplication() {
 
 
         /*
-            Load application data.
-            Data errors must not send the user
-            back to Sign In.
+           Load data independently.
         */
 
-        try {
-
-            await refreshAll();
-
-        }
-        catch(dataError) {
-
-            console.warn(
-                "PDS: Some application data could not load:",
-                dataError
-            );
-
-        }
-
-
-        /*
-            Ensure Dashboard remains visible.
-        */
-
-        showPage(
-            "dashboard",
-            {
-                skipScroll: true
-            }
-        );
+        await refreshAll();
 
 
         console.log(
-            "PDS: Application loaded successfully."
+            "PDS: Application loaded."
         );
 
     }
     catch(error) {
 
         console.error(
-            "PDS: Application loading error:",
+            "PDS application error:",
             error
         );
 
 
         /*
-            If the user is authenticated,
-            never trap them on Sign In.
+           IMPORTANT:
+           If a valid authenticated user exists,
+           DO NOT return them to Sign In.
         */
 
         if (currentUser) {
 
-            if (authScreen) {
-
-                authScreen.style.display =
-                    "none";
-
-            }
-
-
-            if (app) {
-
-                app.style.display =
-                    "flex";
-
-            }
-
+            showApplication();
 
             updateUserInterface();
-
 
             showPage(
                 "dashboard",
@@ -868,6 +623,25 @@ async function loadProfile() {
     }
 
 
+    const fallbackProfile = {
+
+        id:
+            currentUser.id,
+
+        email:
+            currentUser.email || "",
+
+        full_name:
+            currentUser.user_metadata?.full_name ||
+            currentUser.email ||
+            "PDS User",
+
+        role:
+            "PLANNING & DESIGN"
+
+    };
+
+
     try {
 
         const {
@@ -887,28 +661,13 @@ async function loadProfile() {
         if (error) {
 
             console.warn(
-                "Profile load warning:",
+                "PDS profile warning:",
                 error
             );
 
 
-            currentProfile = {
-
-                id:
-                    currentUser.id,
-
-                email:
-                    currentUser.email || "",
-
-                full_name:
-                    currentUser.user_metadata?.full_name ||
-                    currentUser.email ||
-                    "PDS User",
-
-                role:
-                    "PLANNING & DESIGN"
-
-            };
+            currentProfile =
+                fallbackProfile;
 
 
             return;
@@ -917,50 +676,20 @@ async function loadProfile() {
 
 
         currentProfile =
-            data || {
-
-                id:
-                    currentUser.id,
-
-                email:
-                    currentUser.email || "",
-
-                full_name:
-                    currentUser.user_metadata?.full_name ||
-                    currentUser.email ||
-                    "PDS User",
-
-                role:
-                    "PLANNING & DESIGN"
-
-            };
+            data ||
+            fallbackProfile;
 
     }
     catch(error) {
 
         console.warn(
-            "Profile error:",
+            "PDS profile error:",
             error
         );
 
 
-        currentProfile = {
-
-            id:
-                currentUser.id,
-
-            email:
-                currentUser.email || "",
-
-            full_name:
-                currentUser.user_metadata?.full_name ||
-                currentUser.email ||
-                "PDS User",
-
-            role:
-                "PLANNING & DESIGN"
-
-        };
+        currentProfile =
+            fallbackProfile;
 
     }
 
@@ -1004,84 +733,85 @@ function updateUserInterface() {
         getInitials(name);
 
 
-    const elements = {
-
-        sidebarUserName:
-            document.getElementById(
-                "sidebarUserName"
-            ),
-
-        sidebarUserRole:
-            document.getElementById(
-                "sidebarUserRole"
-            ),
-
-        sidebarAvatar:
-            document.getElementById(
-                "sidebarAvatar"
-            ),
-
-        topAvatar:
-            document.getElementById(
-                "topAvatar"
-            ),
-
-        profileName:
-            document.getElementById(
-                "profileName"
-            ),
-
-        profileEmail:
-            document.getElementById(
-                "profileEmail"
-            )
-
-    };
+    const sidebarUserName =
+        document.getElementById(
+            "sidebarUserName"
+        );
 
 
-    if (elements.sidebarUserName) {
+    const sidebarUserRole =
+        document.getElementById(
+            "sidebarUserRole"
+        );
 
-        elements.sidebarUserName.textContent =
+
+    const sidebarAvatar =
+        document.getElementById(
+            "sidebarAvatar"
+        );
+
+
+    const topAvatar =
+        document.getElementById(
+            "topAvatar"
+        );
+
+
+    const profileName =
+        document.getElementById(
+            "profileName"
+        );
+
+
+    const profileEmail =
+        document.getElementById(
+            "profileEmail"
+        );
+
+
+    if (sidebarUserName) {
+
+        sidebarUserName.textContent =
             name;
 
     }
 
 
-    if (elements.sidebarUserRole) {
+    if (sidebarUserRole) {
 
-        elements.sidebarUserRole.textContent =
+        sidebarUserRole.textContent =
             role;
 
     }
 
 
-    if (elements.sidebarAvatar) {
+    if (sidebarAvatar) {
 
-        elements.sidebarAvatar.textContent =
+        sidebarAvatar.textContent =
             initials;
 
     }
 
 
-    if (elements.topAvatar) {
+    if (topAvatar) {
 
-        elements.topAvatar.textContent =
+        topAvatar.textContent =
             initials;
 
     }
 
 
-    if (elements.profileName) {
+    if (profileName) {
 
-        elements.profileName.textContent =
+        profileName.textContent =
             name;
 
     }
 
 
-    if (elements.profileEmail) {
+    if (profileEmail) {
 
-        elements.profileEmail.textContent =
+        profileEmail.textContent =
             email;
 
     }
@@ -1090,7 +820,7 @@ function updateUserInterface() {
 
 
 /* =========================================================
-   GET INITIALS
+   INITIALS
 ========================================================= */
 
 function getInitials(name) {
@@ -1125,10 +855,20 @@ function getInitials(name) {
 
 
 /* =========================================================
-   PAGE ALIASES
+   PAGE NORMALIZATION
 ========================================================= */
 
-function normalizePageId(pageId) {
+function normalizePageId(
+    pageId
+) {
+
+    const value =
+        String(
+            pageId || ""
+        )
+            .trim()
+            .toLowerCase();
+
 
     const aliases = {
 
@@ -1144,17 +884,17 @@ function normalizePageId(pageId) {
         project:
             "projects",
 
+        projects:
+            "projects",
+
         content:
             "documents",
 
         document:
             "documents",
 
-        orders:
-            "department-orders",
-
-        departmentorders:
-            "department-orders",
+        documents:
+            "documents",
 
         standards:
             "standards-guidelines",
@@ -1162,10 +902,25 @@ function normalizePageId(pageId) {
         guidelines:
             "standards-guidelines",
 
+        "standards-guidelines":
+            "standards-guidelines",
+
+        orders:
+            "department-orders",
+
+        departmentorders:
+            "department-orders",
+
+        "department-orders":
+            "department-orders",
+
         forms:
             "forms-templates",
 
         templates:
+            "forms-templates",
+
+        "forms-templates":
             "forms-templates",
 
         news:
@@ -1174,27 +929,45 @@ function normalizePageId(pageId) {
         announcement:
             "announcements",
 
+        announcements:
+            "announcements",
+
         ai:
             "pds-ai-assistant",
 
         pdsai:
             "pds-ai-assistant",
 
+        "pds-ai":
+            "pds-ai-assistant",
+
+        "pds-ai-assistant":
+            "pds-ai-assistant",
+
         about:
+            "aboutpds",
+
+        aboutpds:
             "aboutpds",
 
         contact:
             "contact-us",
 
+        "contact-us":
+            "contact-us",
+
         userprofile:
+            "profile",
+
+        profile:
             "profile"
 
     };
 
 
     return (
-        aliases[String(pageId).toLowerCase()] ||
-        pageId ||
+        aliases[value] ||
+        value ||
         "dashboard"
     );
 
@@ -1202,39 +975,25 @@ function normalizePageId(pageId) {
 
 
 /* =========================================================
-   GET ALL PDS PAGE SECTIONS
+   GET PDS SECTIONS
 ========================================================= */
 
 function getPDSPages() {
 
-    let pages =
+    return Array.from(
         document.querySelectorAll(
             "#app .page-section, " +
             "#app [data-page-section], " +
             "#app section[data-section]"
-        );
-
-
-    if (!pages.length) {
-
-        pages =
-            document.querySelectorAll(
-                "#app .content > section, " +
-                "#app > section"
-            );
-
-    }
-
-
-    return pages;
+        )
+    );
 
 }
 
 
 /* =========================================================
    SHOW PAGE
-   ---------------------------------------------------------
-   ONLY ONE SECTION IS DISPLAYED AT A TIME.
+   ONLY ONE SECTION AT A TIME
 ========================================================= */
 
 function showPage(
@@ -1242,7 +1001,7 @@ function showPage(
     options = {}
 ) {
 
-    const requestedPage =
+    const requested =
         normalizePageId(pageId);
 
 
@@ -1261,189 +1020,150 @@ function showPage(
     }
 
 
-    let selectedPage =
-        Array.from(pages).find(
+    let selected =
+        pages.find(
             page =>
-                page.id ===
-                requestedPage
+                page.id === requested
         );
 
 
-    if (!selectedPage) {
+    if (!selected) {
 
-        selectedPage =
-            Array.from(pages).find(
+        selected =
+            pages.find(
                 page =>
-                    page.dataset.section ===
-                    requestedPage
+                    normalizePageId(
+                        page.dataset.section
+                    ) === requested
             );
 
     }
 
 
-    if (!selectedPage) {
+    if (!selected) {
 
-        selectedPage =
-            Array.from(pages).find(
+        selected =
+            pages.find(
                 page =>
-                    page.dataset.pageSection ===
-                    requestedPage
+                    normalizePageId(
+                        page.dataset.pageSection
+                    ) === requested
             );
 
     }
 
 
     /*
-        Fallback to Dashboard.
+       Fallback to dashboard.
     */
 
-    if (!selectedPage) {
+    if (!selected) {
 
-        selectedPage =
-            Array.from(pages).find(
+        selected =
+            pages.find(
                 page =>
-                    page.id ===
-                    "dashboard"
+                    page.id === "dashboard"
             );
 
     }
 
 
-    if (!selectedPage) {
-
-        console.warn(
-            "PDS: Section not found:",
-            requestedPage
-        );
-
+    if (!selected) {
         return;
-
     }
 
 
-    /* =====================================================
-       HIDE EVERY SECTION
-    ===================================================== */
+    /*
+       HIDE ALL
+    */
 
-    pages.forEach(page => {
+    pages.forEach(
+        page => {
 
-        page.classList.remove("active");
+            page.classList.remove(
+                "active"
+            );
 
-        page.classList.remove("active-page");
+            page.classList.remove(
+                "active-page"
+            );
 
-        page.style.display = "none";
+            page.style.display =
+                "none";
 
-    });
-
-
-    /* =====================================================
-       SHOW SELECTED SECTION
-    ===================================================== */
-
-    selectedPage.classList.add("active");
-
-    selectedPage.classList.add("active-page");
-
-    selectedPage.style.display = "block";
+        }
+    );
 
 
-    /* =====================================================
-       UPDATE SIDEBAR
-    ===================================================== */
+    /*
+       SHOW ONE
+    */
 
-    const navigationItems =
+    selected.classList.add(
+        "active"
+    );
+
+    selected.classList.add(
+        "active-page"
+    );
+
+    selected.style.display =
+        "block";
+
+
+    /*
+       SIDEBAR ACTIVE ITEM
+    */
+
+    const navItems =
         document.querySelectorAll(
-            ".sidebar .nav-item, " +
-            ".sidebar .nav-link, " +
-            ".sidebar [data-page], " +
-            ".sidebar [data-section]"
+            ".sidebar [data-section], " +
+            ".sidebar [data-page]"
         );
 
 
-    navigationItems.forEach(item => {
+    navItems.forEach(
+        item => {
 
-        item.classList.remove("active");
-
-
-        const itemPage =
-            item.dataset.section ||
-            item.dataset.page;
+            item.classList.remove(
+                "active"
+            );
 
 
-        if (!itemPage) {
-            return;
+            const itemPage =
+                item.dataset.section ||
+                item.dataset.page;
+
+
+            if (
+                itemPage &&
+                normalizePageId(itemPage) ===
+                normalizePageId(selected.id)
+            ) {
+
+                item.classList.add(
+                    "active"
+                );
+
+            }
+
         }
+    );
 
 
-        if (
-            normalizePageId(itemPage) ===
-            normalizePageId(selectedPage.id)
-        ) {
-
-            item.classList.add("active");
-
-        }
-
-    });
-
-
-    /* =====================================================
+    /*
        UPDATE PAGE TITLE
-    ===================================================== */
+    */
+
+    const title =
+        pageTitles[selected.id] ||
+        "Planning & Design Section";
+
 
     const pageTitle =
         document.getElementById(
             "pageTitle"
         );
-
-
-    const topbarTitle =
-        document.querySelector(
-            ".topbar-title"
-        );
-
-
-    const titles = {
-
-        dashboard:
-            "Dashboard",
-
-        projects:
-            "Projects",
-
-        documents:
-            "Documents",
-
-        "standards-guidelines":
-            "Standards & Guidelines",
-
-        "department-orders":
-            "Department Orders",
-
-        "forms-templates":
-            "Forms & Templates",
-
-        announcements:
-            "Announcements",
-
-        "pds-ai-assistant":
-            "PDS AI Assistant",
-
-        aboutpds:
-            "About PDS",
-
-        "contact-us":
-            "Contact Us",
-
-        profile:
-            "Profile"
-
-    };
-
-
-    const title =
-        titles[selectedPage.id] ||
-        "Planning & Design Section";
 
 
     if (pageTitle) {
@@ -1452,6 +1172,12 @@ function showPage(
             title;
 
     }
+
+
+    const topbarTitle =
+        document.querySelector(
+            ".topbar-title"
+        );
 
 
     if (
@@ -1465,131 +1191,99 @@ function showPage(
     }
 
 
-    /* =====================================================
+    /*
        PAGE-SPECIFIC ACTIONS
-    ===================================================== */
+    */
 
-    switch (selectedPage.id) {
+    if (
+        selected.id ===
+        "projects"
+    ) {
 
-        case "dashboard":
-
-            break;
-
-
-        case "projects":
-
-            loadProjects();
-
-            break;
-
-
-        case "documents":
-
-            loadDocuments();
-
-            break;
-
-
-        case "standards-guidelines":
-
-            if (
-                typeof loadStandardsGuidelines ===
-                "function"
-            ) {
-
-                loadStandardsGuidelines();
-
-            }
-
-            break;
-
-
-        case "department-orders":
-
-            renderDepartmentOrders();
-
-            break;
-
-
-        case "forms-templates":
-
-            if (
-                typeof loadFormsTemplates ===
-                "function"
-            ) {
-
-                loadFormsTemplates();
-
-            }
-
-            break;
-
-
-        case "announcements":
-
-            if (
-                typeof loadAnnouncements ===
-                "function"
-            ) {
-
-                loadAnnouncements();
-
-            }
-
-            break;
-
-
-        case "pds-ai-assistant":
-
-            /*
-                If a full AI input exists in the section,
-                focus it.
-            */
-
-            setTimeout(
-                function() {
-
-                    const fullAIInput =
-                        document.querySelector(
-                            "#pds-ai-assistant #aiInput, " +
-                            "#pds-ai-assistant textarea"
-                        );
-
-                    if (fullAIInput) {
-                        fullAIInput.focus();
-                    }
-
-                },
-                50
-            );
-
-            break;
-
-
-        case "aboutpds":
-
-            break;
-
-
-        case "contact-us":
-
-            break;
-
-
-        case "profile":
-
-            updateUserInterface();
-
-            break;
+        loadProjects();
 
     }
 
 
-    /* =====================================================
-       SCROLL TO TOP
-    ===================================================== */
+    if (
+        selected.id ===
+        "documents"
+    ) {
+
+        loadDocuments();
+
+    }
+
+
+    if (
+        selected.id ===
+        "department-orders"
+    ) {
+
+        renderDepartmentOrders();
+
+    }
+
+
+    if (
+        selected.id ===
+        "profile"
+    ) {
+
+        updateUserInterface();
+
+    }
+
+
+    if (
+        selected.id ===
+        "pds-ai-assistant"
+    ) {
+
+        setTimeout(
+            () => {
+
+                const input =
+                    document.querySelector(
+                        "#pds-ai-assistant #aiInput"
+                    );
+
+                if (input) {
+                    input.focus();
+                }
+
+            },
+            100
+        );
+
+    }
+
+
+    /*
+       CLOSE MOBILE SIDEBAR
+    */
+
+    closeMobileSidebar();
+
+
+    /*
+       SCROLL CONTENT TO TOP
+    */
 
     if (!options.skipScroll) {
+
+        const main =
+            document.querySelector(
+                ".main-content, .content, main"
+            );
+
+
+        if (main) {
+
+            main.scrollTop = 0;
+
+        }
+
 
         window.scrollTo({
             top: 0,
@@ -1601,18 +1295,23 @@ function showPage(
 
 
     console.log(
-        "PDS Section:",
-        selectedPage.id
+        "PDS: Showing section:",
+        selected.id
     );
 
 }
 
 
 /* =========================================================
-   NAVIGATION SETUP
+   NAVIGATION
 ========================================================= */
 
 function setupNavigation() {
+
+    if (navigationReady) {
+        return;
+    }
+
 
     const sidebar =
         document.querySelector(
@@ -1625,26 +1324,8 @@ function setupNavigation() {
     }
 
 
-    if (
-        navigationReady ||
-        sidebar.dataset.navigationReady ===
-        "true"
-    ) {
-
-        return;
-
-    }
-
-
     navigationReady = true;
 
-    sidebar.dataset.navigationReady =
-        "true";
-
-
-    /* =====================================================
-       CLICK
-    ===================================================== */
 
     sidebar.addEventListener(
         "click",
@@ -1652,10 +1333,7 @@ function setupNavigation() {
 
             const item =
                 event.target.closest(
-                    ".nav-item, " +
-                    ".nav-link, " +
-                    "[data-page], " +
-                    "[data-section]"
+                    "[data-section], [data-page]"
                 );
 
 
@@ -1670,7 +1348,7 @@ function setupNavigation() {
 
 
             /*
-                Sign Out handled separately.
+               LOGOUT
             */
 
             if (
@@ -1706,10 +1384,6 @@ function setupNavigation() {
     );
 
 
-    /* =====================================================
-       KEYBOARD
-    ===================================================== */
-
     sidebar.addEventListener(
         "keydown",
         function(event) {
@@ -1718,18 +1392,13 @@ function setupNavigation() {
                 event.key !== "Enter" &&
                 event.key !== " "
             ) {
-
                 return;
-
             }
 
 
             const item =
                 event.target.closest(
-                    ".nav-item, " +
-                    ".nav-link, " +
-                    "[data-page], " +
-                    "[data-section]"
+                    "[data-section], [data-page]"
                 );
 
 
@@ -1742,9 +1411,7 @@ function setupNavigation() {
                 item.id ===
                 "logoutButton"
             ) {
-
                 return;
-
             }
 
 
@@ -1760,7 +1427,6 @@ function setupNavigation() {
 
             event.preventDefault();
 
-
             showPage(page);
 
         }
@@ -1775,50 +1441,40 @@ function setupNavigation() {
 
 function setupSectionTargets() {
 
-    const targets =
-        document.querySelectorAll(
+    document
+        .querySelectorAll(
             "[data-section-target]"
-        );
+        )
+        .forEach(
+            element => {
 
-
-    targets.forEach(target => {
-
-        if (
-            target.dataset.sectionReady ===
-            "true"
-        ) {
-
-            return;
-
-        }
-
-
-        target.dataset.sectionReady =
-            "true";
-
-
-        target.addEventListener(
-            "click",
-            function(event) {
-
-                event.preventDefault();
-
-
-                const section =
-                    this.dataset.sectionTarget;
-
-
-                if (!section) {
+                if (
+                    element.dataset.sectionReady ===
+                    "true"
+                ) {
                     return;
                 }
 
 
-                showPage(section);
+                element.dataset.sectionReady =
+                    "true";
+
+
+                element.addEventListener(
+                    "click",
+                    function(event) {
+
+                        event.preventDefault();
+
+                        showPage(
+                            this.dataset.sectionTarget
+                        );
+
+                    }
+                );
 
             }
         );
-
-    });
 
 }
 
@@ -1829,18 +1485,18 @@ function setupSectionTargets() {
 
 function setupGlobalSearch() {
 
-    const search =
+    if (searchReady) {
+        return;
+    }
+
+
+    const input =
         document.getElementById(
             "globalSearch"
         );
 
 
-    if (!search) {
-        return;
-    }
-
-
-    if (searchReady) {
+    if (!input) {
         return;
     }
 
@@ -1848,16 +1504,14 @@ function setupGlobalSearch() {
     searchReady = true;
 
 
-    search.addEventListener(
+    input.addEventListener(
         "keydown",
         function(event) {
 
             if (
                 event.key !== "Enter"
             ) {
-
                 return;
-
             }
 
 
@@ -1872,35 +1526,150 @@ function setupGlobalSearch() {
             }
 
 
-            const pages =
-                Array.from(
-                    getPDSPages()
+            /*
+               Search projects.
+            */
+
+            const projectMatch =
+                cachedProjects.find(
+                    project => {
+
+                        const text =
+                            [
+                                project.title,
+                                project.project_title,
+                                project.name,
+                                project.location,
+                                project.status,
+                                project.description
+                            ]
+                                .filter(Boolean)
+                                .join(" ")
+                                .toLowerCase();
+
+
+                        return text.includes(
+                            query
+                        );
+
+                    }
                 );
 
 
-            const match =
-                pages.find(
-                    page =>
-                        page.innerText
+            if (projectMatch) {
+
+                showPage("projects");
+
+                return;
+
+            }
+
+
+            /*
+               Search documents.
+            */
+
+            const documentMatch =
+                cachedDocuments.find(
+                    document => {
+
+                        const text =
+                            [
+                                document.title,
+                                document.name,
+                                document.file_name,
+                                document.filename
+                            ]
+                                .filter(Boolean)
+                                .join(" ")
+                                .toLowerCase();
+
+
+                        return text.includes(
+                            query
+                        );
+
+                    }
+                );
+
+
+            if (documentMatch) {
+
+                showPage("documents");
+
+                return;
+
+            }
+
+
+            /*
+               Search department orders.
+            */
+
+            const orderMatch =
+                planningDesignOrders.find(
+                    order => {
+
+                        const text =
+                            [
+                                order.number,
+                                order.year,
+                                order.title,
+                                order.description,
+                                order.categoryName
+                            ]
+                                .join(" ")
+                                .toLowerCase();
+
+
+                        return text.includes(
+                            query
+                        );
+
+                    }
+                );
+
+
+            if (orderMatch) {
+
+                showPage(
+                    "department-orders"
+                );
+
+                return;
+
+            }
+
+
+            /*
+               Search section names.
+            */
+
+            const pageMatch =
+                Object.entries(
+                    pageTitles
+                ).find(
+                    ([id, title]) =>
+                        title
                             .toLowerCase()
                             .includes(query)
                 );
 
 
-            if (match) {
+            if (pageMatch) {
 
                 showPage(
-                    match.id
+                    pageMatch[0]
                 );
 
-            }
-            else {
-
-                console.log(
-                    "PDS Search: No matching section."
-                );
+                return;
 
             }
+
+
+            alert(
+                "No matching PDS record was found."
+            );
 
         }
     );
@@ -1914,20 +1683,17 @@ function setupGlobalSearch() {
 
 async function refreshAll() {
 
-    const jobs = [
+    const results =
+        await Promise.allSettled([
 
-        loadProjects(),
+            loadProjects(),
 
-        loadDocuments(),
+            loadDocuments()
 
-        loadTeam()
-
-    ];
+        ]);
 
 
-    await Promise.allSettled(
-        jobs
-    );
+    return results;
 
 }
 
@@ -1966,30 +1732,40 @@ async function loadProjects() {
         }
 
 
+        cachedProjects =
+            data || [];
+
+
         renderProjects(
-            data || []
+            cachedProjects
         );
 
     }
     catch(error) {
 
-        console.error(
-            "Projects load error:",
+        console.warn(
+            "PDS Projects:",
             error
         );
+
+
+        cachedProjects = [];
 
 
         if (list) {
 
             list.innerHTML = `
 
-                <div style="
-                    padding:30px;
-                    text-align:center;
-                    color:var(--muted);
-                    font-size:9px;
-                ">
-                    Unable to load projects.
+                <div class="pds-empty-state">
+
+                    <strong>
+                        Unable to load projects
+                    </strong>
+
+                    <span>
+                        Please refresh or check the database connection.
+                    </span>
+
                 </div>
 
             `;
@@ -2015,26 +1791,9 @@ function renderProjects(
         );
 
 
-    if (!list) {
-        return;
-    }
-
-
-    const totalProjects =
-        document.getElementById(
-            "totalProjects"
-        );
-
-    const ongoingProjects =
-        document.getElementById(
-            "ongoingProjects"
-        );
-
-    const completedProjects =
-        document.getElementById(
-            "completedProjects"
-        );
-
+    /*
+       DASHBOARD COUNTERS
+    */
 
     const total =
         projects.length;
@@ -2062,27 +1821,50 @@ function renderProjects(
         ).length;
 
 
-    if (totalProjects) {
+    const totalElement =
+        document.getElementById(
+            "totalProjects"
+        );
 
-        totalProjects.textContent =
+
+    const ongoingElement =
+        document.getElementById(
+            "ongoingProjects"
+        );
+
+
+    const completedElement =
+        document.getElementById(
+            "completedProjects"
+        );
+
+
+    if (totalElement) {
+
+        totalElement.textContent =
             total;
 
     }
 
 
-    if (ongoingProjects) {
+    if (ongoingElement) {
 
-        ongoingProjects.textContent =
+        ongoingElement.textContent =
             ongoing;
 
     }
 
 
-    if (completedProjects) {
+    if (completedElement) {
 
-        completedProjects.textContent =
+        completedElement.textContent =
             completed;
 
+    }
+
+
+    if (!list) {
+        return;
     }
 
 
@@ -2090,13 +1872,16 @@ function renderProjects(
 
         list.innerHTML = `
 
-            <div style="
-                padding:35px;
-                text-align:center;
-                color:var(--muted);
-                font-size:9px;
-            ">
-                No projects registered.
+            <div class="pds-empty-state">
+
+                <strong>
+                    No projects registered
+                </strong>
+
+                <span>
+                    Project records will appear here.
+                </span>
+
             </div>
 
         `;
@@ -2110,7 +1895,11 @@ function renderProjects(
         projects.map(
             project => {
 
-                const name =
+                const id =
+                    project.id || "";
+
+
+                const title =
                     project.title ||
                     project.project_title ||
                     project.name ||
@@ -2128,45 +1917,56 @@ function renderProjects(
                     "Pending";
 
 
-                const id =
-                    project.id || "";
+                const statusClass =
+                    String(status)
+                        .toLowerCase()
+                        .includes("completed")
+                        ? "completed"
+                        : String(status)
+                            .toLowerCase()
+                            .includes("ongoing")
+                            ? "active"
+                            : "";
 
 
                 return `
 
                     <div
-                        class="table-row"
-                        style="
-                            grid-template-columns:
-                            2fr
-                            1.3fr
-                            1fr
-                            1fr;
-                        "
+                        class="table-row project-row"
+                        data-project-id="${escapeHTML(id)}"
                     >
 
                         <div>
+
                             <strong>
-                                ${escapeHTML(name)}
+                                ${escapeHTML(title)}
                             </strong>
+
                         </div>
+
 
                         <div>
                             ${escapeHTML(location)}
                         </div>
 
+
                         <div>
-                            <span class="status active">
+
+                            <span
+                                class="status ${statusClass}"
+                            >
                                 ${escapeHTML(status)}
                             </span>
+
                         </div>
+
 
                         <div>
 
                             <button
                                 class="button secondary"
                                 type="button"
-                                onclick="openProject('${escapeJS(id)}')"
+                                data-project-id="${escapeHTML(id)}"
                             >
                                 VIEW
                             </button>
@@ -2179,6 +1979,41 @@ function renderProjects(
 
             }
         ).join("");
+
+
+    /*
+       Use event delegation instead of
+       inline onclick.
+    */
+
+    list
+        .querySelectorAll(
+            "[data-project-id]"
+        )
+        .forEach(
+            button => {
+
+                if (
+                    button.tagName !==
+                    "BUTTON"
+                ) {
+                    return;
+                }
+
+
+                button.addEventListener(
+                    "click",
+                    function() {
+
+                        openProject(
+                            this.dataset.projectId
+                        );
+
+                    }
+                );
+
+            }
+        );
 
 }
 
@@ -2222,6 +2057,7 @@ async function openProject(
                 "projectModal"
             );
 
+
         const content =
             document.getElementById(
                 "projectModalContent"
@@ -2244,34 +2080,80 @@ async function openProject(
 
             <div class="project-details">
 
-                <h3>
-                    ${escapeHTML(title)}
-                </h3>
+                <div class="project-detail-header">
 
-                <p>
-                    <strong>Location:</strong>
-                    ${escapeHTML(
-                        data.location ||
-                        data.project_location ||
-                        "—"
-                    )}
-                </p>
+                    <span class="section-kicker">
+                        PDS PROJECT RECORD
+                    </span>
 
-                <p>
-                    <strong>Status:</strong>
-                    ${escapeHTML(
-                        data.status ||
-                        "—"
-                    )}
-                </p>
+                    <h2>
+                        ${escapeHTML(title)}
+                    </h2>
 
-                <p>
-                    <strong>Description:</strong>
-                    ${escapeHTML(
-                        data.description ||
-                        "—"
-                    )}
-                </p>
+                </div>
+
+
+                <div class="project-detail-grid">
+
+                    <div>
+                        <small>
+                            LOCATION
+                        </small>
+
+                        <strong>
+                            ${escapeHTML(
+                                data.location ||
+                                data.project_location ||
+                                "—"
+                            )}
+                        </strong>
+                    </div>
+
+
+                    <div>
+                        <small>
+                            STATUS
+                        </small>
+
+                        <strong>
+                            ${escapeHTML(
+                                data.status ||
+                                "—"
+                            )}
+                        </strong>
+                    </div>
+
+
+                    <div>
+                        <small>
+                            PROJECT ID
+                        </small>
+
+                        <strong>
+                            ${escapeHTML(
+                                data.id ||
+                                "—"
+                            )}
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="project-detail-description">
+
+                    <small>
+                        DESCRIPTION
+                    </small>
+
+                    <p>
+                        ${escapeHTML(
+                            data.description ||
+                            "No project description available."
+                        )}
+                    </p>
+
+                </div>
 
             </div>
 
@@ -2285,8 +2167,13 @@ async function openProject(
     catch(error) {
 
         console.error(
-            "Open project error:",
+            "PDS project error:",
             error
+        );
+
+
+        alert(
+            "Unable to open this project."
         );
 
     }
@@ -2339,23 +2226,29 @@ async function loadDocuments() {
     }
     catch(error) {
 
-        console.error(
-            "Documents load error:",
+        console.warn(
+            "PDS Documents:",
             error
         );
+
+
+        cachedDocuments = [];
 
 
         if (list) {
 
             list.innerHTML = `
 
-                <div style="
-                    padding:35px;
-                    text-align:center;
-                    color:var(--muted);
-                    font-size:9px;
-                ">
-                    Unable to load documents.
+                <div class="pds-empty-state">
+
+                    <strong>
+                        Unable to load documents
+                    </strong>
+
+                    <span>
+                        Please refresh or check your document database.
+                    </span>
+
                 </div>
 
             `;
@@ -2381,22 +2274,22 @@ function renderDocuments(
         );
 
 
-    if (!list) {
-        return;
-    }
-
-
-    const totalDocuments =
+    const counter =
         document.getElementById(
             "totalDocuments"
         );
 
 
-    if (totalDocuments) {
+    if (counter) {
 
-        totalDocuments.textContent =
+        counter.textContent =
             documents.length;
 
+    }
+
+
+    if (!list) {
+        return;
     }
 
 
@@ -2404,13 +2297,16 @@ function renderDocuments(
 
         list.innerHTML = `
 
-            <div style="
-                padding:35px;
-                text-align:center;
-                color:var(--muted);
-                font-size:9px;
-            ">
-                No documents uploaded.
+            <div class="pds-empty-state">
+
+                <strong>
+                    No documents uploaded
+                </strong>
+
+                <span>
+                    Upload your first PDS document to begin.
+                </span>
+
             </div>
 
         `;
@@ -2423,6 +2319,10 @@ function renderDocuments(
     list.innerHTML =
         documents.map(
             document => {
+
+                const id =
+                    document.id || "";
+
 
                 const title =
                     document.title ||
@@ -2437,8 +2337,10 @@ function renderDocuments(
                     "";
 
 
-                const id =
-                    document.id || "";
+                const size =
+                    formatFileSize(
+                        document.file_size
+                    );
 
 
                 return `
@@ -2450,7 +2352,7 @@ function renderDocuments(
                         )}"
                     >
 
-                        <div>
+                        <div class="document-main">
 
                             <strong>
                                 ${escapeHTML(title)}
@@ -2458,21 +2360,18 @@ function renderDocuments(
 
                             <small>
                                 ${escapeHTML(fileName)}
+                                ${size ? " • " + escapeHTML(size) : ""}
                             </small>
 
                         </div>
 
 
-                        <div style="
-                            display:flex;
-                            gap:6px;
-                            flex-wrap:wrap;
-                        ">
+                        <div class="document-actions">
 
                             <button
                                 class="button secondary"
                                 type="button"
-                                onclick="openDocument('${escapeJS(id)}')"
+                                data-open-document="${escapeHTML(id)}"
                             >
                                 OPEN
                             </button>
@@ -2481,7 +2380,7 @@ function renderDocuments(
                             <button
                                 class="button secondary"
                                 type="button"
-                                onclick="deleteDocument('${escapeJS(id)}')"
+                                data-delete-document="${escapeHTML(id)}"
                             >
                                 DELETE
                             </button>
@@ -2494,6 +2393,58 @@ function renderDocuments(
 
             }
         ).join("");
+
+
+    /*
+       OPEN
+    */
+
+    list
+        .querySelectorAll(
+            "[data-open-document]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    function() {
+
+                        openDocument(
+                            this.dataset.openDocument
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+    /*
+       DELETE
+    */
+
+    list
+        .querySelectorAll(
+            "[data-delete-document]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    function() {
+
+                        deleteDocument(
+                            this.dataset.deleteDocument
+                        );
+
+                    }
+                );
+
+            }
+        );
 
 }
 
@@ -2519,9 +2470,7 @@ function setupDocumentSearch() {
         search.dataset.ready ===
         "true"
     ) {
-
         return;
-
     }
 
 
@@ -2539,26 +2488,26 @@ function setupDocumentSearch() {
                     .toLowerCase();
 
 
-            const rows =
-                document.querySelectorAll(
+            document
+                .querySelectorAll(
                     ".document-row"
+                )
+                .forEach(
+                    row => {
+
+                        const text =
+                            row.innerText
+                                .toLowerCase();
+
+
+                        row.style.display =
+                            !query ||
+                            text.includes(query)
+                                ? ""
+                                : "none";
+
+                    }
                 );
-
-
-            rows.forEach(row => {
-
-                const text =
-                    row.innerText
-                        .toLowerCase();
-
-
-                row.style.display =
-                    !query ||
-                    text.includes(query)
-                        ? ""
-                        : "none";
-
-            });
 
         }
     );
@@ -2587,9 +2536,7 @@ function setupDocumentUpload() {
         button.dataset.ready ===
         "true"
     ) {
-
         return;
-
     }
 
 
@@ -2599,11 +2546,7 @@ function setupDocumentUpload() {
 
     button.addEventListener(
         "click",
-        function() {
-
-            openDocumentModal();
-
-        }
+        openDocumentModal
     );
 
 }
@@ -2711,6 +2654,11 @@ async function uploadDocument(
 
     try {
 
+        /*
+           SUPABASE STORAGE
+           BUCKET: documents
+        */
+
         const {
             data: uploadData,
             error: uploadError
@@ -2721,7 +2669,11 @@ async function uploadDocument(
                     filePath,
                     file,
                     {
-                        upsert: false
+                        upsert: false,
+
+                        contentType:
+                            file.type ||
+                            "application/octet-stream"
                     }
                 );
 
@@ -2735,6 +2687,10 @@ async function uploadDocument(
             uploadData?.path ||
             filePath;
 
+
+        /*
+           DATABASE RECORD
+        */
 
         const {
             data,
@@ -2770,6 +2726,10 @@ async function uploadDocument(
 
         if (error) {
 
+            /*
+               Roll back uploaded file.
+            */
+
             await db.storage
                 .from("documents")
                 .remove([
@@ -2788,7 +2748,7 @@ async function uploadDocument(
     catch(error) {
 
         console.error(
-            "Document upload error:",
+            "PDS document upload:",
             error
         );
 
@@ -2821,9 +2781,7 @@ function setupDocumentForm() {
         form.dataset.ready ===
         "true"
     ) {
-
         return;
-
     }
 
 
@@ -2852,7 +2810,7 @@ function setupDocumentForm() {
 
             const title =
                 titleInput?.value
-                    .trim() || "";
+                    ?.trim() || "";
 
 
             const file =
@@ -2912,7 +2870,7 @@ function setupDocumentForm() {
             catch(error) {
 
                 console.error(
-                    "Upload error:",
+                    "PDS upload error:",
                     error
                 );
 
@@ -2977,6 +2935,30 @@ async function openDocument(
         }
 
 
+        /*
+           If a direct URL exists,
+           use it.
+        */
+
+        const directUrl =
+            data.url ||
+            data.file_url ||
+            data.public_url;
+
+
+        if (directUrl) {
+
+            window.open(
+                directUrl,
+                "_blank",
+                "noopener,noreferrer"
+            );
+
+            return;
+
+        }
+
+
         const path =
             data.storage_path ||
             data.file_path;
@@ -3008,11 +2990,21 @@ async function openDocument(
         }
 
 
-        if (signedData?.signedUrl) {
+        if (
+            signedData?.signedUrl
+        ) {
 
             window.open(
                 signedData.signedUrl,
-                "_blank"
+                "_blank",
+                "noopener,noreferrer"
+            );
+
+        }
+        else {
+
+            throw new Error(
+                "Unable to create document link."
             );
 
         }
@@ -3021,7 +3013,7 @@ async function openDocument(
     catch(error) {
 
         console.error(
-            "Open document error:",
+            "PDS open document:",
             error
         );
 
@@ -3049,13 +3041,11 @@ async function deleteDocument(
     }
 
 
-    const confirmed =
-        window.confirm(
+    if (
+        !window.confirm(
             "Delete this document?"
-        );
-
-
-    if (!confirmed) {
+        )
+    ) {
         return;
     }
 
@@ -3104,7 +3094,7 @@ async function deleteDocument(
             if (storageError) {
 
                 console.warn(
-                    "Storage deletion warning:",
+                    "PDS storage deletion:",
                     storageError
                 );
 
@@ -3137,7 +3127,7 @@ async function deleteDocument(
     catch(error) {
 
         console.error(
-            "Delete document error:",
+            "PDS delete document:",
             error
         );
 
@@ -3153,135 +3143,6 @@ async function deleteDocument(
 
 
 /* =========================================================
-   TEAM
-========================================================= */
-
-async function loadTeam() {
-
-    const container =
-        document.getElementById(
-            "teamGrid"
-        ) ||
-        document.getElementById(
-            "teamList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("profiles")
-                .select("*")
-                .order(
-                    "full_name",
-                    {
-                        ascending: true
-                    }
-                );
-
-
-        if (error) {
-            throw error;
-        }
-
-
-        renderTeam(
-            data || []
-        );
-
-    }
-    catch(error) {
-
-        console.warn(
-            "Team load warning:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   RENDER TEAM
-========================================================= */
-
-function renderTeam(
-    members
-) {
-
-    const container =
-        document.getElementById(
-            "teamGrid"
-        ) ||
-        document.getElementById(
-            "teamList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    if (!members.length) {
-        return;
-    }
-
-
-    container.innerHTML =
-        members.map(
-            member => {
-
-                const name =
-                    member.full_name ||
-                    member.name ||
-                    "PDS Personnel";
-
-
-                const role =
-                    member.role ||
-                    "PLANNING & DESIGN";
-
-
-                return `
-
-                    <div class="team-card">
-
-                        <div class="avatar">
-                            ${escapeHTML(
-                                getInitials(name)
-                            )}
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(name)}
-                        </strong>
-
-                        <small>
-                            ${escapeHTML(role)}
-                        </small>
-
-                    </div>
-
-                `;
-
-            }
-        ).join("");
-
-}
-
-
-/* =========================================================
    DEPARTMENT ORDERS
 ========================================================= */
 
@@ -3290,6 +3151,20 @@ function renderDepartmentOrders() {
     displayDepartmentOrders(
         planningDesignOrders
     );
+
+
+    const count =
+        document.getElementById(
+            "ordersResultCount"
+        );
+
+
+    if (count) {
+
+        count.textContent =
+            planningDesignOrders.length;
+
+    }
 
 }
 
@@ -3313,21 +3188,20 @@ function displayDepartmentOrders(
     }
 
 
-    if (
-        !orders ||
-        !orders.length
-    ) {
+    if (!orders.length) {
 
         grid.innerHTML = `
 
-            <div style="
-                padding:35px;
-                text-align:center;
-                color:var(--muted);
-                font-size:9px;
-                grid-column:1/-1;
-            ">
-                No Department Orders found.
+            <div class="pds-empty-state">
+
+                <strong>
+                    No Department Orders found
+                </strong>
+
+                <span>
+                    Try changing your search or filters.
+                </span>
+
             </div>
 
         `;
@@ -3339,56 +3213,53 @@ function displayDepartmentOrders(
 
     grid.innerHTML =
         orders.map(
-            order => {
+            order => `
 
-                return `
+                <article class="department-order">
 
-                    <div class="department-order">
-
-                        <div class="date-label">
-                            ${escapeHTML(
-                                order.categoryName ||
-                                "DPWH REFERENCE"
-                            )}
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(
-                                order.number
-                            )},
-                            s. ${escapeHTML(
-                                order.year
-                            )}
-                        </strong>
-
-                        <h3>
-                            ${escapeHTML(
-                                order.title
-                            )}
-                        </h3>
-
-                        <p>
-                            ${escapeHTML(
-                                order.description
-                            )}
-                        </p>
-
-                        <a
-                            href="${escapeHTML(
-                                order.url
-                            )}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="button secondary"
-                        >
-                            VIEW REFERENCE
-                        </a>
-
+                    <div class="date-label">
+                        ${escapeHTML(
+                            order.categoryName
+                        )}
                     </div>
 
-                `;
 
-            }
+                    <strong>
+                        ${escapeHTML(
+                            order.number
+                        )},
+                        s. ${escapeHTML(
+                            order.year
+                        )}
+                    </strong>
+
+
+                    <h3>
+                        ${escapeHTML(
+                            order.title
+                        )}
+                    </h3>
+
+
+                    <p>
+                        ${escapeHTML(
+                            order.description
+                        )}
+                    </p>
+
+
+                    <a
+                        href="${escapeHTML(order.url)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="button secondary"
+                    >
+                        VIEW REFERENCE
+                    </a>
+
+                </article>
+
+            `
         ).join("");
 
 }
@@ -3405,10 +3276,12 @@ function filterDepartmentOrders() {
             "ordersSearch"
         );
 
+
     const categoryInput =
         document.getElementById(
             "ordersCategory"
         );
+
 
     const yearInput =
         document.getElementById(
@@ -3435,40 +3308,32 @@ function filterDepartmentOrders() {
             order => {
 
                 const text =
-                    (
-                        order.number +
-                        " " +
-                        order.year +
-                        " " +
-                        order.title +
-                        " " +
-                        order.description +
-                        " " +
+                    [
+                        order.number,
+                        order.year,
+                        order.title,
+                        order.description,
                         order.categoryName
-                    ).toLowerCase();
-
-
-                const matchesSearch =
-                    !search ||
-                    text.includes(search);
-
-
-                const matchesCategory =
-                    !category ||
-                    order.category ===
-                    category;
-
-
-                const matchesYear =
-                    !year ||
-                    order.year ===
-                    year;
+                    ]
+                        .join(" ")
+                        .toLowerCase();
 
 
                 return (
-                    matchesSearch &&
-                    matchesCategory &&
-                    matchesYear
+
+                    (!search ||
+                        text.includes(search))
+
+                    &&
+
+                    (!category ||
+                        order.category === category)
+
+                    &&
+
+                    (!year ||
+                        order.year === year)
+
                 );
 
             }
@@ -3513,7 +3378,7 @@ function filterDepartmentOrders() {
 
 
 /* =========================================================
-   CLEAR ORDER FILTER
+   CLEAR ORDER FILTERS
 ========================================================= */
 
 function clearOrdersSearch() {
@@ -3523,10 +3388,12 @@ function clearOrdersSearch() {
             "ordersSearch"
         );
 
+
     const category =
         document.getElementById(
             "ordersCategory"
         );
+
 
     const year =
         document.getElementById(
@@ -3549,23 +3416,7 @@ function clearOrdersSearch() {
     }
 
 
-    displayDepartmentOrders(
-        planningDesignOrders
-    );
-
-
-    const count =
-        document.getElementById(
-            "ordersResultCount"
-        );
-
-
-    if (count) {
-
-        count.textContent =
-            planningDesignOrders.length;
-
-    }
+    renderDepartmentOrders();
 
 
     const noResults =
@@ -3585,7 +3436,7 @@ function clearOrdersSearch() {
 
 
 /* =========================================================
-   SETUP DEPARTMENT ORDER FILTERS
+   SETUP ORDER FILTERS
 ========================================================= */
 
 function setupDepartmentOrderFilters() {
@@ -3595,15 +3446,18 @@ function setupDepartmentOrderFilters() {
             "ordersSearch"
         );
 
+
     const category =
         document.getElementById(
             "ordersCategory"
         );
 
+
     const year =
         document.getElementById(
             "ordersYear"
         );
+
 
     const clear =
         document.getElementById(
@@ -3651,9 +3505,7 @@ function setupDepartmentOrderFilters() {
     }
 
 
-    displayDepartmentOrders(
-        planningDesignOrders
-    );
+    renderDepartmentOrders();
 
 }
 
@@ -3668,6 +3520,7 @@ function setupProjectModal() {
         document.getElementById(
             "projectModal"
         );
+
 
     const close =
         document.getElementById(
@@ -3729,10 +3582,12 @@ function setupDocumentModal() {
             "documentModal"
         );
 
+
     const close =
         document.getElementById(
             "closeDocumentModal"
         );
+
 
     const cancel =
         document.getElementById(
@@ -3787,7 +3642,7 @@ function setupDocumentModal() {
    MODAL SETUP
 ========================================================= */
 
-function setupModalForm() {
+function setupModals() {
 
     if (modalReady) {
         return;
@@ -3819,65 +3674,62 @@ function setupAuthForms() {
     }
 
 
-    authFormsReady = true;
-
-
-    const loginForm =
+    const form =
         document.getElementById(
             "loginForm"
         );
 
 
-    if (loginForm) {
-
-        loginForm.addEventListener(
-            "submit",
-            async function(event) {
-
-                event.preventDefault();
+    if (!form) {
+        return;
+    }
 
 
-                const email =
-                    document
-                        .getElementById(
-                            "loginEmail"
-                        )
-                        ?.value
-                        .trim();
+    authFormsReady = true;
 
 
-                const password =
-                    document
-                        .getElementById(
-                            "loginPassword"
-                        )
-                        ?.value;
+    form.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
 
 
-                if (
-                    !email ||
-                    !password
-                ) {
-
-                    authMessage(
-                        "Please enter your email and password.",
-                        "error"
-                    );
-
-                    return;
-
-                }
+            const email =
+                document.getElementById(
+                    "loginEmail"
+                )?.value
+                    ?.trim();
 
 
-                await loginUser(
-                    email,
-                    password
+            const password =
+                document.getElementById(
+                    "loginPassword"
+                )?.value;
+
+
+            if (
+                !email ||
+                !password
+            ) {
+
+                authMessage(
+                    "Please enter your email and password.",
+                    "error"
                 );
 
-            }
-        );
+                return;
 
-    }
+            }
+
+
+            await loginUser(
+                email,
+                password
+            );
+
+        }
+    );
 
 
     const logoutButton =
@@ -3907,7 +3759,7 @@ function setupAuthForms() {
 
 
 /* =========================================================
-   PDS AI SETUP
+   PDS AI
 ========================================================= */
 
 function setupPDSAI() {
@@ -3922,20 +3774,24 @@ function setupPDSAI() {
             "pdsAiLauncher"
         );
 
+
     const chatbot =
         document.getElementById(
             "pdsAiChatbot"
         );
+
 
     const close =
         document.getElementById(
             "pdsAiClose"
         );
 
+
     const send =
         document.getElementById(
             "pdsAiSend"
         );
+
 
     const input =
         document.getElementById(
@@ -3947,9 +3803,7 @@ function setupPDSAI() {
         !launcher ||
         !chatbot
     ) {
-
         return;
-
     }
 
 
@@ -3974,7 +3828,7 @@ function setupPDSAI() {
                     }
 
                 },
-                50
+                80
             );
 
         }
@@ -4022,6 +3876,34 @@ function setupPDSAI() {
                     askPDSAI();
 
                 }
+
+            }
+        );
+
+    }
+
+
+    /*
+       Full AI section button.
+    */
+
+    const fullAIButton =
+        document.getElementById(
+            "openFullPDSAI"
+        );
+
+
+    if (fullAIButton) {
+
+        fullAIButton.addEventListener(
+            "click",
+            function(event) {
+
+                event.preventDefault();
+
+                showPage(
+                    "pds-ai-assistant"
+                );
 
             }
         );
@@ -4116,10 +3998,6 @@ async function askPDSAI() {
     );
 
 
-    /*
-        CLEAR IMMEDIATELY
-    */
-
     input.value = "";
 
 
@@ -4163,12 +4041,30 @@ async function askPDSAI() {
             data?.answer ||
             data?.response ||
             data?.message ||
-            data?.text;
+            data?.text ||
+            data?.reply;
+
+
+        /*
+           Some edge functions return
+           a string directly.
+        */
+
+        if (
+            typeof data ===
+            "string"
+        ) {
+
+            answer =
+                data;
+
+        }
 
 
         if (
             typeof answer !==
-            "string"
+            "string" ||
+            !answer.trim()
         ) {
 
             answer =
@@ -4193,6 +4089,10 @@ async function askPDSAI() {
         }
 
 
+        /*
+           Keep history short.
+        */
+
         pdsAIHistory.push({
 
             role:
@@ -4214,6 +4114,19 @@ async function askPDSAI() {
 
         });
 
+
+        if (
+            pdsAIHistory.length >
+            12
+        ) {
+
+            pdsAIHistory =
+                pdsAIHistory.slice(
+                    -12
+                );
+
+        }
+
     }
     catch(error) {
 
@@ -4223,12 +4136,13 @@ async function askPDSAI() {
         );
 
 
+        /*
+           Do not expose technical
+           backend information to users.
+        */
+
         const errorMessage =
-            "PDS AI could not respond. " +
-            (
-                error?.message ||
-                "Please try again."
-            );
+            "PDS AI could not respond. Please try again.";
 
 
         if (thinking) {
@@ -4260,6 +4174,11 @@ async function askPDSAI() {
 
 function setupRefreshButton() {
 
+    if (refreshReady) {
+        return;
+    }
+
+
     const button =
         document.getElementById(
             "refreshButton"
@@ -4271,26 +4190,30 @@ function setupRefreshButton() {
     }
 
 
-    if (
-        button.dataset.ready ===
-        "true"
-    ) {
-
-        return;
-
-    }
-
-
-    button.dataset.ready =
-        "true";
+    refreshReady = true;
 
 
     button.addEventListener(
         "click",
         async function() {
 
+            if (
+                button.disabled
+            ) {
+                return;
+            }
+
+
             button.disabled =
                 true;
+
+
+            const originalText =
+                button.textContent;
+
+
+            button.textContent =
+                "REFRESHING...";
 
 
             try {
@@ -4303,6 +4226,9 @@ function setupRefreshButton() {
                 button.disabled =
                     false;
 
+                button.textContent =
+                    originalText;
+
             }
 
         }
@@ -4312,10 +4238,15 @@ function setupRefreshButton() {
 
 
 /* =========================================================
-   NOTIFICATION BUTTON
+   NOTIFICATIONS
 ========================================================= */
 
 function setupNotificationButton() {
+
+    if (notificationReady) {
+        return;
+    }
+
 
     const button =
         document.getElementById(
@@ -4328,18 +4259,7 @@ function setupNotificationButton() {
     }
 
 
-    if (
-        button.dataset.ready ===
-        "true"
-    ) {
-
-        return;
-
-    }
-
-
-    button.dataset.ready =
-        "true";
+    notificationReady = true;
 
 
     button.addEventListener(
@@ -4352,6 +4272,72 @@ function setupNotificationButton() {
 
         }
     );
+
+}
+
+
+/* =========================================================
+   MOBILE SIDEBAR
+========================================================= */
+
+function setupMobileMenu() {
+
+    const button =
+        document.getElementById(
+            "mobileMenuButton"
+        );
+
+
+    const sidebar =
+        document.querySelector(
+            ".sidebar"
+        );
+
+
+    if (
+        !button ||
+        !sidebar
+    ) {
+        return;
+    }
+
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            sidebar.classList.toggle(
+                "mobile-open"
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE MOBILE SIDEBAR
+========================================================= */
+
+function closeMobileSidebar() {
+
+    const sidebar =
+        document.querySelector(
+            ".sidebar"
+        );
+
+
+    if (
+        sidebar &&
+        window.innerWidth <= 900
+    ) {
+
+        sidebar.classList.remove(
+            "mobile-open"
+        );
+
+    }
 
 }
 
@@ -4405,16 +4391,20 @@ function escapeHTML(
 
 
 /* =========================================================
-   ESCAPE JS
+   FILE SIZE
 ========================================================= */
 
-function escapeJS(
-    value
+function formatFileSize(
+    bytes
 ) {
 
+    const value =
+        Number(bytes);
+
+
     if (
-        value === null ||
-        value === undefined
+        !Number.isFinite(value) ||
+        value <= 0
     ) {
 
         return "";
@@ -4422,22 +4412,95 @@ function escapeJS(
     }
 
 
-    return String(value)
+    const units = [
+        "B",
+        "KB",
+        "MB",
+        "GB"
+    ];
 
-        .replace(
-            /\\/g,
-            "\\\\"
-        )
 
-        .replace(
-            /'/g,
-            "\\'"
-        )
+    let size =
+        value;
 
-        .replace(
-            /"/g,
-            '\\"'
-        );
+
+    let index =
+        0;
+
+
+    while (
+        size >= 1024 &&
+        index <
+        units.length - 1
+    ) {
+
+        size /= 1024;
+
+        index++;
+
+    }
+
+
+    return (
+        size.toFixed(
+            index === 0
+                ? 0
+                : 1
+        ) +
+        " " +
+        units[index]
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE MODALS WITH ESC
+========================================================= */
+
+function setupEscapeKey() {
+
+    document.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key !==
+                "Escape"
+            ) {
+                return;
+            }
+
+
+            const projectModal =
+                document.getElementById(
+                    "projectModal"
+                );
+
+
+            const documentModal =
+                document.getElementById(
+                    "documentModal"
+                );
+
+
+            if (projectModal) {
+
+                projectModal.style.display =
+                    "none";
+
+            }
+
+
+            if (documentModal) {
+
+                documentModal.style.display =
+                    "none";
+
+            }
+
+        }
+    );
 
 }
 
@@ -4446,7 +4509,7 @@ function escapeJS(
    INITIALIZE PDS
 ========================================================= */
 
-async function initializePDSHub() {
+async function initializePDS() {
 
     if (
         document.body.dataset
@@ -4469,44 +4532,18 @@ async function initializePDSHub() {
     );
 
 
-    /* =====================================================
-       INITIAL SCREEN
-    ===================================================== */
+    /*
+       START ON LOGIN
+    */
 
-    const authScreen =
-        document.getElementById(
-            "authScreen"
-        );
-
-    const app =
-        document.getElementById(
-            "app"
-        );
+    showLogin();
 
 
-    if (authScreen) {
-
-        authScreen.style.display =
-            "flex";
-
-    }
-
-
-    if (app) {
-
-        app.style.display =
-            "none";
-
-    }
-
-
-    /* =====================================================
-       SETUP
-    ===================================================== */
+    /*
+       SETUP UI
+    */
 
     setupAuthForms();
-
-    setupModalForm();
 
     setupNavigation();
 
@@ -4518,16 +4555,22 @@ async function initializePDSHub() {
 
     setupDepartmentOrderFilters();
 
+    setupModals();
+
     setupPDSAI();
 
     setupRefreshButton();
 
     setupNotificationButton();
 
+    setupMobileMenu();
 
-    /* =====================================================
+    setupEscapeKey();
+
+
+    /*
        CHECK EXISTING SESSION
-    ===================================================== */
+    */
 
     try {
 
@@ -4564,10 +4607,15 @@ async function initializePDSHub() {
     catch(error) {
 
         console.error(
-            "Session initialization error:",
+            "PDS session error:",
             error
         );
 
+
+        /*
+           If there is no confirmed
+           authenticated user, show login.
+        */
 
         showLogin();
 
@@ -4577,11 +4625,15 @@ async function initializePDSHub() {
 
 
 /* =========================================================
-   AUTH STATE LISTENER
+   AUTH STATE CHANGE
+   ---------------------------------------------------------
+   IMPORTANT:
+   Do not await loadApplication()
+   directly inside Supabase callback.
 ========================================================= */
 
 db.auth.onAuthStateChange(
-    async function(
+    function(
         event,
         session
     ) {
@@ -4592,90 +4644,58 @@ db.auth.onAuthStateChange(
         );
 
 
-        /* -------------------------------------------------
-           SIGNED OUT
-        ------------------------------------------------- */
-
         if (
             event ===
             "SIGNED_OUT"
         ) {
 
             currentUser = null;
-
             currentProfile = null;
+
+            cachedProjects = [];
+            cachedDocuments = [];
 
             pdsAIHistory = [];
 
 
-            const app =
-                document.getElementById(
-                    "app"
-                );
-
-            const authScreen =
-                document.getElementById(
-                    "authScreen"
-                );
-
-
-            if (app) {
-
-                app.style.display =
-                    "none";
-
-            }
-
-
-            if (authScreen) {
-
-                authScreen.style.display =
-                    "flex";
-
-            }
-
+            showLogin();
 
             return;
 
-        }
-
-
-        /* -------------------------------------------------
-           NO SESSION
-        ------------------------------------------------- */
-
-        if (!session?.user) {
-
-            return;
-
-        }
-
-
-        currentUser =
-            session.user;
-
-
-        /*
-            loginUser() and initializePDSHub()
-            already handle SIGNED_IN / INITIAL_SESSION.
-
-            Do not call loadApplication again while
-            another load is running.
-        */
-
-        if (appLoading) {
-            return;
         }
 
 
         if (
-            event ===
-            "INITIAL_SESSION" ||
-            event ===
-            "TOKEN_REFRESHED"
+            session?.user
         ) {
 
-            await loadApplication();
+            currentUser =
+                session.user;
+
+
+            /*
+               Delay application loading so
+               Supabase auth callback does not
+               block the UI.
+            */
+
+            if (
+                event ===
+                "INITIAL_SESSION" ||
+                event ===
+                "TOKEN_REFRESHED"
+            ) {
+
+                setTimeout(
+                    function() {
+
+                        loadApplication();
+
+                    },
+                    0
+                );
+
+            }
 
         }
 
@@ -4684,14 +4704,14 @@ db.auth.onAuthStateChange(
 
 
 /* =========================================================
-   START APPLICATION
+   START
 ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
 
-        initializePDSHub();
+        initializePDS();
 
     }
 );
