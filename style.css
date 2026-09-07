@@ -5333,3 +5333,33 @@ body {
 .page {
     overflow-x: hidden;
 }
+
+/* FIX SIDEBAR OVERLAP */
+
+@media (min-width: 851px) {
+    .sidebar {
+        width: 255px !important;
+        left: 0 !important;
+    }
+
+    .main {
+        margin-left: 255px !important;
+        width: calc(100% - 255px) !important;
+    }
+
+    .topbar {
+        left: 255px !important;
+        right: 0 !important;
+    }
+}
+
+@media (max-width: 850px) {
+    .main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .topbar {
+        left: 0 !important;
+    }
+}
