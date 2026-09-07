@@ -4218,8 +4218,16 @@ img {
     margin-top:12px;
     padding-top:9px;
     border-top:1px solid #dce5ea;
+
     color:var(--blue-2);
-    font-family:"IBM Plex Mono",
+
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    font-weight:600;
+
+    letter-spacing:.45px;
+    text-transform:uppercase;
+}
        /* =========================================================
    STEP 15 — PDS TEAM / PERSONNEL CARDS
 ========================================================= */
