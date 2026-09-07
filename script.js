@@ -1,7 +1,8 @@
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
-   SESSION PERSISTENCE + DASHBOARD + DOCUMENTS + AI
+   AUTH + SESSION + DASHBOARD + PROJECTS + DOCUMENTS
+   DEPARTMENT ORDERS + PDS AI
 ========================================================= */
 
 
@@ -12,13 +13,86 @@
 const SUPABASE_URL =
     "https://zvwghoabsqfyakbqzhil.supabase.co";
 
+/*
+ * IMPORTANT:
+ * Paste the CURRENT "Publishable key" from:
+ *
+ * Supabase
+ * → Project Settings
+ * → API
+ *
+ * DO NOT use the service_role key.
+ */
 const SUPABASE_ANON_KEY =
-    "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
+    "PASTE_YOUR_CURRENT_SUPABASE_PUBLISHABLE_KEY_HERE";
 
-const db = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
+
+/* =========================================================
+   SUPABASE CLIENT
+========================================================= */
+
+let db = null;
+
+function initializeSupabase() {
+
+    if (!window.supabase) {
+
+        console.error(
+            "Supabase library was not loaded."
+        );
+
+        return false;
+    }
+
+    if (
+        !SUPABASE_URL ||
+        !SUPABASE_ANON_KEY ||
+        SUPABASE_ANON_KEY.includes(
+            "PASTE_YOUR_CURRENT"
+        )
+    ) {
+
+        console.error(
+            "Supabase Publishable Key is missing."
+        );
+
+        return false;
+    }
+
+    try {
+
+        db =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY,
+                {
+                    auth: {
+
+                        persistSession: true,
+
+                        autoRefreshToken: true,
+
+                        detectSessionInUrl: true,
+
+                        storageKey:
+                            "pds-supabase-auth"
+
+                    }
+                }
+            );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Supabase initialization failed:",
+            error
+        );
+
+        return false;
+    }
+}
 
 
 /* =========================================================
@@ -28,18 +102,15 @@ const db = window.supabase.createClient(
 let currentUser = null;
 let currentProfile = null;
 
-let modalMode = "view";
-
 let pdsAIHistory = [];
 
 let cachedDocuments = [];
 
-let appLoading = false;
 let navigationReady = false;
 let authFormsReady = false;
-let modalReady = false;
-let searchReady = false;
+let documentSearchReady = false;
 let aiReady = false;
+let initialized = false;
 
 
 /* =========================================================
@@ -52,7 +123,8 @@ const departmentOrders = [
         number: "DO 75",
         year: "2024",
         title: "Guidelines and Procedures",
-        description: "Department policies, guidelines and procedures.",
+        description:
+            "Department policies, guidelines and procedures.",
         category: "Guidelines"
     },
 
@@ -60,7 +132,8 @@ const departmentOrders = [
         number: "DO 159",
         year: "2022",
         title: "Infrastructure Guidelines",
-        description: "Policies and procedures related to infrastructure projects.",
+        description:
+            "Policies and procedures related to infrastructure projects.",
         category: "Infrastructure"
     },
 
@@ -68,7 +141,8 @@ const departmentOrders = [
         number: "DO 37",
         year: "2021",
         title: "Planning and Design",
-        description: "Planning and design implementation guidelines.",
+        description:
+            "Planning and design implementation guidelines.",
         category: "Planning & Design"
     },
 
@@ -76,7 +150,8 @@ const departmentOrders = [
         number: "DO 120",
         year: "2019",
         title: "Infrastructure Standards",
-        description: "Standards and procedures for infrastructure implementation.",
+        description:
+            "Standards and procedures for infrastructure implementation.",
         category: "Standards"
     },
 
@@ -84,7 +159,8 @@ const departmentOrders = [
         number: "DO 27",
         year: "2019",
         title: "Project Development",
-        description: "Project development and implementation guidelines.",
+        description:
+            "Project development and implementation guidelines.",
         category: "Project Development"
     },
 
@@ -92,7 +168,8 @@ const departmentOrders = [
         number: "DO 28",
         year: "2019",
         title: "Cost Estimation Manual",
-        description: "Guidelines for cost estimation and construction costing.",
+        description:
+            "Guidelines for cost estimation and construction costing.",
         category: "Cost Estimation"
     }
 
@@ -100,27 +177,13 @@ const departmentOrders = [
 
 
 /* =========================================================
-   BASIC DOM HELPERS
+   DOM HELPER
 ========================================================= */
 
 function $(id) {
+
     return document.getElementById(id);
-}
 
-
-function showElement(element) {
-
-    if (!element) return;
-
-    element.style.display = "";
-}
-
-
-function hideElement(element) {
-
-    if (!element) return;
-
-    element.style.display = "none";
 }
 
 
@@ -130,117 +193,97 @@ function hideElement(element) {
 
 function showLogin() {
 
-    const authScreen = $("authScreen");
-    const app = $("app");
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
 
     if (app) {
-        app.style.display = "none";
+
+        app.style.display =
+            "none";
     }
 
     if (authScreen) {
-        authScreen.style.display = "flex";
+
+        authScreen.style.display =
+            "flex";
     }
+
 }
 
 
 function hideLogin() {
 
-    const authScreen = $("authScreen");
-    const app = $("app");
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
 
     if (authScreen) {
-        authScreen.style.display = "none";
+
+        authScreen.style.display =
+            "none";
     }
 
     if (app) {
-        app.style.display = "flex";
-    }
-}
 
-
-function clearAuthMessages() {
-
-    const loginMessage = $("loginMessage");
-    const registerMessage = $("registerMessage");
-
-    if (loginMessage) {
-        loginMessage.textContent = "";
-        loginMessage.className = "auth-message";
+        app.style.display =
+            "flex";
     }
 
-    if (registerMessage) {
-        registerMessage.textContent = "";
-        registerMessage.className = "auth-message";
-    }
-}
-
-
-function authMessage(message, type = "error") {
-
-    const loginMessage = $("loginMessage");
-
-    if (!loginMessage) return;
-
-    loginMessage.textContent = message;
-
-    loginMessage.className =
-        `auth-message ${type}`;
 }
 
 
 /* =========================================================
-   REGISTER
+   AUTH MESSAGE
 ========================================================= */
 
-async function registerUser(email, password, fullName = "") {
+function authMessage(
+    message,
+    type = "error"
+) {
 
-    try {
+    const element =
+        $("loginMessage");
 
-        const { data, error } =
-            await db.auth.signUp({
-                email,
-                password
-            });
+    if (!element) {
 
-        if (error) {
-            throw error;
-        }
+        console.error(message);
 
-        if (data && data.user) {
-
-            try {
-
-                await createProfile(
-                    data.user,
-                    fullName
-                );
-
-            } catch (profileError) {
-
-                console.warn(
-                    "Profile creation warning:",
-                    profileError
-                );
-            }
-        }
-
-        return {
-            success: true,
-            data
-        };
-
-    } catch (error) {
-
-        console.error(
-            "Registration error:",
-            error
-        );
-
-        return {
-            success: false,
-            error
-        };
+        return;
     }
+
+    element.textContent =
+        message;
+
+    element.className =
+        `auth-message ${type}`;
+
+}
+
+
+/* =========================================================
+   CLEAR AUTH MESSAGE
+========================================================= */
+
+function clearAuthMessage() {
+
+    const element =
+        $("loginMessage");
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        "";
+
+    element.className =
+        "auth-message";
+
 }
 
 
@@ -248,15 +291,21 @@ async function registerUser(email, password, fullName = "") {
    CREATE PROFILE
 ========================================================= */
 
-async function createProfile(user, fullName = "") {
+async function createProfile(
+    user,
+    fullName = ""
+) {
 
-    if (!user) return;
+    if (!user || !db) {
+        return;
+    }
 
     const profile = {
 
         id: user.id,
 
-        email: user.email || "",
+        email:
+            user.email || "",
 
         full_name:
             fullName ||
@@ -266,7 +315,9 @@ async function createProfile(user, fullName = "") {
 
     };
 
-    const { error } =
+    const {
+        error
+    } =
         await db
             .from("profiles")
             .upsert(
@@ -279,14 +330,16 @@ async function createProfile(user, fullName = "") {
     if (error) {
 
         console.warn(
-            "Profile creation failed:",
+            "Profile creation warning:",
             error
         );
 
-        throw error;
+        return;
     }
 
-    currentProfile = profile;
+    currentProfile =
+        profile;
+
 }
 
 
@@ -294,45 +347,124 @@ async function createProfile(user, fullName = "") {
    LOGIN
 ========================================================= */
 
-async function loginUser(email, password) {
+async function loginUser(
+    email,
+    password
+) {
+
+    if (!db) {
+
+        authMessage(
+            "Supabase is not initialized. Check your Publishable API key.",
+            "error"
+        );
+
+        return {
+            success: false
+        };
+    }
 
     try {
+
+        clearAuthMessage();
+
+        authMessage(
+            "Signing in...",
+            "loading"
+        );
 
         const {
             data,
             error
-        } = await db.auth.signInWithPassword({
-            email,
-            password
-        });
+        } =
+            await db.auth.signInWithPassword({
+
+                email:
+                    email.trim(),
+
+                password:
+                    password
+
+            });
+
 
         if (error) {
+
+            console.error(
+                "Supabase login error:",
+                error
+            );
+
             throw error;
         }
 
-        if (!data || !data.user) {
+
+        if (
+            !data ||
+            !data.user
+        ) {
+
             throw new Error(
-                "Login succeeded but no user session was returned."
+                "No user account was returned by Supabase."
             );
         }
 
-        currentUser = data.user;
+
+        currentUser =
+            data.user;
+
 
         /*
          * IMPORTANT:
-         * Immediately hide login.
-         * Do not wait for profile/data loading.
+         * Hide login immediately after
+         * successful authentication.
          */
 
         hideLogin();
 
-        showPage("dashboard");
 
-        await loadApplication();
+        showPage(
+            "dashboard"
+        );
+
+
+        /*
+         * Load user information.
+         * These failures must NOT
+         * log the user out.
+         */
+
+        await loadUserProfile();
+
+        updateUserInterface();
+
+
+        /*
+         * Load application data.
+         */
+
+        await Promise.allSettled([
+
+            loadProjects(),
+
+            loadDocuments(),
+
+            loadDepartmentOrders()
+
+        ]);
+
+
+        authMessage(
+            "",
+            "success"
+        );
+
 
         return {
-            success: true
+            success: true,
+            data
         };
+
 
     } catch (error) {
 
@@ -341,17 +473,43 @@ async function loginUser(email, password) {
             error
         );
 
+
+        let message =
+            error?.message ||
+            "Unable to sign in.";
+
+
+        /*
+         * Make API-key problem obvious.
+         */
+
+        if (
+            message
+                .toLowerCase()
+                .includes(
+                    "invalid api key"
+                )
+        ) {
+
+            message =
+                "Invalid Supabase API key. Open Supabase → Project Settings → API and replace the Publishable key in script.js.";
+
+        }
+
+
         authMessage(
-            error.message ||
-            "Unable to sign in.",
+            message,
             "error"
         );
+
 
         return {
             success: false,
             error
         };
+
     }
+
 }
 
 
@@ -360,6 +518,13 @@ async function loginUser(email, password) {
 ========================================================= */
 
 async function signOut() {
+
+    if (!db) {
+
+        showLogin();
+
+        return;
+    }
 
     try {
 
@@ -375,95 +540,39 @@ async function signOut() {
     } finally {
 
         currentUser = null;
+
         currentProfile = null;
+
         pdsAIHistory = [];
 
         showLogin();
     }
+
 }
 
 
 /* =========================================================
-   SESSION RESTORATION
-   THIS PREVENTS SIGN-IN FROM APPEARING ON REFRESH
+   LOAD USER PROFILE
 ========================================================= */
 
-async function restoreSession() {
+async function loadUserProfile() {
+
+    if (
+        !db ||
+        !currentUser
+    ) {
+
+        return;
+    }
+
 
     try {
-
-        console.log(
-            "Checking existing PDS session..."
-        );
 
         const {
             data,
             error
-        } = await db.auth.getSession();
-
-        if (error) {
-
-            console.error(
-                "Session check failed:",
-                error
-            );
-
-            showLogin();
-
-            return false;
-        }
-
-        const session = data?.session;
-
-        /*
-         * NO SESSION
-         */
-
-        if (!session || !session.user) {
-
-            console.log(
-                "No active PDS session."
-            );
-
-            currentUser = null;
-            currentProfile = null;
-
-            showLogin();
-
-            return false;
-        }
-
-        /*
-         * SESSION FOUND
-         */
-
-        console.log(
-            "PDS session restored:",
-            session.user.email
-        );
-
-        currentUser = session.user;
-
-        /*
-         * CRITICAL:
-         * Hide login immediately.
-         */
-
-        hideLogin();
-
-        showPage("dashboard");
-
-        /*
-         * Load profile separately.
-         * Failure here MUST NOT force login.
-         */
-
-        try {
-
-            const {
-                data: profile,
-                error: profileError
-            } = await db
+        } =
+            await db
                 .from("profiles")
                 .select("*")
                 .eq(
@@ -472,28 +581,144 @@ async function restoreSession() {
                 )
                 .maybeSingle();
 
-            if (
-                !profileError &&
-                profile
-            ) {
 
-                currentProfile =
-                    profile;
-            }
-
-        } catch (profileError) {
+        if (error) {
 
             console.warn(
-                "Profile restore failed:",
-                profileError
+                "Profile loading warning:",
+                error
             );
+
+            return;
         }
+
+
+        if (data) {
+
+            currentProfile =
+                data;
+
+        } else {
+
+            await createProfile(
+                currentUser
+            );
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Profile loading failed:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SESSION RESTORATION
+========================================================= */
+
+async function restoreSession() {
+
+    if (!db) {
+
+        showLogin();
+
+        return false;
+    }
+
+
+    try {
+
+        console.log(
+            "PDS: Checking existing session..."
+        );
+
+
+        const {
+            data,
+            error
+        } =
+            await db.auth.getSession();
+
+
+        if (error) {
+
+            console.error(
+                "Session error:",
+                error
+            );
+
+            showLogin();
+
+            return false;
+        }
+
+
+        const session =
+            data?.session;
+
+
+        if (
+            !session ||
+            !session.user
+        ) {
+
+            console.log(
+                "PDS: No active session."
+            );
+
+            currentUser = null;
+
+            currentProfile = null;
+
+            showLogin();
+
+            return false;
+        }
+
+
+        /*
+         * SESSION EXISTS
+         */
+
+        currentUser =
+            session.user;
+
+
+        console.log(
+            "PDS: Session restored:",
+            currentUser.email
+        );
+
+
+        /*
+         * IMPORTANT:
+         * Do this BEFORE loading
+         * projects/documents.
+         */
+
+        hideLogin();
+
+
+        showPage(
+            "dashboard"
+        );
+
+
+        await loadUserProfile();
+
 
         updateUserInterface();
 
+
         /*
-         * Load dashboard data.
-         * Failure of one section must not log user out.
+         * Dashboard data can fail
+         * without forcing sign out.
          */
 
         await Promise.allSettled([
@@ -502,13 +727,13 @@ async function restoreSession() {
 
             loadDocuments(),
 
-            loadDepartmentOrders(),
-
-            loadTeam()
+            loadDepartmentOrders()
 
         ]);
 
+
         return true;
+
 
     } catch (error) {
 
@@ -517,17 +742,18 @@ async function restoreSession() {
             error
         );
 
+
         /*
-         * Double-check the session.
-         * Never show login simply because
-         * a dashboard query failed.
+         * Check session one more time.
          */
 
         try {
 
             const {
                 data
-            } = await db.auth.getSession();
+            } =
+                await db.auth.getSession();
+
 
             if (
                 data?.session?.user
@@ -538,33 +764,27 @@ async function restoreSession() {
 
                 hideLogin();
 
-                showPage("dashboard");
+                showPage(
+                    "dashboard"
+                );
 
                 return true;
             }
 
-        } catch (sessionError) {
+        } catch (secondError) {
 
             console.error(
                 "Final session check failed:",
-                sessionError
+                secondError
             );
         }
+
 
         showLogin();
 
         return false;
     }
-}
 
-
-/* =========================================================
-   LOAD APPLICATION
-========================================================= */
-
-async function loadApplication() {
-
-    return await restoreSession();
 }
 
 
@@ -580,16 +800,19 @@ function updateUserInterface() {
     const profile =
         currentProfile;
 
+
     const name =
         profile?.full_name ||
         user?.user_metadata?.full_name ||
         user?.email?.split("@")[0] ||
         "PDS User";
 
+
     const email =
         profile?.email ||
         user?.email ||
         "";
+
 
     const profileName =
         $("profileName");
@@ -600,15 +823,22 @@ function updateUserInterface() {
     const topAvatar =
         $("topAvatar");
 
+
     if (profileName) {
+
         profileName.textContent =
             name;
+
     }
 
+
     if (profileEmail) {
+
         profileEmail.textContent =
             email;
+
     }
+
 
     if (topAvatar) {
 
@@ -616,19 +846,25 @@ function updateUserInterface() {
             name
                 .charAt(0)
                 .toUpperCase();
+
     }
+
 }
 
 
 /* =========================================================
-   NAVIGATION
+   NAVIGATION NORMALIZER
 ========================================================= */
 
-function normalizePageId(pageId) {
+function normalizePageId(
+    pageId
+) {
 
     if (!pageId) {
+
         return "dashboard";
     }
+
 
     const aliases = {
 
@@ -638,22 +874,22 @@ function normalizePageId(pageId) {
         dashboard:
             "dashboard",
 
-        myprojects:
-            "projects",
-
         project:
             "projects",
 
         projects:
             "projects",
 
-        content:
-            "documents",
+        myprojects:
+            "projects",
 
         document:
             "documents",
 
         documents:
+            "documents",
+
+        content:
             "documents",
 
         orders:
@@ -713,20 +949,25 @@ function normalizePageId(pageId) {
         "contact-us":
             "contact-us",
 
-        userprofile:
+        profile:
             "profile",
 
-        profile:
+        userprofile:
             "profile"
 
     };
 
-    return aliases[pageId] || pageId;
+
+    return (
+        aliases[pageId] ||
+        pageId
+    );
+
 }
 
 
 /* =========================================================
-   GET PAGE SECTIONS
+   GET PDS PAGES
 ========================================================= */
 
 function getPDSPages() {
@@ -738,6 +979,7 @@ function getPDSPages() {
             "#app section[data-section]"
         )
     );
+
 }
 
 
@@ -745,47 +987,73 @@ function getPDSPages() {
    SHOW PAGE
 ========================================================= */
 
-function showPage(pageId) {
+function showPage(
+    pageId
+) {
 
     pageId =
-        normalizePageId(pageId);
+        normalizePageId(
+            pageId
+        );
+
 
     const pages =
         getPDSPages();
 
-    let targetPage = null;
 
-    pages.forEach(page => {
+    let targetPage =
+        null;
 
-        const id =
-            page.id ||
-            page.dataset.section ||
-            page.dataset.pageSection;
 
-        if (id === pageId) {
+    pages.forEach(
+        page => {
 
-            targetPage =
-                page;
+            const id =
+                page.id ||
+                page.dataset.section ||
+                page.dataset.pageSection;
+
+
+            if (
+                id === pageId
+            ) {
+
+                targetPage =
+                    page;
+
+            }
+
+
+            page.classList.remove(
+                "active"
+            );
+
+            page.style.display =
+                "none";
+
         }
+    );
 
-        page.classList.remove("active");
-
-        page.style.display =
-            "none";
-    });
 
     if (!targetPage) {
 
-        console.warn(
-            "PDS page not found:",
-            pageId
-        );
+        targetPage =
+            document.getElementById(
+                pageId
+            );
+
+    }
+
+
+    if (!targetPage) {
 
         targetPage =
             document.getElementById(
                 "dashboard"
             );
+
     }
+
 
     if (targetPage) {
 
@@ -795,7 +1063,9 @@ function showPage(pageId) {
 
         targetPage.style.display =
             "block";
+
     }
+
 
     /*
      * Sidebar active state
@@ -805,25 +1075,27 @@ function showPage(pageId) {
         .querySelectorAll(
             "#sidebarNav [data-section]"
         )
-        .forEach(item => {
+        .forEach(
+            item => {
 
-            const itemPage =
-                normalizePageId(
-                    item.dataset.section
+                const itemPage =
+                    normalizePageId(
+                        item.dataset.section
+                    );
+
+
+                item.classList.toggle(
+                    "active",
+                    itemPage === pageId
                 );
 
-            item.classList.toggle(
-                "active",
-                itemPage === pageId
-            );
-        });
+            }
+        );
+
 
     /*
      * Page title
      */
-
-    const pageTitle =
-        $("pageTitle");
 
     const titles = {
 
@@ -862,46 +1134,55 @@ function showPage(pageId) {
 
     };
 
+
+    const pageTitle =
+        $("pageTitle");
+
+
     if (pageTitle) {
 
         pageTitle.textContent =
             titles[pageId] ||
             "Planning & Design Section";
+
     }
 
+
     /*
-     * Page-specific refresh
+     * Refresh section when opened.
      */
 
-    if (pageId === "projects") {
+    if (
+        pageId ===
+        "projects"
+    ) {
 
         loadProjects();
 
     }
 
-    if (pageId === "documents") {
+
+    if (
+        pageId ===
+        "documents"
+    ) {
 
         loadDocuments();
 
     }
+
 
     if (
         pageId ===
         "department-orders"
     ) {
 
-        displayDepartmentOrders(
+        renderDepartmentOrders(
             departmentOrders
         );
+
     }
 
-    if (
-        pageId ===
-        "pds-ai-assistant"
-    ) {
-
-        setupPDSAI();
-    }
 }
 
 
@@ -915,7 +1196,9 @@ function setupNavigation() {
         return;
     }
 
-    navigationReady = true;
+    navigationReady =
+        true;
+
 
     document.addEventListener(
         "click",
@@ -926,18 +1209,22 @@ function setupNavigation() {
                     "#sidebarNav [data-section]"
                 );
 
+
             if (!navItem) {
                 return;
             }
 
+
             event.preventDefault();
 
-            const page =
-                navItem.dataset.section;
 
-            showPage(page);
+            showPage(
+                navItem.dataset.section
+            );
+
         }
     );
+
 }
 
 
@@ -956,17 +1243,22 @@ function setupSectionTargets() {
                     "[data-section-target]"
                 );
 
+
             if (!target) {
                 return;
             }
 
+
             event.preventDefault();
+
 
             showPage(
                 target.dataset.sectionTarget
             );
+
         }
     );
+
 }
 
 
@@ -976,18 +1268,14 @@ function setupSectionTargets() {
 
 function setupGlobalSearch() {
 
-    if (searchReady) {
-        return;
-    }
-
-    searchReady = true;
-
     const search =
         $("globalSearch");
+
 
     if (!search) {
         return;
     }
+
 
     search.addEventListener(
         "input",
@@ -998,37 +1286,37 @@ function setupGlobalSearch() {
                     .trim()
                     .toLowerCase();
 
+
             if (!query) {
                 return;
             }
 
-            /*
-             * Projects
-             */
+
+            const projectMatch =
+                document
+                    .querySelectorAll(
+                        ".project-card"
+                    );
+
 
             if (
-                cachedDocuments.some(
-                    document =>
-                        (
-                            document.title ||
-                            ""
-                        )
-                        .toLowerCase()
-                        .includes(query)
-                )
+                projectMatch.length
             ) {
 
                 showPage(
-                    "documents"
+                    "projects"
                 );
+
             }
+
         }
     );
+
 }
 
 
 /* =========================================================
-   REFRESH ALL
+   REFRESH
 ========================================================= */
 
 async function refreshAll() {
@@ -1039,11 +1327,10 @@ async function refreshAll() {
 
         loadDocuments(),
 
-        loadDepartmentOrders(),
-
-        loadTeam()
+        loadDepartmentOrders()
 
     ]);
+
 }
 
 
@@ -1056,9 +1343,11 @@ async function loadProjects() {
     const list =
         $("projectList");
 
-    if (!list) {
+
+    if (!list || !db) {
         return;
     }
+
 
     list.innerHTML = `
         <div class="empty-state">
@@ -1066,46 +1355,59 @@ async function loadProjects() {
         </div>
     `;
 
+
     try {
 
         const {
             data,
             error
-        } = await db
-            .from("projects")
-            .select("*")
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            );
+        } =
+            await db
+                .from("projects")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
 
         if (error) {
             throw error;
         }
 
+
         renderProjects(
             data || []
         );
+
 
         updateProjectStats(
             data || []
         );
 
+
     } catch (error) {
 
         console.error(
-            "Project loading error:",
+            "Projects error:",
             error
         );
+
 
         renderProjects([]);
 
         updateProjectStats([]);
+
     }
+
 }
 
+
+/* =========================================================
+   PROJECT STATS
+========================================================= */
 
 function updateProjectStats(
     projects
@@ -1114,27 +1416,32 @@ function updateProjectStats(
     const total =
         projects.length;
 
+
     const ongoing =
         projects.filter(
             project =>
                 String(
-                    project.status ||
-                    ""
+                    project.status || ""
                 )
-                .toLowerCase()
-                .includes("ongoing")
+                    .toLowerCase()
+                    .includes(
+                        "ongoing"
+                    )
         ).length;
+
 
     const completed =
         projects.filter(
             project =>
                 String(
-                    project.status ||
-                    ""
+                    project.status || ""
                 )
-                .toLowerCase()
-                .includes("completed")
+                    .toLowerCase()
+                    .includes(
+                        "completed"
+                    )
         ).length;
+
 
     const totalProjects =
         $("totalProjects");
@@ -1145,22 +1452,36 @@ function updateProjectStats(
     const completedProjects =
         $("completedProjects");
 
+
     if (totalProjects) {
+
         totalProjects.textContent =
             total;
+
     }
+
 
     if (ongoingProjects) {
+
         ongoingProjects.textContent =
             ongoing;
+
     }
+
 
     if (completedProjects) {
+
         completedProjects.textContent =
             completed;
+
     }
+
 }
 
+
+/* =========================================================
+   RENDER PROJECTS
+========================================================= */
 
 function renderProjects(
     projects
@@ -1169,9 +1490,11 @@ function renderProjects(
     const list =
         $("projectList");
 
+
     if (!list) {
         return;
     }
+
 
     if (!projects.length) {
 
@@ -1185,10 +1508,17 @@ function renderProjects(
         return;
     }
 
+
     list.innerHTML =
         projects
             .map(
                 project => {
+
+                    const id =
+                        escapeJS(
+                            project.id || ""
+                        );
+
 
                     const title =
                         escapeHTML(
@@ -1197,11 +1527,13 @@ function renderProjects(
                             "Untitled Project"
                         );
 
+
                     const status =
                         escapeHTML(
                             project.status ||
                             "Active"
                         );
+
 
                     const location =
                         escapeHTML(
@@ -1210,11 +1542,12 @@ function renderProjects(
                             "—"
                         );
 
+
                     return `
                         <article
                             class="project-card"
                             data-project-id="${escapeHTML(project.id || "")}"
-                            onclick="openProject('${escapeJS(project.id || "")}')"
+                            onclick="openProject('${id}')"
                         >
 
                             <div class="project-card-top">
@@ -1235,37 +1568,51 @@ function renderProjects(
 
                         </article>
                     `;
+
                 }
             )
             .join("");
+
 }
 
+
+/* =========================================================
+   OPEN PROJECT
+========================================================= */
 
 async function openProject(
     projectId
 ) {
 
-    if (!projectId) {
+    if (
+        !projectId ||
+        !db
+    ) {
+
         return;
     }
+
 
     try {
 
         const {
             data,
             error
-        } = await db
-            .from("projects")
-            .select("*")
-            .eq(
-                "id",
-                projectId
-            )
-            .maybeSingle();
+        } =
+            await db
+                .from("projects")
+                .select("*")
+                .eq(
+                    "id",
+                    projectId
+                )
+                .maybeSingle();
+
 
         if (error) {
             throw error;
         }
+
 
         const modal =
             $("projectModal");
@@ -1273,9 +1620,15 @@ async function openProject(
         const content =
             $("projectModalContent");
 
-        if (!modal || !content) {
+
+        if (
+            !modal ||
+            !content
+        ) {
+
             return;
         }
+
 
         if (!data) {
 
@@ -1344,10 +1697,13 @@ async function openProject(
 
                 </div>
             `;
+
         }
+
 
         modal.style.display =
             "flex";
+
 
     } catch (error) {
 
@@ -1355,7 +1711,9 @@ async function openProject(
             "Project open error:",
             error
         );
+
     }
+
 }
 
 
@@ -1368,49 +1726,66 @@ async function loadDocuments() {
     const list =
         $("libraryList");
 
+
+    if (!db) {
+        return;
+    }
+
+
     try {
 
         const {
             data,
             error
-        } = await db
-            .from("documents")
-            .select("*")
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            );
+        } =
+            await db
+                .from("documents")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
 
         if (error) {
             throw error;
         }
 
+
         cachedDocuments =
             data || [];
+
 
         renderDocuments(
             cachedDocuments
         );
 
+
         const totalDocuments =
             $("totalDocuments");
+
 
         if (totalDocuments) {
 
             totalDocuments.textContent =
                 cachedDocuments.length;
+
         }
+
 
     } catch (error) {
 
         console.error(
-            "Document loading error:",
+            "Documents error:",
             error
         );
 
-        cachedDocuments = [];
+
+        cachedDocuments =
+            [];
+
 
         if (list) {
 
@@ -1419,18 +1794,29 @@ async function loadDocuments() {
                     No documents available.
                 </div>
             `;
+
         }
+
 
         const totalDocuments =
             $("totalDocuments");
 
+
         if (totalDocuments) {
+
             totalDocuments.textContent =
                 "0";
+
         }
+
     }
+
 }
 
+
+/* =========================================================
+   RENDER DOCUMENTS
+========================================================= */
 
 function renderDocuments(
     documents
@@ -1439,9 +1825,11 @@ function renderDocuments(
     const list =
         $("libraryList");
 
+
     if (!list) {
         return;
     }
+
 
     if (!documents.length) {
 
@@ -1454,6 +1842,7 @@ function renderDocuments(
 
         return;
     }
+
 
     list.innerHTML =
         documents
@@ -1492,9 +1881,11 @@ function renderDocuments(
 
                         </article>
                     `;
+
                 }
             )
             .join("");
+
 }
 
 
@@ -1504,12 +1895,23 @@ function renderDocuments(
 
 function setupDocumentSearch() {
 
+    if (documentSearchReady) {
+        return;
+    }
+
+
     const search =
         $("documentSearch");
+
 
     if (!search) {
         return;
     }
+
+
+    documentSearchReady =
+        true;
+
 
     search.addEventListener(
         "input",
@@ -1519,6 +1921,7 @@ function setupDocumentSearch() {
                 event.target.value
                     .trim()
                     .toLowerCase();
+
 
             const filtered =
                 cachedDocuments.filter(
@@ -1539,17 +1942,22 @@ function setupDocumentSearch() {
                             .join(" ")
                             .toLowerCase();
 
+
                         return text.includes(
                             query
                         );
+
                     }
                 );
+
 
             renderDocuments(
                 filtered
             );
+
         }
     );
+
 }
 
 
@@ -1562,12 +1970,14 @@ function openDocumentModal() {
     const modal =
         $("documentModal");
 
-    if (!modal) {
-        return;
+
+    if (modal) {
+
+        modal.style.display =
+            "flex";
+
     }
 
-    modal.style.display =
-        "flex";
 }
 
 
@@ -1576,14 +1986,20 @@ function closeDocumentModal() {
     const modal =
         $("documentModal");
 
-    if (!modal) {
-        return;
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
     }
 
-    modal.style.display =
-        "none";
 }
 
+
+/* =========================================================
+   DOCUMENT MODAL SETUP
+========================================================= */
 
 function setupDocumentModal() {
 
@@ -1593,13 +2009,16 @@ function setupDocumentModal() {
     const cancel =
         $("cancelDocument");
 
+
     if (close) {
 
         close.addEventListener(
             "click",
             closeDocumentModal
         );
+
     }
+
 
     if (cancel) {
 
@@ -1607,12 +2026,14 @@ function setupDocumentModal() {
             "click",
             closeDocumentModal
         );
+
     }
+
 }
 
 
 /* =========================================================
-   DOCUMENT UPLOAD
+   DOCUMENT UPLOAD BUTTON
 ========================================================= */
 
 function setupDocumentUpload() {
@@ -1620,27 +2041,47 @@ function setupDocumentUpload() {
     const button =
         $("uploadDocumentButton");
 
+
     if (!button) {
         return;
     }
 
+
     button.addEventListener(
         "click",
-        () => {
-
-            openDocumentModal();
-        }
+        openDocumentModal
     );
+
 }
 
+
+/* =========================================================
+   DOCUMENT UPLOAD
+========================================================= */
 
 async function uploadDocument(
     event
 ) {
 
     if (event) {
+
         event.preventDefault();
+
     }
+
+
+    if (
+        !db ||
+        !currentUser
+    ) {
+
+        alert(
+            "Please sign in again."
+        );
+
+        return;
+    }
+
 
     const titleInput =
         $("documentTitle");
@@ -1648,11 +2089,14 @@ async function uploadDocument(
     const fileInput =
         $("documentFile");
 
+
     const title =
         titleInput?.value.trim();
 
+
     const file =
         fileInput?.files?.[0];
+
 
     if (!title) {
 
@@ -1663,6 +2107,7 @@ async function uploadDocument(
         return;
     }
 
+
     if (!file) {
 
         alert(
@@ -1672,91 +2117,110 @@ async function uploadDocument(
         return;
     }
 
+
     try {
-
-        if (!currentUser) {
-
-            alert(
-                "Your session has expired. Please sign in again."
-            );
-
-            return;
-        }
 
         const fileName =
             `${Date.now()}_${file.name}`;
 
+
         const filePath =
             `${currentUser.id}/${fileName}`;
 
+
         const {
             error: uploadError
-        } = await db.storage
-            .from("documents")
-            .upload(
-                filePath,
-                file,
-                {
-                    upsert: false
-                }
-            );
+        } =
+            await db.storage
+                .from("documents")
+                .upload(
+                    filePath,
+                    file,
+                    {
+                        upsert: false
+                    }
+                );
+
 
         if (uploadError) {
             throw uploadError;
         }
 
+
         const {
-            data: documentData,
-            error: documentError
-        } = await db
-            .from("documents")
-            .insert({
+            data,
+            error
+        } =
+            await db
+                .from("documents")
+                .insert({
 
-                title,
+                    title:
 
-                file_name:
-                    file.name,
+                        title,
 
-                file_path:
-                    filePath,
+                    file_name:
 
-                file_size:
-                    file.size,
+                        file.name,
 
-                mime_type:
-                    file.type,
+                    file_path:
 
-                uploaded_by:
-                    currentUser.id
+                        filePath,
 
-            })
-            .select()
-            .single();
+                    file_size:
 
-        if (documentError) {
-            throw documentError;
+                        file.size,
+
+                    mime_type:
+
+                        file.type,
+
+                    uploaded_by:
+
+                        currentUser.id
+
+                })
+                .select()
+                .single();
+
+
+        if (error) {
+            throw error;
         }
+
 
         console.log(
             "Document uploaded:",
-            documentData
+            data
         );
+
 
         closeDocumentModal();
 
+
         if (titleInput) {
-            titleInput.value = "";
+
+            titleInput.value =
+                "";
+
         }
+
 
         if (fileInput) {
-            fileInput.value = "";
+
+            fileInput.value =
+                "";
+
         }
 
+
         await loadDocuments();
+
 
         alert(
             "Document uploaded successfully."
         );
+
 
     } catch (error) {
 
@@ -1765,27 +2229,37 @@ async function uploadDocument(
             error
         );
 
+
         alert(
             error.message ||
             "Document upload failed."
         );
+
     }
+
 }
 
+
+/* =========================================================
+   DOCUMENT FORM
+========================================================= */
 
 function setupDocumentForm() {
 
     const form =
         $("documentForm");
 
+
     if (!form) {
         return;
     }
+
 
     form.addEventListener(
         "submit",
         uploadDocument
     );
+
 }
 
 
@@ -1797,27 +2271,35 @@ async function openDocument(
     documentId
 ) {
 
-    if (!documentId) {
+    if (
+        !db ||
+        !documentId
+    ) {
+
         return;
     }
+
 
     try {
 
         const {
             data,
             error
-        } = await db
-            .from("documents")
-            .select("*")
-            .eq(
-                "id",
-                documentId
-            )
-            .maybeSingle();
+        } =
+            await db
+                .from("documents")
+                .select("*")
+                .eq(
+                    "id",
+                    documentId
+                )
+                .maybeSingle();
+
 
         if (error) {
             throw error;
         }
+
 
         if (!data) {
 
@@ -1828,6 +2310,7 @@ async function openDocument(
             return;
         }
 
+
         if (!data.file_path) {
 
             alert(
@@ -1837,19 +2320,23 @@ async function openDocument(
             return;
         }
 
+
         const {
             data: signedData,
             error: signedError
-        } = await db.storage
-            .from("documents")
-            .createSignedUrl(
-                data.file_path,
-                3600
-            );
+        } =
+            await db.storage
+                .from("documents")
+                .createSignedUrl(
+                    data.file_path,
+                    3600
+                );
+
 
         if (signedError) {
             throw signedError;
         }
+
 
         if (
             signedData?.signedUrl
@@ -1860,7 +2347,9 @@ async function openDocument(
                 "_blank",
                 "noopener,noreferrer"
             );
+
         }
+
 
     } catch (error) {
 
@@ -1869,11 +2358,14 @@ async function openDocument(
             error
         );
 
+
         alert(
             error.message ||
             "Unable to open document."
         );
+
     }
+
 }
 
 
@@ -1885,62 +2377,93 @@ async function deleteDocument(
     documentId
 ) {
 
-    if (!documentId) {
+    if (
+        !db ||
+        !documentId
+    ) {
+
         return;
     }
+
 
     if (
         !confirm(
             "Delete this document?"
         )
     ) {
+
         return;
     }
+
 
     try {
 
         const {
             data,
             error
-        } = await db
-            .from("documents")
-            .select(
-                "file_path"
-            )
-            .eq(
-                "id",
-                documentId
-            )
-            .maybeSingle();
+        } =
+            await db
+                .from("documents")
+                .select(
+                    "file_path"
+                )
+                .eq(
+                    "id",
+                    documentId
+                )
+                .maybeSingle();
+
 
         if (error) {
             throw error;
         }
 
+
         if (data?.file_path) {
 
-            await db.storage
-                .from("documents")
-                .remove([
-                    data.file_path
-                ]);
+            const {
+                error:
+                    storageError
+            } =
+                await db.storage
+                    .from("documents")
+                    .remove([
+                        data.file_path
+                    ]);
+
+
+            if (storageError) {
+
+                console.warn(
+                    "Storage delete warning:",
+                    storageError
+                );
+
+            }
+
         }
 
+
         const {
-            error: deleteError
-        } = await db
-            .from("documents")
-            .delete()
-            .eq(
-                "id",
-                documentId
-            );
+            error:
+                deleteError
+        } =
+            await db
+                .from("documents")
+                .delete()
+                .eq(
+                    "id",
+                    documentId
+                );
+
 
         if (deleteError) {
             throw deleteError;
         }
 
+
         await loadDocuments();
+
 
     } catch (error) {
 
@@ -1949,17 +2472,29 @@ async function deleteDocument(
             error
         );
 
+
         alert(
             error.message ||
             "Unable to delete document."
         );
+
     }
+
 }
 
 
 /* =========================================================
    DEPARTMENT ORDERS
 ========================================================= */
+
+async function loadDepartmentOrders() {
+
+    renderDepartmentOrders(
+        departmentOrders
+    );
+
+}
+
 
 function renderDepartmentOrders(
     orders
@@ -1968,9 +2503,11 @@ function renderDepartmentOrders(
     const container =
         $("departmentOrdersGrid");
 
+
     if (!container) {
         return;
     }
+
 
     if (!orders.length) {
 
@@ -1982,6 +2519,7 @@ function renderDepartmentOrders(
 
         return;
     }
+
 
     container.innerHTML =
         orders
@@ -2023,175 +2561,75 @@ function renderDepartmentOrders(
 
                         </article>
                     `;
+
                 }
             )
             .join("");
+
 }
 
 
-function displayDepartmentOrders(
-    orders
-) {
-
-    renderDepartmentOrders(
-        orders
-    );
-}
-
-
-function filterDepartmentOrders() {
-
-    const search =
-        $("departmentOrderSearch");
-
-    if (!search) {
-        return;
-    }
-
-    const query =
-        search.value
-            .trim()
-            .toLowerCase();
-
-    const filtered =
-        departmentOrders.filter(
-            order => {
-
-                const text = [
-
-                    order.number,
-
-                    order.year,
-
-                    order.title,
-
-                    order.description,
-
-                    order.category
-
-                ]
-                    .join(" ")
-                    .toLowerCase();
-
-                return text.includes(
-                    query
-                );
-            }
-        );
-
-    displayDepartmentOrders(
-        filtered
-    );
-}
-
-
-function clearOrdersSearch() {
-
-    const search =
-        $("departmentOrderSearch");
-
-    if (search) {
-        search.value = "";
-    }
-
-    displayDepartmentOrders(
-        departmentOrders
-    );
-}
-
+/* =========================================================
+   DEPARTMENT ORDER SEARCH
+========================================================= */
 
 function setupDepartmentOrderFilters() {
 
     const search =
         $("departmentOrderSearch");
 
-    if (search) {
 
-        search.addEventListener(
-            "input",
-            filterDepartmentOrders
-        );
-    }
-
-    displayDepartmentOrders(
-        departmentOrders
-    );
-}
-
-
-/* =========================================================
-   TEAM
-   KEPT SAFE FOR OLD HTML
-========================================================= */
-
-async function loadTeam() {
-
-    const container =
-        document.getElementById(
-            "teamList"
-        );
-
-    /*
-     * PDS ONLY:
-     * If old Team HTML no longer exists,
-     * simply do nothing.
-     */
-
-    if (!container) {
+    if (!search) {
         return;
     }
 
-    try {
 
-        const {
-            data,
-            error
-        } = await db
-            .from("profiles")
-            .select("*")
-            .order(
-                "full_name",
-                {
-                    ascending: true
-                }
+    search.addEventListener(
+        "input",
+        () => {
+
+            const query =
+                search.value
+                    .trim()
+                    .toLowerCase();
+
+
+            const filtered =
+                departmentOrders.filter(
+                    order => {
+
+                        const text = [
+
+                            order.number,
+
+                            order.year,
+
+                            order.title,
+
+                            order.description,
+
+                            order.category
+
+                        ]
+                            .join(" ")
+                            .toLowerCase();
+
+
+                        return text.includes(
+                            query
+                        );
+
+                    }
+                );
+
+
+            renderDepartmentOrders(
+                filtered
             );
 
-        if (error) {
-            throw error;
         }
+    );
 
-        container.innerHTML =
-            (data || [])
-                .map(
-                    member => `
-                        <div class="team-card">
-
-                            <strong>
-                                ${escapeHTML(
-                                    member.full_name ||
-                                    "PDS User"
-                                )}
-                            </strong>
-
-                            <span>
-                                ${escapeHTML(
-                                    member.email ||
-                                    ""
-                                )}
-                            </span>
-
-                        </div>
-                    `
-                )
-                .join("");
-
-    } catch (error) {
-
-        console.warn(
-            "Team loading skipped:",
-            error
-        );
-    }
 }
 
 
@@ -2207,9 +2645,11 @@ function setupProjectModal() {
     const close =
         $("closeProjectModal");
 
+
     if (!modal) {
         return;
     }
+
 
     if (close) {
 
@@ -2219,9 +2659,12 @@ function setupProjectModal() {
 
                 modal.style.display =
                     "none";
+
             }
         );
+
     }
+
 
     modal.addEventListener(
         "click",
@@ -2234,81 +2677,12 @@ function setupProjectModal() {
 
                 modal.style.display =
                     "none";
+
             }
+
         }
     );
-}
 
-
-/* =========================================================
-   MODAL FORM
-========================================================= */
-
-function setupModalForm() {
-
-    /*
-     * Reserved for future PDS modal forms.
-     */
-}
-
-
-/* =========================================================
-   AUTH FORMS
-========================================================= */
-
-function setupAuthForms() {
-
-    if (authFormsReady) {
-        return;
-    }
-
-    authFormsReady = true;
-
-    const loginForm =
-        $("loginForm");
-
-    if (loginForm) {
-
-        loginForm.addEventListener(
-            "submit",
-            async event => {
-
-                event.preventDefault();
-
-                const email =
-                    $("loginEmail")
-                        ?.value
-                        .trim();
-
-                const password =
-                    $("loginPassword")
-                        ?.value;
-
-                if (
-                    !email ||
-                    !password
-                ) {
-
-                    authMessage(
-                        "Please enter your email and password.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-                authMessage(
-                    "Signing in...",
-                    "loading"
-                );
-
-                await loginUser(
-                    email,
-                    password
-                );
-            }
-        );
-    }
 }
 
 
@@ -2322,7 +2696,10 @@ function setupPDSAI() {
         return;
     }
 
-    aiReady = true;
+
+    aiReady =
+        true;
+
 
     const launcher =
         $("pdsAiLauncher");
@@ -2336,6 +2713,10 @@ function setupPDSAI() {
     const input =
         $("aiInput");
 
+    const fullButton =
+        $("openFullPDSAI");
+
+
     if (
         launcher &&
         chatbot
@@ -2345,28 +2726,39 @@ function setupPDSAI() {
             "click",
             () => {
 
-                const hidden =
+                const isHidden =
                     chatbot.style.display ===
-                    "none";
+                    "none" ||
+                    !chatbot.style.display;
+
 
                 chatbot.style.display =
-                    hidden
+                    isHidden
                         ? "flex"
                         : "none";
 
+
                 if (
-                    hidden &&
+                    isHidden &&
                     input
                 ) {
 
                     setTimeout(
-                        () => input.focus(),
+                        () => {
+
+                            input.focus();
+
+                        },
                         100
                     );
+
                 }
+
             }
         );
+
     }
+
 
     if (send) {
 
@@ -2374,7 +2766,9 @@ function setupPDSAI() {
             "click",
             askPDSAI
         );
+
     }
+
 
     if (input) {
 
@@ -2390,13 +2784,14 @@ function setupPDSAI() {
                     event.preventDefault();
 
                     askPDSAI();
+
                 }
+
             }
         );
+
     }
 
-    const fullButton =
-        $("openFullPDSAI");
 
     if (fullButton) {
 
@@ -2408,15 +2803,25 @@ function setupPDSAI() {
                     "pds-ai-assistant"
                 );
 
+
                 if (chatbot) {
+
                     chatbot.style.display =
                         "none";
+
                 }
+
             }
         );
+
     }
+
 }
 
+
+/* =========================================================
+   AI MESSAGE
+========================================================= */
 
 function appendAIMessage(
     message,
@@ -2426,29 +2831,40 @@ function appendAIMessage(
     const response =
         $("aiResponse");
 
+
     if (!response) {
         return;
     }
 
-    const messageElement =
+
+    const element =
         document.createElement(
             "div"
         );
 
-    messageElement.className =
+
+    element.className =
         `ai-message ${sender}`;
 
-    messageElement.textContent =
+
+    element.textContent =
         message;
 
+
     response.appendChild(
-        messageElement
+        element
     );
+
 
     response.scrollTop =
         response.scrollHeight;
+
 }
 
+
+/* =========================================================
+   ASK PDS AI
+========================================================= */
 
 async function askPDSAI() {
 
@@ -2458,55 +2874,73 @@ async function askPDSAI() {
     const send =
         $("pdsAiSend");
 
-    if (!input) {
+
+    if (!input || !db) {
         return;
     }
+
 
     const message =
         input.value.trim();
 
+
     if (!message) {
         return;
     }
+
 
     appendAIMessage(
         message,
         "user"
     );
 
-    input.value = "";
+
+    input.value =
+        "";
+
 
     if (send) {
-        send.disabled = true;
+
+        send.disabled =
+            true;
+
     }
+
 
     appendAIMessage(
         "PDS AI is thinking...",
         "ai"
     );
 
+
     try {
 
         const {
             data,
             error
-        } = await db.functions.invoke(
-            "PDS-AI",
-            {
-                body: {
+        } =
+            await db.functions.invoke(
+                "PDS-AI",
+                {
+                    body: {
 
-                    message,
+                        message:
 
-                    history:
-                        pdsAIHistory
+                            message,
 
+                        history:
+
+                            pdsAIHistory
+
+                    }
                 }
-            }
-        );
+            );
+
 
         if (error) {
             throw error;
         }
+
 
         const answer =
             data?.answer ||
@@ -2514,55 +2948,37 @@ async function askPDSAI() {
             data?.message ||
             "PDS AI did not return a response.";
 
-        /*
-         * Remove thinking message
-         */
 
-        const response =
-            $("aiResponse");
+        removeThinkingMessage();
 
-        if (response) {
-
-            const messages =
-                response.querySelectorAll(
-                    ".ai-message.ai"
-                );
-
-            const last =
-                messages[
-                    messages.length - 1
-                ];
-
-            if (
-                last &&
-                last.textContent ===
-                "PDS AI is thinking..."
-            ) {
-
-                last.remove();
-            }
-        }
 
         appendAIMessage(
             answer,
             "ai"
         );
 
-        pdsAIHistory.push({
-
-            role: "user",
-
-            content: message
-
-        });
 
         pdsAIHistory.push({
 
-            role: "assistant",
+            role:
+                "user",
 
-            content: answer
+            content:
+                message
 
         });
+
+
+        pdsAIHistory.push({
+
+            role:
+                "assistant",
+
+            content:
+                answer
+
+        });
+
 
     } catch (error) {
 
@@ -2571,30 +2987,9 @@ async function askPDSAI() {
             error
         );
 
-        const response =
-            $("aiResponse");
 
-        if (response) {
+        removeThinkingMessage();
 
-            const messages =
-                response.querySelectorAll(
-                    ".ai-message.ai"
-                );
-
-            const last =
-                messages[
-                    messages.length - 1
-                ];
-
-            if (
-                last &&
-                last.textContent ===
-                "PDS AI is thinking..."
-            ) {
-
-                last.remove();
-            }
-        }
 
         appendAIMessage(
             "PDS AI could not respond. Please try again.",
@@ -2604,13 +2999,61 @@ async function askPDSAI() {
     } finally {
 
         if (send) {
-            send.disabled = false;
+
+            send.disabled =
+                false;
+
         }
 
+
         if (input) {
+
             input.focus();
+
         }
+
     }
+
+}
+
+
+/* =========================================================
+   REMOVE AI THINKING
+========================================================= */
+
+function removeThinkingMessage() {
+
+    const response =
+        $("aiResponse");
+
+
+    if (!response) {
+        return;
+    }
+
+
+    const messages =
+        response.querySelectorAll(
+            ".ai-message.ai"
+        );
+
+
+    const last =
+        messages[
+            messages.length - 1
+        ];
+
+
+    if (
+        last &&
+        last.textContent ===
+            "PDS AI is thinking..."
+    ) {
+
+        last.remove();
+
+    }
+
 }
 
 
@@ -2623,9 +3066,11 @@ function setupNotifications() {
     const button =
         $("notificationButton");
 
+
     if (!button) {
         return;
     }
+
 
     button.addEventListener(
         "click",
@@ -2634,8 +3079,10 @@ function setupNotifications() {
             alert(
                 "No new PDS notifications."
             );
+
         }
     );
+
 }
 
 
@@ -2648,9 +3095,11 @@ function setupRefreshButton() {
     const button =
         $("refreshButton");
 
+
     if (!button) {
         return;
     }
+
 
     button.addEventListener(
         "click",
@@ -2660,7 +3109,9 @@ function setupRefreshButton() {
                 "is-loading"
             );
 
+
             await refreshAll();
+
 
             setTimeout(
                 () => {
@@ -2672,18 +3123,228 @@ function setupRefreshButton() {
                 },
                 300
             );
+
         }
     );
+
 }
 
 
 /* =========================================================
-   PROFILE
+   AUTH FORMS
 ========================================================= */
 
-function loadProfileUI() {
+function setupAuthForms() {
 
-    updateUserInterface();
+    if (authFormsReady) {
+        return;
+    }
+
+
+    authFormsReady =
+        true;
+
+
+    const loginForm =
+        $("loginForm");
+
+
+    if (!loginForm) {
+
+        console.warn(
+            "PDS: loginForm not found."
+        );
+
+        return;
+    }
+
+
+    loginForm.addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+
+            const email =
+                $("loginEmail")
+                    ?.value
+                    .trim();
+
+
+            const password =
+                $("loginPassword")
+                    ?.value ||
+                "";
+
+
+            if (
+                !email ||
+                !password
+            ) {
+
+                authMessage(
+                    "Please enter your email and password.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const button =
+                loginForm.querySelector(
+                    'button[type="submit"]'
+                );
+
+
+            if (button) {
+
+                button.disabled =
+                    true;
+
+                button.textContent =
+                    "SIGNING IN...";
+
+            }
+
+
+            await loginUser(
+                email,
+                password
+            );
+
+
+            if (button) {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    "SIGN IN";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SIGN OUT BUTTON
+========================================================= */
+
+function setupSignOut() {
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            const button =
+                event.target.closest(
+                    '[data-action="signout"], #signOutButton'
+                );
+
+
+            if (!button) {
+                return;
+            }
+
+
+            event.preventDefault();
+
+
+            signOut();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   AUTH STATE CHANGE
+========================================================= */
+
+function setupAuthStateListener() {
+
+    if (!db) {
+        return;
+    }
+
+
+    db.auth.onAuthStateChange(
+        (
+            event,
+            session
+        ) => {
+
+            console.log(
+                "PDS Auth Event:",
+                event
+            );
+
+
+            if (
+                event ===
+                "SIGNED_OUT"
+            ) {
+
+                currentUser =
+                    null;
+
+                currentProfile =
+                    null;
+
+                pdsAIHistory =
+                    [];
+
+                showLogin();
+
+                return;
+            }
+
+
+            if (
+                session &&
+                session.user
+            ) {
+
+                currentUser =
+                    session.user;
+
+
+                /*
+                 * Never show login
+                 * when a valid session
+                 * exists.
+                 */
+
+                hideLogin();
+
+
+                if (
+                    event ===
+                    "SIGNED_IN" ||
+                    event ===
+                    "INITIAL_SESSION"
+                ) {
+
+                    showPage(
+                        "dashboard"
+                    );
+
+                }
+
+
+                updateUserInterface();
+
+            }
+
+        }
+    );
+
 }
 
 
@@ -2699,30 +3360,39 @@ function escapeHTML(
         value === null ||
         value === undefined
     ) {
+
         return "";
+
     }
 
+
     return String(value)
+
         .replace(
             /&/g,
             "&amp;"
         )
+
         .replace(
             /</g,
             "&lt;"
         )
+
         .replace(
             />/g,
             "&gt;"
         )
+
         .replace(
             /"/g,
             "&quot;"
         )
+
         .replace(
             /'/g,
             "&#039;"
         );
+
 }
 
 
@@ -2738,132 +3408,65 @@ function escapeJS(
         value === null ||
         value === undefined
     ) {
+
         return "";
+
     }
 
+
     return String(value)
+
         .replace(
             /\\/g,
             "\\\\"
         )
+
         .replace(
             /'/g,
             "\\'"
         )
+
         .replace(
             /"/g,
             '\\"'
         )
+
         .replace(
             /\n/g,
             "\\n"
         )
+
         .replace(
             /\r/g,
             "\\r"
         );
+
 }
-
-
-/* =========================================================
-   AUTH STATE CHANGE
-   IMPORTANT FOR REFRESH / TOKEN REFRESH
-========================================================= */
-
-db.auth.onAuthStateChange(
-    async (
-        event,
-        session
-    ) => {
-
-        console.log(
-            "PDS Auth Event:",
-            event
-        );
-
-        /*
-         * USER SIGNED OUT
-         */
-
-        if (
-            event ===
-                "SIGNED_OUT" ||
-            !session
-        ) {
-
-            currentUser = null;
-
-            currentProfile = null;
-
-            pdsAIHistory = [];
-
-            showLogin();
-
-            return;
-        }
-
-        /*
-         * ACTIVE SESSION
-         *
-         * IMPORTANT:
-         * INITIAL_SESSION must NOT
-         * display the login screen.
-         */
-
-        if (
-            event ===
-                "INITIAL_SESSION" ||
-            event ===
-                "SIGNED_IN" ||
-            event ===
-                "TOKEN_REFRESHED"
-        ) {
-
-            currentUser =
-                session.user;
-
-            hideLogin();
-
-            /*
-             * Do NOT call showLogin().
-             */
-
-            if (
-                event ===
-                    "SIGNED_IN" ||
-                event ===
-                    "INITIAL_SESSION"
-            ) {
-
-                showPage(
-                    "dashboard"
-                );
-            }
-
-            updateUserInterface();
-        }
-    }
-);
 
 
 /* =========================================================
    INITIALIZATION
 ========================================================= */
 
-async function initializePDSHub() {
+async function initializePDS() {
+
+    if (initialized) {
+        return;
+    }
+
+
+    initialized =
+        true;
+
 
     console.log(
         "PDS — Initializing..."
     );
 
+
     /*
-     * IMPORTANT:
-     *
-     * Hide BOTH screens while
-     * Supabase checks the session.
-     *
-     * This prevents the Sign In page
-     * from flashing during refresh.
+     * Hide everything while
+     * authentication is checked.
      */
 
     const authScreen =
@@ -2872,20 +3475,53 @@ async function initializePDSHub() {
     const app =
         $("app");
 
+
     if (authScreen) {
 
         authScreen.style.display =
             "none";
+
     }
+
 
     if (app) {
 
         app.style.display =
             "none";
+
     }
 
+
     /*
-     * Setup interface first.
+     * Initialize Supabase.
+     */
+
+    const supabaseReady =
+        initializeSupabase();
+
+
+    if (!supabaseReady) {
+
+        console.error(
+            "PDS: Supabase initialization failed."
+        );
+
+
+        showLogin();
+
+
+        authMessage(
+            "Supabase configuration error. Check your Publishable API key in script.js.",
+            "error"
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * Setup UI.
      */
 
     setupNavigation();
@@ -2895,6 +3531,8 @@ async function initializePDSHub() {
     setupGlobalSearch();
 
     setupAuthForms();
+
+    setupSignOut();
 
     setupProjectModal();
 
@@ -2914,23 +3552,25 @@ async function initializePDSHub() {
 
     setupRefreshButton();
 
+    setupAuthStateListener();
+
+
     /*
-     * Restore session.
-     *
-     * This is the most important
-     * operation on page refresh.
+     * Restore existing session.
      */
 
     await restoreSession();
 
+
     console.log(
         "PDS — Ready."
     );
+
 }
 
 
 /* =========================================================
-   START PDS
+   START
 ========================================================= */
 
 if (
@@ -2940,10 +3580,11 @@ if (
 
     document.addEventListener(
         "DOMContentLoaded",
-        initializePDSHub
+        initializePDS
     );
 
 } else {
 
-    initializePDSHub();
+    initializePDS();
+
 }
