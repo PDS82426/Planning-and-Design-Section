@@ -3430,3 +3430,255 @@ img {
 .page {
     overflow-x: hidden;
 }
+/* =========================================================
+   STEP 4 — PDS TECHNICAL DASHBOARD
+========================================================= */
+
+:root{
+    --bg:#eef2f5;
+    --blue:#073b63;
+    --blue-dark:#032c49;
+    --blue-2:#0d5b87;
+    --orange:#e08a2b;
+    --orange-dark:#b8640d;
+    --line:#d4dfe6;
+    --text:#17252e;
+    --muted:#687780;
+}
+
+/* MAIN BACKGROUND */
+.main{
+    background:#eef2f5;
+}
+
+.content{
+    position:relative;
+    background:
+        linear-gradient(rgba(7,59,99,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.025) 1px,transparent 1px);
+    background-size:32px 32px;
+}
+
+/* TOPBAR */
+.topbar{
+    background:rgba(255,255,255,.97);
+    border-bottom:2px solid var(--blue);
+    box-shadow:0 3px 15px rgba(3,44,73,.08);
+}
+
+.search-container{
+    border:1px solid #c7d5de;
+    border-radius:3px;
+    background:#f8fafb;
+}
+
+.search-container:focus-within{
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px rgba(7,59,99,.06);
+}
+
+/* PAGE TITLES */
+.date-label,
+.eyebrow{
+    color:var(--orange);
+    font-family:"IBM Plex Mono",monospace;
+    font-weight:600;
+    letter-spacing:1px;
+}
+
+.page-title h1,
+.hero h1,
+.section-heading h2{
+    color:var(--blue-dark);
+}
+
+/* TECHNICAL HERO */
+.hero{
+    position:relative;
+    overflow:hidden;
+    border:1px solid #bfd0da;
+    border-left:5px solid var(--orange);
+    border-radius:4px;
+    background:
+        linear-gradient(rgba(7,59,99,.035) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.035) 1px,transparent 1px),
+        #fff;
+    background-size:24px 24px;
+    box-shadow:0 5px 18px rgba(3,44,73,.07);
+}
+
+.hero::before{
+    content:"";
+    position:absolute;
+    width:210px;
+    height:210px;
+    right:-75px;
+    top:-80px;
+    border:1px solid rgba(7,59,99,.12);
+    border-radius:50%;
+    box-shadow:
+        0 0 0 20px rgba(7,59,99,.025),
+        0 0 0 40px rgba(7,59,99,.018);
+}
+
+.hero::after{
+    content:"";
+    position:absolute;
+    width:150px;
+    height:1px;
+    right:15px;
+    bottom:18px;
+    background:var(--orange);
+    opacity:.7;
+}
+
+.hero-actions{
+    position:relative;
+    z-index:2;
+}
+
+/* BUTTONS */
+.button.primary{
+    background:var(--blue);
+    border-color:var(--blue);
+    border-radius:3px;
+}
+
+.button.primary:hover{
+    background:var(--blue-dark);
+    border-color:var(--blue-dark);
+}
+
+.button.secondary{
+    color:var(--blue);
+    border-color:#b9cbd6;
+    background:white;
+    border-radius:3px;
+}
+
+.button.secondary:hover{
+    color:white;
+    background:var(--blue);
+    border-color:var(--blue);
+}
+
+/* STATS */
+.stat-card{
+    border-radius:3px;
+    border-top:4px solid var(--blue);
+    box-shadow:0 4px 14px rgba(3,44,73,.06);
+}
+
+.stat-card:nth-child(2){
+    border-top-color:var(--orange);
+}
+
+.stat-card:nth-child(3){
+    border-top-color:#287453;
+}
+
+.stat-card:nth-child(4){
+    border-top-color:var(--blue-2);
+}
+
+.stat-number{
+    color:var(--blue-dark);
+}
+
+/* QUICK ACCESS */
+.quick-card{
+    border-radius:3px;
+    background:#fff;
+}
+
+.quick-card::before{
+    background:var(--orange);
+}
+
+.quick-icon{
+    border-radius:3px;
+    color:white;
+    background:var(--blue);
+}
+
+.quick-card:hover{
+    border-color:var(--blue);
+    background:#f8fbfd;
+}
+
+/* PANELS */
+.panel,
+.project-table,
+.library,
+.document-card,
+.team-card{
+    border-radius:3px;
+    box-shadow:0 4px 15px rgba(3,44,73,.06);
+}
+
+.panel-header{
+    border-bottom:2px solid var(--blue);
+    background:#f7fafc;
+}
+
+.panel-header h2{
+    color:var(--blue-dark);
+}
+
+/* ANNOUNCEMENT */
+.announcement{
+    border-radius:3px;
+    border-left:5px solid var(--orange);
+    background:
+        linear-gradient(rgba(7,59,99,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(7,59,99,.025) 1px,transparent 1px),
+        #f7fafc;
+    background-size:20px 20px;
+}
+
+/* DOCUMENT CARDS */
+.document-card{
+    border-top:2px solid var(--blue);
+}
+
+.document-card::before{
+    background:var(--orange);
+}
+
+/* PROJECT TABLE */
+.project-table{
+    border-radius:3px;
+}
+
+.table-header{
+    border-bottom:3px solid var(--orange);
+    background:var(--blue);
+    color:white;
+}
+
+.project-row:hover{
+    background:#f1f6f9;
+}
+
+/* PAGE CONTAINERS */
+.page{
+    position:relative;
+}
+
+.page::before{
+    content:"PDS / PLANNING & DESIGN";
+    position:absolute;
+    right:0;
+    top:0;
+    color:rgba(7,59,99,.13);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:7px;
+    letter-spacing:1px;
+}
+
+/* MOBILE */
+@media(max-width:850px){
+    .content{
+        background-size:25px 25px;
+    }
+}
