@@ -3449,57 +3449,60 @@ textarea:focus-visible{
     }
 }
 /* =========================================================
-   PDS — SIDEBAR SECTION NAVIGATION
-   SHOW ONE SECTION AT A TIME
+   PDS — SINGLE PAGE SECTION NAVIGATION
 ========================================================= */
 
-/* Main application content */
 #app {
     position: relative;
 }
 
-/* All navigable sections are hidden by default */
+/* Hide sections that are controlled by navigation */
 #app .page-section,
-#app section[data-section] {
+#app [data-page-section] {
     display: none;
 }
 
-/* Only the active section is visible */
+/* Show ONLY the selected section */
 #app .page-section.active,
-#app section[data-section].active {
+#app [data-page-section].active {
     display: block;
 }
 
-/* Prevent the old long-page layout */
-.main-content,
-.content,
-.dashboard-content {
-    min-height: calc(100vh - var(--topbar));
+/* Main content should behave like a single screen/page */
+.main,
+.content {
+    min-height: 100vh;
 }
 
 /* Sidebar navigation */
-.sidebar .nav-item,
-.sidebar .nav-link,
-.sidebar button[data-section] {
+.sidebar .nav-item {
+    position: relative;
     cursor: pointer;
 }
 
-/* Active sidebar item */
-.sidebar .nav-item.active,
-.sidebar .nav-link.active,
-.sidebar button[data-section].active {
+/* Active navigation */
+.sidebar .nav-item.active {
+    color: #fff;
     background: rgba(255,255,255,.10);
-    color: #ffffff;
+
     border-left: 3px solid var(--orange);
+
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.035);
 }
 
-/* Smooth visual transition */
+.sidebar .nav-item.active > span:first-child {
+    color: var(--orange);
+}
+
+/* Section entrance */
 #app .page-section.active,
-#app section[data-section].active {
-    animation: pdsSectionIn .18s ease;
+#app [data-page-section].active {
+    animation: pdsSectionIn .18s ease both;
 }
 
 @keyframes pdsSectionIn {
+
     from {
         opacity: 0;
         transform: translateY(5px);
@@ -3509,4 +3512,5 @@ textarea:focus-visible{
         opacity: 1;
         transform: translateY(0);
     }
+
 }
