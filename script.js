@@ -2,7 +2,7 @@
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
    AUTH + SESSION + DASHBOARD + PROJECTS + DOCUMENTS
-   DEPARTMENT ORDERS + PDS AI
+   DEPARTMENT ORDERS + PDS AI + PROJECT MONITORING
 ========================================================= */
 
 
@@ -13,18 +13,24 @@
 const SUPABASE_URL =
     "https://zvwghoabsqfyakbqzhil.supabase.co";
 
-/*
- * IMPORTANT:
- * Paste the CURRENT "Publishable key" from:
- *
- * Supabase
- * → Project Settings
- * → API
- *
- * DO NOT use the service_role key.
- */
 const SUPABASE_ANON_KEY =
     "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
+
+
+/* =========================================================
+   ONEDRIVE MONITORING FILE
+========================================================= */
+
+const ONEDRIVE_MONITORING_URL =
+    "https://1drv.ms/x/c/7c0d710f08a28bcd/IQD1ICDqy0hbSIDpFHx9RMG1AcSakwBEK5ExA2IUorWdJC4?e=yBR3IX";
+
+
+/* =========================================================
+   MONITORING TABLE
+========================================================= */
+
+const MONITORING_TABLE =
+    "monitoring";
 
 
 /* =========================================================
@@ -106,10 +112,13 @@ let pdsAIHistory = [];
 
 let cachedDocuments = [];
 
+let cachedMonitoring = [];
+
 let navigationReady = false;
 let authFormsReady = false;
 let documentSearchReady = false;
 let aiReady = false;
+let monitoringReady = false;
 let initialized = false;
 
 
@@ -387,7 +396,6 @@ async function loginUser(
 
             });
 
-
         if (error) {
 
             console.error(
@@ -397,7 +405,6 @@ async function loginUser(
 
             throw error;
         }
-
 
         if (
             !data ||
@@ -409,39 +416,18 @@ async function loginUser(
             );
         }
 
-
         currentUser =
             data.user;
 
-
-        /*
-         * IMPORTANT:
-         * Hide login immediately after
-         * successful authentication.
-         */
-
         hideLogin();
-
 
         showPage(
             "dashboard"
         );
 
-
-        /*
-         * Load user information.
-         * These failures must NOT
-         * log the user out.
-         */
-
         await loadUserProfile();
 
         updateUserInterface();
-
-
-        /*
-         * Load application data.
-         */
 
         await Promise.allSettled([
 
@@ -449,22 +435,21 @@ async function loginUser(
 
             loadDocuments(),
 
-            loadDepartmentOrders()
+            loadDepartmentOrders(),
+
+            loadMonitoring()
 
         ]);
-
 
         authMessage(
             "",
             "success"
         );
 
-
         return {
             success: true,
             data
         };
-
 
     } catch (error) {
 
@@ -473,15 +458,9 @@ async function loginUser(
             error
         );
 
-
         let message =
             error?.message ||
             "Unable to sign in.";
-
-
-        /*
-         * Make API-key problem obvious.
-         */
 
         if (
             message
@@ -496,12 +475,10 @@ async function loginUser(
 
         }
 
-
         authMessage(
             message,
             "error"
         );
-
 
         return {
             success: false,
@@ -545,6 +522,8 @@ async function signOut() {
 
         pdsAIHistory = [];
 
+        cachedMonitoring = [];
+
         showLogin();
     }
 
@@ -565,7 +544,6 @@ async function loadUserProfile() {
         return;
     }
 
-
     try {
 
         const {
@@ -581,7 +559,6 @@ async function loadUserProfile() {
                 )
                 .maybeSingle();
 
-
         if (error) {
 
             console.warn(
@@ -591,7 +568,6 @@ async function loadUserProfile() {
 
             return;
         }
-
 
         if (data) {
 
@@ -631,20 +607,17 @@ async function restoreSession() {
         return false;
     }
 
-
     try {
 
         console.log(
             "PDS: Checking existing session..."
         );
 
-
         const {
             data,
             error
         } =
             await db.auth.getSession();
-
 
         if (error) {
 
@@ -658,10 +631,8 @@ async function restoreSession() {
             return false;
         }
 
-
         const session =
             data?.session;
-
 
         if (
             !session ||
@@ -681,45 +652,23 @@ async function restoreSession() {
             return false;
         }
 
-
-        /*
-         * SESSION EXISTS
-         */
-
         currentUser =
             session.user;
-
 
         console.log(
             "PDS: Session restored:",
             currentUser.email
         );
 
-
-        /*
-         * IMPORTANT:
-         * Do this BEFORE loading
-         * projects/documents.
-         */
-
         hideLogin();
-
 
         showPage(
             "dashboard"
         );
 
-
         await loadUserProfile();
 
-
         updateUserInterface();
-
-
-        /*
-         * Dashboard data can fail
-         * without forcing sign out.
-         */
 
         await Promise.allSettled([
 
@@ -727,13 +676,13 @@ async function restoreSession() {
 
             loadDocuments(),
 
-            loadDepartmentOrders()
+            loadDepartmentOrders(),
+
+            loadMonitoring()
 
         ]);
 
-
         return true;
-
 
     } catch (error) {
 
@@ -742,18 +691,12 @@ async function restoreSession() {
             error
         );
 
-
-        /*
-         * Check session one more time.
-         */
-
         try {
 
             const {
                 data
             } =
                 await db.auth.getSession();
-
 
             if (
                 data?.session?.user
@@ -768,6 +711,8 @@ async function restoreSession() {
                     "dashboard"
                 );
 
+                await loadMonitoring();
+
                 return true;
             }
 
@@ -778,7 +723,6 @@ async function restoreSession() {
                 secondError
             );
         }
-
 
         showLogin();
 
@@ -800,19 +744,20 @@ function updateUserInterface() {
     const profile =
         currentProfile;
 
-
     const name =
         profile?.full_name ||
         user?.user_metadata?.full_name ||
         user?.email?.split("@")[0] ||
         "PDS User";
 
-
     const email =
         profile?.email ||
         user?.email ||
         "";
 
+    const role =
+        profile?.role ||
+        "Member";
 
     const profileName =
         $("profileName");
@@ -823,6 +768,14 @@ function updateUserInterface() {
     const topAvatar =
         $("topAvatar");
 
+    const sidebarAvatar =
+        $("sidebarAvatar");
+
+    const sidebarUserName =
+        $("sidebarUserName");
+
+    const sidebarUserRole =
+        $("sidebarUserRole");
 
     if (profileName) {
 
@@ -831,7 +784,6 @@ function updateUserInterface() {
 
     }
 
-
     if (profileEmail) {
 
         profileEmail.textContent =
@@ -839,13 +791,35 @@ function updateUserInterface() {
 
     }
 
-
     if (topAvatar) {
 
         topAvatar.textContent =
             name
                 .charAt(0)
                 .toUpperCase();
+
+    }
+
+    if (sidebarAvatar) {
+
+        sidebarAvatar.textContent =
+            name
+                .charAt(0)
+                .toUpperCase();
+
+    }
+
+    if (sidebarUserName) {
+
+        sidebarUserName.textContent =
+            name;
+
+    }
+
+    if (sidebarUserRole) {
+
+        sidebarUserRole.textContent =
+            role;
 
     }
 
@@ -865,6 +839,10 @@ function normalizePageId(
         return "dashboard";
     }
 
+    const normalized =
+        String(pageId)
+            .trim()
+            .toLowerCase();
 
     const aliases = {
 
@@ -882,6 +860,18 @@ function normalizePageId(
 
         myprojects:
             "projects",
+
+        monitoring:
+            "monitoring",
+
+        projectmonitoring:
+            "monitoring",
+
+        "project-monitoring":
+            "monitoring",
+
+        "project monitoring":
+            "monitoring",
 
         document:
             "documents",
@@ -957,10 +947,9 @@ function normalizePageId(
 
     };
 
-
     return (
-        aliases[pageId] ||
-        pageId
+        aliases[normalized] ||
+        normalized
     );
 
 }
@@ -996,14 +985,11 @@ function showPage(
             pageId
         );
 
-
     const pages =
         getPDSPages();
 
-
     let targetPage =
         null;
-
 
     pages.forEach(
         page => {
@@ -1013,7 +999,6 @@ function showPage(
                 page.dataset.section ||
                 page.dataset.pageSection;
 
-
             if (
                 id === pageId
             ) {
@@ -1022,7 +1007,6 @@ function showPage(
                     page;
 
             }
-
 
             page.classList.remove(
                 "active"
@@ -1034,7 +1018,6 @@ function showPage(
         }
     );
 
-
     if (!targetPage) {
 
         targetPage =
@@ -1044,7 +1027,6 @@ function showPage(
 
     }
 
-
     if (!targetPage) {
 
         targetPage =
@@ -1053,7 +1035,6 @@ function showPage(
             );
 
     }
-
 
     if (targetPage) {
 
@@ -1065,11 +1046,6 @@ function showPage(
             "block";
 
     }
-
-
-    /*
-     * Sidebar active state
-     */
 
     document
         .querySelectorAll(
@@ -1083,7 +1059,6 @@ function showPage(
                         item.dataset.section
                     );
 
-
                 item.classList.toggle(
                     "active",
                     itemPage === pageId
@@ -1092,11 +1067,6 @@ function showPage(
             }
         );
 
-
-    /*
-     * Page title
-     */
-
     const titles = {
 
         dashboard:
@@ -1104,6 +1074,9 @@ function showPage(
 
         projects:
             "Projects",
+
+        monitoring:
+            "Project Monitoring",
 
         documents:
             "Document Library",
@@ -1134,10 +1107,8 @@ function showPage(
 
     };
 
-
     const pageTitle =
         $("pageTitle");
-
 
     if (pageTitle) {
 
@@ -1146,11 +1117,6 @@ function showPage(
             "Planning & Design Section";
 
     }
-
-
-    /*
-     * Refresh section when opened.
-     */
 
     if (
         pageId ===
@@ -1161,6 +1127,14 @@ function showPage(
 
     }
 
+    if (
+        pageId ===
+        "monitoring"
+    ) {
+
+        loadMonitoring();
+
+    }
 
     if (
         pageId ===
@@ -1170,7 +1144,6 @@ function showPage(
         loadDocuments();
 
     }
-
 
     if (
         pageId ===
@@ -1199,7 +1172,6 @@ function setupNavigation() {
     navigationReady =
         true;
 
-
     document.addEventListener(
         "click",
         event => {
@@ -1209,14 +1181,11 @@ function setupNavigation() {
                     "#sidebarNav [data-section]"
                 );
 
-
             if (!navItem) {
                 return;
             }
 
-
             event.preventDefault();
-
 
             showPage(
                 navItem.dataset.section
@@ -1243,14 +1212,11 @@ function setupSectionTargets() {
                     "[data-section-target]"
                 );
 
-
             if (!target) {
                 return;
             }
 
-
             event.preventDefault();
-
 
             showPage(
                 target.dataset.sectionTarget
@@ -1271,11 +1237,9 @@ function setupGlobalSearch() {
     const search =
         $("globalSearch");
 
-
     if (!search) {
         return;
     }
-
 
     search.addEventListener(
         "input",
@@ -1286,18 +1250,49 @@ function setupGlobalSearch() {
                     .trim()
                     .toLowerCase();
 
-
             if (!query) {
                 return;
             }
 
+            if (
+                cachedMonitoring.length &&
+                cachedMonitoring.some(
+                    item =>
+                        monitoringSearchText(
+                            item
+                        )
+                            .includes(query)
+                )
+            ) {
+
+                showPage(
+                    "monitoring"
+                );
+
+                const monitoringSearch =
+                    $("monitoringSearch");
+
+                if (monitoringSearch) {
+
+                    monitoringSearch.value =
+                        query;
+
+                    renderMonitoring(
+                        filterMonitoring(
+                            cachedMonitoring
+                        )
+                    );
+
+                }
+
+                return;
+            }
 
             const projectMatch =
                 document
                     .querySelectorAll(
                         ".project-card"
                     );
-
 
             if (
                 projectMatch.length
@@ -1327,7 +1322,9 @@ async function refreshAll() {
 
         loadDocuments(),
 
-        loadDepartmentOrders()
+        loadDepartmentOrders(),
+
+        loadMonitoring()
 
     ]);
 
@@ -1343,18 +1340,15 @@ async function loadProjects() {
     const list =
         $("projectList");
 
-
     if (!list || !db) {
         return;
     }
-
 
     list.innerHTML = `
         <div class="empty-state">
             Loading projects...
         </div>
     `;
-
 
     try {
 
@@ -1372,21 +1366,17 @@ async function loadProjects() {
                     }
                 );
 
-
         if (error) {
             throw error;
         }
-
 
         renderProjects(
             data || []
         );
 
-
         updateProjectStats(
             data || []
         );
-
 
     } catch (error) {
 
@@ -1394,7 +1384,6 @@ async function loadProjects() {
             "Projects error:",
             error
         );
-
 
         renderProjects([]);
 
@@ -1416,7 +1405,6 @@ function updateProjectStats(
     const total =
         projects.length;
 
-
     const ongoing =
         projects.filter(
             project =>
@@ -1428,7 +1416,6 @@ function updateProjectStats(
                         "ongoing"
                     )
         ).length;
-
 
     const completed =
         projects.filter(
@@ -1442,7 +1429,6 @@ function updateProjectStats(
                     )
         ).length;
 
-
     const totalProjects =
         $("totalProjects");
 
@@ -1452,7 +1438,6 @@ function updateProjectStats(
     const completedProjects =
         $("completedProjects");
 
-
     if (totalProjects) {
 
         totalProjects.textContent =
@@ -1460,14 +1445,12 @@ function updateProjectStats(
 
     }
 
-
     if (ongoingProjects) {
 
         ongoingProjects.textContent =
             ongoing;
 
     }
-
 
     if (completedProjects) {
 
@@ -1490,11 +1473,9 @@ function renderProjects(
     const list =
         $("projectList");
 
-
     if (!list) {
         return;
     }
-
 
     if (!projects.length) {
 
@@ -1508,7 +1489,6 @@ function renderProjects(
         return;
     }
 
-
     list.innerHTML =
         projects
             .map(
@@ -1519,14 +1499,13 @@ function renderProjects(
                             project.id || ""
                         );
 
-
                     const title =
                         escapeHTML(
                             project.title ||
                             project.project_title ||
+                            project.name ||
                             "Untitled Project"
                         );
-
 
                     const status =
                         escapeHTML(
@@ -1534,14 +1513,12 @@ function renderProjects(
                             "Active"
                         );
 
-
                     const location =
                         escapeHTML(
                             project.location ||
                             project.project_location ||
                             "—"
                         );
-
 
                     return `
                         <article
@@ -1592,7 +1569,6 @@ async function openProject(
         return;
     }
 
-
     try {
 
         const {
@@ -1608,18 +1584,15 @@ async function openProject(
                 )
                 .maybeSingle();
 
-
         if (error) {
             throw error;
         }
-
 
         const modal =
             $("projectModal");
 
         const content =
             $("projectModalContent");
-
 
         if (
             !modal ||
@@ -1628,7 +1601,6 @@ async function openProject(
 
             return;
         }
-
 
         if (!data) {
 
@@ -1651,6 +1623,7 @@ async function openProject(
                         ${escapeHTML(
                             data.title ||
                             data.project_title ||
+                            data.name ||
                             "Untitled Project"
                         )}
                     </h2>
@@ -1700,10 +1673,8 @@ async function openProject(
 
         }
 
-
         modal.style.display =
             "flex";
-
 
     } catch (error) {
 
@@ -1726,11 +1697,9 @@ async function loadDocuments() {
     const list =
         $("libraryList");
 
-
     if (!db) {
         return;
     }
-
 
     try {
 
@@ -1748,24 +1717,19 @@ async function loadDocuments() {
                     }
                 );
 
-
         if (error) {
             throw error;
         }
 
-
         cachedDocuments =
             data || [];
-
 
         renderDocuments(
             cachedDocuments
         );
 
-
         const totalDocuments =
             $("totalDocuments");
-
 
         if (totalDocuments) {
 
@@ -1774,7 +1738,6 @@ async function loadDocuments() {
 
         }
 
-
     } catch (error) {
 
         console.error(
@@ -1782,10 +1745,8 @@ async function loadDocuments() {
             error
         );
 
-
         cachedDocuments =
             [];
-
 
         if (list) {
 
@@ -1797,10 +1758,8 @@ async function loadDocuments() {
 
         }
 
-
         const totalDocuments =
             $("totalDocuments");
-
 
         if (totalDocuments) {
 
@@ -1825,11 +1784,9 @@ function renderDocuments(
     const list =
         $("libraryList");
 
-
     if (!list) {
         return;
     }
-
 
     if (!documents.length) {
 
@@ -1842,7 +1799,6 @@ function renderDocuments(
 
         return;
     }
-
 
     list.innerHTML =
         documents
@@ -1899,19 +1855,15 @@ function setupDocumentSearch() {
         return;
     }
 
-
     const search =
         $("documentSearch");
-
 
     if (!search) {
         return;
     }
 
-
     documentSearchReady =
         true;
-
 
     search.addEventListener(
         "input",
@@ -1921,7 +1873,6 @@ function setupDocumentSearch() {
                 event.target.value
                     .trim()
                     .toLowerCase();
-
 
             const filtered =
                 cachedDocuments.filter(
@@ -1942,14 +1893,12 @@ function setupDocumentSearch() {
                             .join(" ")
                             .toLowerCase();
 
-
                         return text.includes(
                             query
                         );
 
                     }
                 );
-
 
             renderDocuments(
                 filtered
@@ -1970,7 +1919,6 @@ function openDocumentModal() {
     const modal =
         $("documentModal");
 
-
     if (modal) {
 
         modal.style.display =
@@ -1985,7 +1933,6 @@ function closeDocumentModal() {
 
     const modal =
         $("documentModal");
-
 
     if (modal) {
 
@@ -2009,7 +1956,6 @@ function setupDocumentModal() {
     const cancel =
         $("cancelDocument");
 
-
     if (close) {
 
         close.addEventListener(
@@ -2018,7 +1964,6 @@ function setupDocumentModal() {
         );
 
     }
-
 
     if (cancel) {
 
@@ -2041,11 +1986,9 @@ function setupDocumentUpload() {
     const button =
         $("uploadDocumentButton");
 
-
     if (!button) {
         return;
     }
-
 
     button.addEventListener(
         "click",
@@ -2069,7 +2012,6 @@ async function uploadDocument(
 
     }
 
-
     if (
         !db ||
         !currentUser
@@ -2082,21 +2024,17 @@ async function uploadDocument(
         return;
     }
 
-
     const titleInput =
         $("documentTitle");
 
     const fileInput =
         $("documentFile");
 
-
     const title =
         titleInput?.value.trim();
 
-
     const file =
         fileInput?.files?.[0];
-
 
     if (!title) {
 
@@ -2107,7 +2045,6 @@ async function uploadDocument(
         return;
     }
 
-
     if (!file) {
 
         alert(
@@ -2117,16 +2054,13 @@ async function uploadDocument(
         return;
     }
 
-
     try {
 
         const fileName =
             `${Date.now()}_${file.name}`;
 
-
         const filePath =
             `${currentUser.id}/${fileName}`;
-
 
         const {
             error: uploadError
@@ -2141,11 +2075,9 @@ async function uploadDocument(
                     }
                 );
 
-
         if (uploadError) {
             throw uploadError;
         }
-
 
         const {
             data,
@@ -2156,47 +2088,37 @@ async function uploadDocument(
                 .insert({
 
                     title:
-
                         title,
 
                     file_name:
-
                         file.name,
 
                     file_path:
-
                         filePath,
 
                     file_size:
-
                         file.size,
 
                     mime_type:
-
                         file.type,
 
                     uploaded_by:
-
                         currentUser.id
 
                 })
                 .select()
                 .single();
 
-
         if (error) {
             throw error;
         }
-
 
         console.log(
             "Document uploaded:",
             data
         );
 
-
         closeDocumentModal();
-
 
         if (titleInput) {
 
@@ -2205,7 +2127,6 @@ async function uploadDocument(
 
         }
 
-
         if (fileInput) {
 
             fileInput.value =
@@ -2213,14 +2134,11 @@ async function uploadDocument(
 
         }
 
-
         await loadDocuments();
-
 
         alert(
             "Document uploaded successfully."
         );
-
 
     } catch (error) {
 
@@ -2228,7 +2146,6 @@ async function uploadDocument(
             "Document upload error:",
             error
         );
-
 
         alert(
             error.message ||
@@ -2249,11 +2166,9 @@ function setupDocumentForm() {
     const form =
         $("documentForm");
 
-
     if (!form) {
         return;
     }
-
 
     form.addEventListener(
         "submit",
@@ -2279,7 +2194,6 @@ async function openDocument(
         return;
     }
 
-
     try {
 
         const {
@@ -2295,11 +2209,9 @@ async function openDocument(
                 )
                 .maybeSingle();
 
-
         if (error) {
             throw error;
         }
-
 
         if (!data) {
 
@@ -2310,7 +2222,6 @@ async function openDocument(
             return;
         }
 
-
         if (!data.file_path) {
 
             alert(
@@ -2319,7 +2230,6 @@ async function openDocument(
 
             return;
         }
-
 
         const {
             data: signedData,
@@ -2332,11 +2242,9 @@ async function openDocument(
                     3600
                 );
 
-
         if (signedError) {
             throw signedError;
         }
-
 
         if (
             signedData?.signedUrl
@@ -2350,14 +2258,12 @@ async function openDocument(
 
         }
 
-
     } catch (error) {
 
         console.error(
             "Open document error:",
             error
         );
-
 
         alert(
             error.message ||
@@ -2385,7 +2291,6 @@ async function deleteDocument(
         return;
     }
 
-
     if (
         !confirm(
             "Delete this document?"
@@ -2394,7 +2299,6 @@ async function deleteDocument(
 
         return;
     }
-
 
     try {
 
@@ -2413,11 +2317,9 @@ async function deleteDocument(
                 )
                 .maybeSingle();
 
-
         if (error) {
             throw error;
         }
-
 
         if (data?.file_path) {
 
@@ -2431,7 +2333,6 @@ async function deleteDocument(
                         data.file_path
                     ]);
 
-
             if (storageError) {
 
                 console.warn(
@@ -2442,7 +2343,6 @@ async function deleteDocument(
             }
 
         }
-
 
         const {
             error:
@@ -2456,14 +2356,11 @@ async function deleteDocument(
                     documentId
                 );
 
-
         if (deleteError) {
             throw deleteError;
         }
 
-
         await loadDocuments();
-
 
     } catch (error) {
 
@@ -2471,7 +2368,6 @@ async function deleteDocument(
             "Delete document error:",
             error
         );
-
 
         alert(
             error.message ||
@@ -2503,11 +2399,9 @@ function renderDepartmentOrders(
     const container =
         $("departmentOrdersGrid");
 
-
     if (!container) {
         return;
     }
-
 
     if (!orders.length) {
 
@@ -2519,7 +2413,6 @@ function renderDepartmentOrders(
 
         return;
     }
-
 
     container.innerHTML =
         orders
@@ -2578,11 +2471,9 @@ function setupDepartmentOrderFilters() {
     const search =
         $("departmentOrderSearch");
 
-
     if (!search) {
         return;
     }
-
 
     search.addEventListener(
         "input",
@@ -2592,7 +2483,6 @@ function setupDepartmentOrderFilters() {
                 search.value
                     .trim()
                     .toLowerCase();
-
 
             const filtered =
                 departmentOrders.filter(
@@ -2614,14 +2504,12 @@ function setupDepartmentOrderFilters() {
                             .join(" ")
                             .toLowerCase();
 
-
                         return text.includes(
                             query
                         );
 
                     }
                 );
-
 
             renderDepartmentOrders(
                 filtered
@@ -2645,11 +2533,9 @@ function setupProjectModal() {
     const close =
         $("closeProjectModal");
 
-
     if (!modal) {
         return;
     }
-
 
     if (close) {
 
@@ -2664,7 +2550,6 @@ function setupProjectModal() {
         );
 
     }
-
 
     modal.addEventListener(
         "click",
@@ -2687,6 +2572,2416 @@ function setupProjectModal() {
 
 
 /* =========================================================
+   =========================================================
+   PROJECT MONITORING
+   =========================================================
+========================================================= */
+
+
+/* =========================================================
+   MONITORING SEARCH TEXT
+========================================================= */
+
+function monitoringSearchText(
+    item
+) {
+
+    return [
+
+        item.category,
+
+        item.program,
+
+        item.sub_program,
+
+        item.project_title,
+
+        item.project_title_as_per_gaa,
+
+        item.contract_id,
+
+        item.municipality,
+
+        item.program2,
+
+        item.plan,
+
+        item.advertisement_batch,
+
+        item.overall_status,
+
+        item.program_status,
+
+        item.plan_status,
+
+        item.remarks,
+
+        item.remarks2
+
+    ]
+        .filter(
+            value =>
+                value !== null &&
+                value !== undefined
+        )
+        .join(" ")
+        .toLowerCase();
+
+}
+
+
+/* =========================================================
+   PERCENTAGE PARSER
+========================================================= */
+
+function parsePercent(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return null;
+    }
+
+    const cleaned =
+        String(value)
+            .replace(
+                /%/g,
+                ""
+            )
+            .replace(
+                /,/g,
+                ""
+            )
+            .trim();
+
+    const number =
+        parseFloat(
+            cleaned
+        );
+
+    if (
+        Number.isNaN(number)
+    ) {
+
+        return null;
+    }
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            number
+        )
+    );
+
+}
+
+
+/* =========================================================
+   FORMAT PERCENTAGE
+========================================================= */
+
+function formatPercent(
+    value
+) {
+
+    const number =
+        parsePercent(
+            value
+        );
+
+    if (
+        number === null
+    ) {
+
+        return "0.00%";
+
+    }
+
+    return (
+        number.toFixed(2) +
+        "%"
+    );
+
+}
+
+
+/* =========================================================
+   NORMALIZE STATUS
+========================================================= */
+
+function normalizeStatus(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .trim()
+        .toLowerCase()
+        .replace(
+            /[_-]+/g,
+            " "
+        );
+
+}
+
+
+/* =========================================================
+   STATUS CLASS
+========================================================= */
+
+function monitoringStatusClass(
+    value
+) {
+
+    const status =
+        normalizeStatus(
+            value
+        );
+
+    if (
+        status.includes(
+            "completed"
+        )
+    ) {
+
+        return "completed";
+
+    }
+
+    if (
+        status.includes(
+            "for completion"
+        )
+    ) {
+
+        return "for-completion";
+
+    }
+
+    if (
+        status.includes(
+            "ongoing"
+        ) ||
+        status.includes(
+            "in progress"
+        )
+    ) {
+
+        return "ongoing";
+
+    }
+
+    if (
+        status.includes(
+            "not started"
+        )
+    ) {
+
+        return "not-started";
+
+    }
+
+    return "";
+
+}
+
+
+/* =========================================================
+   CALCULATE DAYS SINCE UPDATE
+========================================================= */
+
+function calculateDaysSinceUpdate(
+    dateValue
+) {
+
+    if (!dateValue) {
+
+        return "";
+
+    }
+
+    const updated =
+        new Date(
+            dateValue
+        );
+
+    if (
+        Number.isNaN(
+            updated.getTime()
+        )
+    ) {
+
+        return "";
+
+    }
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    updated.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    const difference =
+        today.getTime() -
+        updated.getTime();
+
+    return Math.max(
+        0,
+        Math.floor(
+            difference /
+            86400000
+        )
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING OVERALL PROGRESS
+========================================================= */
+
+function monitoringRowProgress(
+    item
+) {
+
+    const program =
+        parsePercent(
+            item.program_percent
+        );
+
+    const plan =
+        parsePercent(
+            item.plan_percent
+        );
+
+    if (
+        program !== null &&
+        plan !== null
+    ) {
+
+        return (
+            program +
+            plan
+        ) / 2;
+
+    }
+
+    if (
+        program !== null
+    ) {
+
+        return program;
+
+    }
+
+    if (
+        plan !== null
+    ) {
+
+        return plan;
+
+    }
+
+    return 0;
+
+}
+
+
+/* =========================================================
+   LOAD MONITORING
+========================================================= */
+
+async function loadMonitoring() {
+
+    const container =
+        $("monitoringList");
+
+    if (!db) {
+        return;
+    }
+
+    if (container) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Loading project monitoring...
+            </div>
+        `;
+
+    }
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await db
+                .from(
+                    MONITORING_TABLE
+                )
+                .select("*")
+                .order(
+                    "contract_id",
+                    {
+                        ascending: true
+                    }
+                );
+
+        if (error) {
+
+            /*
+             * Do not break the rest
+             * of the website if the
+             * monitoring table does
+             * not yet exist.
+             */
+
+            if (
+                String(
+                    error.message || ""
+                )
+                    .toLowerCase()
+                    .includes(
+                        "could not find the table"
+                    ) ||
+                String(
+                    error.message || ""
+                )
+                    .toLowerCase()
+                    .includes(
+                        "relation"
+                    )
+            ) {
+
+                console.warn(
+                    "Monitoring table is not yet available:",
+                    error.message
+                );
+
+                cachedMonitoring =
+                    [];
+
+                updateMonitoringStats([]);
+
+                if (container) {
+
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <strong>Monitoring table not yet connected</strong>
+                            <span>
+                                The Project Monitoring interface is ready.
+                                Create the Supabase "monitoring" table to load and edit the monitoring records.
+                            </span>
+                        </div>
+                    `;
+
+                }
+
+                return;
+            }
+
+            throw error;
+        }
+
+        cachedMonitoring =
+            data || [];
+
+        updateMonitoringStats(
+            cachedMonitoring
+        );
+
+        renderMonitoring(
+            filterMonitoring(
+                cachedMonitoring
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Monitoring loading error:",
+            error
+        );
+
+        cachedMonitoring =
+            [];
+
+        updateMonitoringStats([]);
+
+        if (container) {
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>Unable to load monitoring data</strong>
+                    <span>
+                        ${escapeHTML(
+                            error.message ||
+                            "Please check the Supabase monitoring table and permissions."
+                        )}
+                    </span>
+                </div>
+            `;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   MONITORING STATISTICS
+========================================================= */
+
+function updateMonitoringStats(
+    records
+) {
+
+    const total =
+        records.length;
+
+    let notStarted =
+        0;
+
+    let ongoing =
+        0;
+
+    let forCompletion =
+        0;
+
+    let completed =
+        0;
+
+    records.forEach(
+        item => {
+
+            const status =
+                normalizeStatus(
+                    item.overall_status ||
+                    item.program_status ||
+                    item.plan_status
+                );
+
+            if (
+                status ===
+                "completed" ||
+                status.includes(
+                    "completed"
+                )
+            ) {
+
+                completed++;
+
+            } else if (
+                status.includes(
+                    "for completion"
+                )
+            ) {
+
+                forCompletion++;
+
+            } else if (
+                status.includes(
+                    "ongoing"
+                ) ||
+                status.includes(
+                    "in progress"
+                )
+            ) {
+
+                ongoing++;
+
+            } else if (
+                status.includes(
+                    "not started"
+                )
+            ) {
+
+                notStarted++;
+
+            }
+
+        }
+    );
+
+    let overallProgress =
+        0;
+
+    if (
+        records.length
+    ) {
+
+        overallProgress =
+            records.reduce(
+                (
+                    totalProgress,
+                    item
+                ) => {
+
+                    return (
+                        totalProgress +
+                        monitoringRowProgress(
+                            item
+                        )
+                    );
+
+                },
+                0
+            ) /
+            records.length;
+
+    }
+
+    const totalElement =
+        $("monitoringTotalProjects");
+
+    const notStartedElement =
+        $("monitoringNotStarted");
+
+    const ongoingElement =
+        $("monitoringOngoing");
+
+    const forCompletionElement =
+        $("monitoringForCompletion");
+
+    const completedElement =
+        $("monitoringCompleted");
+
+    const progressElement =
+        $("monitoringOverallProgress");
+
+    if (totalElement) {
+
+        totalElement.textContent =
+            total;
+
+    }
+
+    if (notStartedElement) {
+
+        notStartedElement.textContent =
+            notStarted;
+
+    }
+
+    if (ongoingElement) {
+
+        ongoingElement.textContent =
+            ongoing;
+
+    }
+
+    if (forCompletionElement) {
+
+        forCompletionElement.textContent =
+            forCompletion;
+
+    }
+
+    if (completedElement) {
+
+        completedElement.textContent =
+            completed;
+
+    }
+
+    if (progressElement) {
+
+        progressElement.textContent =
+            `${overallProgress.toFixed(2)}%`;
+
+    }
+
+}
+
+
+/* =========================================================
+   FILTER MONITORING
+========================================================= */
+
+function filterMonitoring(
+    records
+) {
+
+    const search =
+        $("monitoringSearch");
+
+    const statusFilter =
+        $("monitoringStatusFilter");
+
+    const query =
+        search?.value
+            ?.trim()
+            .toLowerCase() ||
+        "";
+
+    const selectedStatus =
+        statusFilter?.value ||
+        "";
+
+    return records.filter(
+        item => {
+
+            const searchMatch =
+                !query ||
+                monitoringSearchText(
+                    item
+                )
+                    .includes(
+                        query
+                    );
+
+            if (!searchMatch) {
+                return false;
+            }
+
+            if (!selectedStatus) {
+                return true;
+            }
+
+            const wanted =
+                normalizeStatus(
+                    selectedStatus
+                );
+
+            const values = [
+
+                normalizeStatus(
+                    item.overall_status
+                ),
+
+                normalizeStatus(
+                    item.program_status
+                ),
+
+                normalizeStatus(
+                    item.plan_status
+                )
+
+            ];
+
+            return values.some(
+                value =>
+                    value === wanted ||
+                    value.includes(
+                        wanted
+                    ) ||
+                    wanted.includes(
+                        value
+                    )
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   RENDER MONITORING
+========================================================= */
+
+function renderMonitoring(
+    records
+) {
+
+    const container =
+        $("monitoringList");
+
+    if (!container) {
+        return;
+    }
+
+    if (!records.length) {
+
+        if (
+            cachedMonitoring.length
+        ) {
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>No matching monitoring records</strong>
+                    <span>Try changing the search or status filter.</span>
+                </div>
+            `;
+
+        } else {
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>No monitoring records</strong>
+                    <span>Monitoring records will appear here after the Supabase monitoring table is populated.</span>
+                </div>
+            `;
+
+        }
+
+        return;
+    }
+
+    container.innerHTML = `
+
+        <table
+            style="
+                width:100%;
+                min-width:1200px;
+                border-collapse:collapse;
+                background:#fff;
+                font-size:10px;
+            "
+        >
+
+            <thead>
+
+                <tr
+                    style="
+                        background:#063b61;
+                        color:#fff;
+                    "
+                >
+
+                    <th style="padding:10px;text-align:left;white-space:nowrap;">
+                        CONTRACT ID
+                    </th>
+
+                    <th style="padding:10px;text-align:left;min-width:280px;">
+                        PROJECT TITLE
+                    </th>
+
+                    <th style="padding:10px;text-align:left;">
+                        MUNICIPALITY
+                    </th>
+
+                    <th style="padding:10px;text-align:left;">
+                        PROGRAM
+                    </th>
+
+                    <th style="padding:10px;text-align:left;">
+                        PLAN
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        PROGRAM %
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        PLAN %
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        OVERALL STATUS
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        LAST UPDATED
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        DAYS
+                    </th>
+
+                    <th style="padding:10px;text-align:center;">
+                        ACTION
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                ${
+                    records
+                        .map(
+                            item =>
+                                renderMonitoringRow(
+                                    item
+                                )
+                        )
+                        .join("")
+                }
+
+            </tbody>
+
+        </table>
+
+    `;
+
+}
+
+
+/* =========================================================
+   MONITORING TABLE ROW
+========================================================= */
+
+function renderMonitoringRow(
+    item
+) {
+
+    const id =
+        item.id;
+
+    const contractId =
+        escapeHTML(
+            item.contract_id ||
+            "—"
+        );
+
+    const title =
+        escapeHTML(
+            item.project_title ||
+            item.project_title_as_per_gaa ||
+            item.title ||
+            "Untitled Project"
+        );
+
+    const municipality =
+        escapeHTML(
+            item.municipality ||
+            "—"
+        );
+
+    const programPerson =
+        escapeHTML(
+            item.program2 ||
+            "—"
+        );
+
+    const planPerson =
+        escapeHTML(
+            item.plan ||
+            "—"
+        );
+
+    const programPercent =
+        formatPercent(
+            item.program_percent
+        );
+
+    const planPercent =
+        formatPercent(
+            item.plan_percent
+        );
+
+    const overallStatus =
+        item.overall_status ||
+        item.program_status ||
+        item.plan_status ||
+        "—";
+
+    const statusClass =
+        monitoringStatusClass(
+            overallStatus
+        );
+
+    const lastUpdated =
+        formatDate(
+            item.last_updated
+        );
+
+    const days =
+        item.last_updated
+            ? calculateDaysSinceUpdate(
+                item.last_updated
+            )
+            : (
+                item.days_since_update ??
+                "—"
+            );
+
+    return `
+
+        <tr
+            style="
+                border-bottom:1px solid #dbe3e8;
+            "
+        >
+
+            <td style="padding:10px;font-weight:700;white-space:nowrap;">
+                ${contractId}
+            </td>
+
+            <td style="padding:10px;">
+                <div style="font-weight:700;color:#063b61;">
+                    ${title}
+                </div>
+            </td>
+
+            <td style="padding:10px;white-space:nowrap;">
+                ${municipality}
+            </td>
+
+            <td style="padding:10px;font-weight:600;white-space:nowrap;">
+                ${programPerson}
+            </td>
+
+            <td style="padding:10px;font-weight:600;white-space:nowrap;">
+                ${planPerson}
+            </td>
+
+            <td style="padding:10px;text-align:center;font-weight:700;">
+                ${programPercent}
+            </td>
+
+            <td style="padding:10px;text-align:center;font-weight:700;">
+                ${planPercent}
+            </td>
+
+            <td style="padding:10px;text-align:center;white-space:nowrap;">
+
+                <span
+                    class="monitoring-status-badge ${statusClass}"
+                    style="
+                        display:inline-block;
+                        padding:5px 8px;
+                        border:1px solid #cbd7df;
+                        font-size:9px;
+                        font-weight:700;
+                        text-transform:uppercase;
+                    "
+                >
+                    ${escapeHTML(
+                        overallStatus
+                    )}
+                </span>
+
+            </td>
+
+            <td style="padding:10px;text-align:center;white-space:nowrap;">
+                ${lastUpdated}
+            </td>
+
+            <td style="padding:10px;text-align:center;font-weight:700;">
+                ${escapeHTML(days)}
+            </td>
+
+            <td style="padding:10px;text-align:center;">
+
+                <button
+                    type="button"
+                    class="button secondary monitoring-edit-button"
+                    data-monitoring-id="${escapeHTML(id)}"
+                    style="
+                        height:32px;
+                        padding:0 10px;
+                        font-size:9px;
+                    "
+                >
+                    EDIT
+                </button>
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+/* =========================================================
+   FORMAT DATE
+========================================================= */
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
+        return "—";
+    }
+
+    const date =
+        new Date(
+            value
+        );
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return escapeHTML(
+            value
+        );
+
+    }
+
+    return date.toLocaleDateString(
+        "en-PH",
+        {
+            year:
+                "numeric",
+
+            month:
+                "short",
+
+            day:
+                "2-digit"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING STATUS OPTIONS
+========================================================= */
+
+const monitoringStatusOptions = [
+
+    "Not Yet Started",
+
+    "Ongoing",
+
+    "On-going",
+
+    "Completed",
+
+    "For Completion",
+
+    "Not Yet Requested",
+
+    "For Signature",
+
+    "N/A"
+
+];
+
+
+/* =========================================================
+   CREATE MONITORING MODAL
+========================================================= */
+
+function ensureMonitoringModal() {
+
+    if (
+        $("monitoringEditModal")
+    ) {
+
+        return;
+
+    }
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+    modal.id =
+        "monitoringEditModal";
+
+    modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(3,27,55,.68);
+        display:none;
+        align-items:center;
+        justify-content:center;
+        z-index:9999;
+        padding:20px;
+    `;
+
+    modal.innerHTML = `
+
+        <div
+            id="monitoringEditPanel"
+            style="
+                width:min(1100px,96vw);
+                max-height:92vh;
+                overflow:auto;
+                background:#fff;
+                border-top:5px solid #e88924;
+                box-shadow:0 20px 60px rgba(0,0,0,.25);
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    padding:16px 20px;
+                    background:#063b61;
+                    color:#fff;
+                    position:sticky;
+                    top:0;
+                    z-index:2;
+                "
+            >
+
+                <div>
+
+                    <div
+                        style="
+                            font-size:9px;
+                            letter-spacing:1px;
+                            opacity:.75;
+                        "
+                    >
+                        PDS / PROJECT CONTROL
+                    </div>
+
+                    <h2
+                        id="monitoringEditTitle"
+                        style="
+                            margin:3px 0 0;
+                            font-size:18px;
+                        "
+                    >
+                        Edit Project Monitoring
+                    </h2>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="closeMonitoringEdit"
+                    style="
+                        width:34px;
+                        height:34px;
+                        border:1px solid rgba(255,255,255,.4);
+                        background:transparent;
+                        color:#fff;
+                        cursor:pointer;
+                        font-size:18px;
+                    "
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <form
+                id="monitoringEditForm"
+                style="
+                    padding:20px;
+                "
+            >
+
+                <input
+                    type="hidden"
+                    id="monitoringRecordId"
+                >
+
+                <div
+                    id="monitoringEditContent"
+                ></div>
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:flex-end;
+                        gap:8px;
+                        padding-top:20px;
+                        margin-top:20px;
+                        border-top:1px solid #dbe3e8;
+                    "
+                >
+
+                    <button
+                        type="button"
+                        class="button secondary"
+                        id="cancelMonitoringEdit"
+                    >
+                        CANCEL
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="button primary"
+                        id="saveMonitoringButton"
+                    >
+                        SAVE CHANGES
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    `;
+
+    document.body.appendChild(
+        modal
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING FIELD HELPERS
+========================================================= */
+
+function monitoringSelect(
+    id,
+    label,
+    value
+) {
+
+    const current =
+        value || "";
+
+    const options =
+        monitoringStatusOptions
+            .map(
+                option => `
+
+                    <option
+                        value="${escapeHTML(option)}"
+                        ${
+                            normalizeStatus(
+                                option
+                            ) ===
+                            normalizeStatus(
+                                current
+                            )
+                                ? "selected"
+                                : ""
+                        }
+                    >
+                        ${escapeHTML(option)}
+                    </option>
+
+                `
+            )
+            .join("");
+
+    return `
+
+        <label
+            style="
+                display:block;
+                font-size:9px;
+                font-weight:700;
+                color:#526875;
+                text-transform:uppercase;
+            "
+        >
+
+            ${escapeHTML(label)}
+
+            <select
+                id="${escapeHTML(id)}"
+                style="
+                    width:100%;
+                    height:38px;
+                    margin-top:5px;
+                    padding:0 9px;
+                    border:1px solid #c7d5de;
+                    background:#fff;
+                    border-radius:3px;
+                    font-size:11px;
+                "
+            >
+
+                <option value="">
+                    — SELECT —
+                </option>
+
+                ${options}
+
+            </select>
+
+        </label>
+
+    `;
+
+}
+
+
+function monitoringInput(
+    id,
+    label,
+    value,
+    type = "text"
+) {
+
+    return `
+
+        <label
+            style="
+                display:block;
+                font-size:9px;
+                font-weight:700;
+                color:#526875;
+                text-transform:uppercase;
+            "
+        >
+
+            ${escapeHTML(label)}
+
+            <input
+                id="${escapeHTML(id)}"
+                type="${escapeHTML(type)}"
+                value="${escapeHTML(value ?? "")}"
+                style="
+                    width:100%;
+                    height:38px;
+                    margin-top:5px;
+                    padding:0 9px;
+                    border:1px solid #c7d5de;
+                    background:#fff;
+                    border-radius:3px;
+                    font-size:11px;
+                    box-sizing:border-box;
+                "
+            >
+
+        </label>
+
+    `;
+
+}
+
+
+function monitoringTextarea(
+    id,
+    label,
+    value
+) {
+
+    return `
+
+        <label
+            style="
+                display:block;
+                font-size:9px;
+                font-weight:700;
+                color:#526875;
+                text-transform:uppercase;
+            "
+        >
+
+            ${escapeHTML(label)}
+
+            <textarea
+                id="${escapeHTML(id)}"
+                rows="3"
+                style="
+                    width:100%;
+                    margin-top:5px;
+                    padding:8px 9px;
+                    border:1px solid #c7d5de;
+                    background:#fff;
+                    border-radius:3px;
+                    font-size:11px;
+                    resize:vertical;
+                    box-sizing:border-box;
+                "
+            >${escapeHTML(value ?? "")}</textarea>
+
+        </label>
+
+    `;
+
+}
+
+
+/* =========================================================
+   OPEN MONITORING EDITOR
+========================================================= */
+
+function openMonitoringEditor(
+    recordId
+) {
+
+    ensureMonitoringModal();
+
+    const record =
+        cachedMonitoring.find(
+            item =>
+                String(item.id) ===
+                String(recordId)
+        );
+
+    if (!record) {
+
+        alert(
+            "Monitoring record not found."
+        );
+
+        return;
+    }
+
+    const modal =
+        $("monitoringEditModal");
+
+    const title =
+        $("monitoringEditTitle");
+
+    const recordIdInput =
+        $("monitoringRecordId");
+
+    const content =
+        $("monitoringEditContent");
+
+    if (
+        !modal ||
+        !content
+    ) {
+
+        return;
+    }
+
+    if (recordIdInput) {
+
+        recordIdInput.value =
+            record.id;
+
+    }
+
+    if (title) {
+
+        title.textContent =
+            `Edit Monitoring — ${
+                record.contract_id ||
+                "Project Record"
+            }`;
+
+    }
+
+    content.innerHTML = `
+
+        <div
+            style="
+                margin-bottom:20px;
+                padding:12px 15px;
+                background:#f3f7f9;
+                border-left:4px solid #e88924;
+            "
+        >
+
+            <div
+                style="
+                    font-size:9px;
+                    color:#647782;
+                    font-weight:700;
+                    text-transform:uppercase;
+                "
+            >
+                PROJECT
+            </div>
+
+            <div
+                style="
+                    margin-top:3px;
+                    font-size:15px;
+                    font-weight:800;
+                    color:#063b61;
+                "
+            >
+                ${escapeHTML(
+                    record.project_title ||
+                    record.project_title_as_per_gaa ||
+                    record.title ||
+                    "Untitled Project"
+                )}
+            </div>
+
+            <div
+                style="
+                    margin-top:4px;
+                    font-size:10px;
+                    color:#647782;
+                "
+            >
+                CONTRACT ID:
+                <strong>
+                    ${escapeHTML(
+                        record.contract_id ||
+                        "—"
+                    )}
+                </strong>
+                &nbsp;&nbsp;
+                MUNICIPALITY:
+                <strong>
+                    ${escapeHTML(
+                        record.municipality ||
+                        "—"
+                    )}
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div
+            style="
+                margin-bottom:18px;
+                font-size:12px;
+                font-weight:800;
+                color:#063b61;
+                border-bottom:2px solid #e88924;
+                padding-bottom:7px;
+            "
+        >
+            PROJECT INFORMATION
+        </div>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(220px,1fr)
+                    );
+                gap:12px;
+            "
+        >
+
+            ${monitoringInput(
+                "editCategory",
+                "Category",
+                record.category
+            )}
+
+            ${monitoringInput(
+                "editProgram",
+                "Program",
+                record.program
+            )}
+
+            ${monitoringInput(
+                "editSubProgram",
+                "Sub-Program",
+                record.sub_program
+            )}
+
+            ${monitoringInput(
+                "editMunicipality",
+                "Municipality",
+                record.municipality
+            )}
+
+            ${monitoringInput(
+                "editAllocation",
+                "Allocation",
+                record.allocation
+            )}
+
+            ${monitoringInput(
+                "editAdvertisementBatch",
+                "Advertisement Batch",
+                record.advertisement_batch
+            )}
+
+        </div>
+
+
+        <div
+            style="
+                margin-top:25px;
+                margin-bottom:18px;
+                font-size:12px;
+                font-weight:800;
+                color:#063b61;
+                border-bottom:2px solid #e88924;
+                padding-bottom:7px;
+            "
+        >
+            PROGRAM MONITORING
+        </div>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(220px,1fr)
+                    );
+                gap:12px;
+            "
+        >
+
+            ${monitoringInput(
+                "editProgramPerson",
+                "Program Assigned Personnel",
+                record.program2
+            )}
+
+            ${monitoringSelect(
+                "editCanvass",
+                "Canvass",
+                record.canvass
+            )}
+
+            ${monitoringSelect(
+                "editMarketScoping",
+                "Market Scoping",
+                record.market_scoping
+            )}
+
+            ${monitoringSelect(
+                "editCertDED",
+                "Certificate of DED",
+                record.cert_ded
+            )}
+
+            ${monitoringSelect(
+                "editCertCMPD",
+                "Certificate of CMPD",
+                record.cert_cmpd
+            )}
+
+            ${monitoringSelect(
+                "editCertValidation",
+                "Certificate of Validation",
+                record.cert_validation
+            )}
+
+            ${monitoringSelect(
+                "editPrintedCompleteProgram",
+                "Printed Complete Program",
+                record.printed_complete_program
+            )}
+
+            ${monitoringSelect(
+                "editSubmittedExcelFile",
+                "Submitted Excel File",
+                record.submitted_excel_file
+            )}
+
+            ${monitoringSelect(
+                "editProgramStatus",
+                "Program Status",
+                record.program_status
+            )}
+
+            ${monitoringInput(
+                "editProgramPercent",
+                "Program % Complete",
+                parsePercent(
+                    record.program_percent
+                ) ?? 0,
+                "number"
+            )}
+
+        </div>
+
+        <div
+            style="
+                margin-top:12px;
+            "
+        >
+
+            ${monitoringTextarea(
+                "editRemarks",
+                "Program Remarks",
+                record.remarks
+            )}
+
+        </div>
+
+
+        <div
+            style="
+                margin-top:25px;
+                margin-bottom:18px;
+                font-size:12px;
+                font-weight:800;
+                color:#063b61;
+                border-bottom:2px solid #e88924;
+                padding-bottom:7px;
+            "
+        >
+            PLAN MONITORING
+        </div>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(220px,1fr)
+                    );
+                gap:12px;
+            "
+        >
+
+            ${monitoringInput(
+                "editPlanPerson",
+                "Plan Assigned Personnel",
+                record.plan
+            )}
+
+            ${monitoringSelect(
+                "editArchitectural",
+                "Architectural",
+                record.architectural
+            )}
+
+            ${monitoringSelect(
+                "editStructural",
+                "Structural",
+                record.structural
+            )}
+
+            ${monitoringSelect(
+                "editPlumbing",
+                "Plumbing",
+                record.plumbing
+            )}
+
+            ${monitoringSelect(
+                "editElectrical",
+                "Electrical",
+                record.electrical
+            )}
+
+            ${monitoringSelect(
+                "editMechanical",
+                "Mechanical",
+                record.mechanical
+            )}
+
+            ${monitoringSelect(
+                "editSurvey",
+                "Survey",
+                record.survey
+            )}
+
+            ${monitoringSelect(
+                "editPrintedCompletePlan",
+                "Printed Complete Plan",
+                record.printed_complete_plan
+            )}
+
+            ${monitoringSelect(
+                "editPlanStatus",
+                "Plan Status",
+                record.plan_status
+            )}
+
+            ${monitoringInput(
+                "editPlanPercent",
+                "Plan % Complete",
+                parsePercent(
+                    record.plan_percent
+                ) ?? 0,
+                "number"
+            )}
+
+        </div>
+
+        <div
+            style="
+                margin-top:12px;
+            "
+        >
+
+            ${monitoringTextarea(
+                "editRemarks2",
+                "Plan Remarks",
+                record.remarks2
+            )}
+
+        </div>
+
+
+        <div
+            style="
+                margin-top:25px;
+                margin-bottom:18px;
+                font-size:12px;
+                font-weight:800;
+                color:#063b61;
+                border-bottom:2px solid #e88924;
+                padding-bottom:7px;
+            "
+        >
+            OVERALL MONITORING
+        </div>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(220px,1fr)
+                    );
+                gap:12px;
+            "
+        >
+
+            ${monitoringSelect(
+                "editOverallStatus",
+                "Overall Status",
+                record.overall_status
+            )}
+
+        </div>
+
+        <div
+            style="
+                margin-top:12px;
+                padding:10px 12px;
+                background:#f7fafb;
+                border:1px solid #d7e1e7;
+                font-size:9px;
+                color:#687984;
+            "
+        >
+            Saving this record will automatically update
+            <strong>LAST UPDATED</strong> to the current date.
+        </div>
+
+    `;
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
+   SAVE MONITORING RECORD
+========================================================= */
+
+async function saveMonitoringRecord(
+    event
+) {
+
+    if (event) {
+
+        event.preventDefault();
+
+    }
+
+    if (
+        !db ||
+        !currentUser
+    ) {
+
+        alert(
+            "Please sign in again."
+        );
+
+        return;
+    }
+
+    const recordId =
+        $("monitoringRecordId")
+            ?.value;
+
+    if (!recordId) {
+
+        alert(
+            "Monitoring record ID is missing."
+        );
+
+        return;
+    }
+
+    const saveButton =
+        $("saveMonitoringButton");
+
+    if (saveButton) {
+
+        saveButton.disabled =
+            true;
+
+        saveButton.textContent =
+            "SAVING...";
+
+    }
+
+    try {
+
+        const now =
+            new Date()
+                .toISOString();
+
+        const programPercent =
+            parsePercent(
+                $("editProgramPercent")
+                    ?.value
+            );
+
+        const planPercent =
+            parsePercent(
+                $("editPlanPercent")
+                    ?.value
+            );
+
+        const updateData = {
+
+            category:
+                getValue(
+                    "editCategory"
+                ),
+
+            program:
+                getValue(
+                    "editProgram"
+                ),
+
+            sub_program:
+                getValue(
+                    "editSubProgram"
+                ),
+
+            municipality:
+                getValue(
+                    "editMunicipality"
+                ),
+
+            allocation:
+                getValue(
+                    "editAllocation"
+                ),
+
+            advertisement_batch:
+                getValue(
+                    "editAdvertisementBatch"
+                ),
+
+            program2:
+                getValue(
+                    "editProgramPerson"
+                ),
+
+            plan:
+                getValue(
+                    "editPlanPerson"
+                ),
+
+            canvass:
+                getValue(
+                    "editCanvass"
+                ),
+
+            market_scoping:
+                getValue(
+                    "editMarketScoping"
+                ),
+
+            cert_ded:
+                getValue(
+                    "editCertDED"
+                ),
+
+            cert_cmpd:
+                getValue(
+                    "editCertCMPD"
+                ),
+
+            cert_validation:
+                getValue(
+                    "editCertValidation"
+                ),
+
+            printed_complete_program:
+                getValue(
+                    "editPrintedCompleteProgram"
+                ),
+
+            submitted_excel_file:
+                getValue(
+                    "editSubmittedExcelFile"
+                ),
+
+            remarks:
+                getValue(
+                    "editRemarks"
+                ),
+
+            architectural:
+                getValue(
+                    "editArchitectural"
+                ),
+
+            structural:
+                getValue(
+                    "editStructural"
+                ),
+
+            plumbing:
+                getValue(
+                    "editPlumbing"
+                ),
+
+            electrical:
+                getValue(
+                    "editElectrical"
+                ),
+
+            mechanical:
+                getValue(
+                    "editMechanical"
+                ),
+
+            survey:
+                getValue(
+                    "editSurvey"
+                ),
+
+            printed_complete_plan:
+                getValue(
+                    "editPrintedCompletePlan"
+                ),
+
+            remarks2:
+                getValue(
+                    "editRemarks2"
+                ),
+
+            program_status:
+                getValue(
+                    "editProgramStatus"
+                ),
+
+            program_percent:
+                programPercent,
+
+            plan_status:
+                getValue(
+                    "editPlanStatus"
+                ),
+
+            plan_percent:
+                planPercent,
+
+            overall_status:
+                getValue(
+                    "editOverallStatus"
+                ),
+
+            last_updated:
+                now,
+
+            days_since_update:
+                0,
+
+            updated_by:
+                currentUser.id,
+
+            updated_at:
+                now
+
+        };
+
+        const {
+            data,
+            error
+        } =
+            await db
+                .from(
+                    MONITORING_TABLE
+                )
+                .update(
+                    updateData
+                )
+                .eq(
+                    "id",
+                    recordId
+                )
+                .select()
+                .single();
+
+        if (error) {
+            throw error;
+        }
+
+        console.log(
+            "Monitoring record updated:",
+            data
+        );
+
+        const modal =
+            $("monitoringEditModal");
+
+        if (modal) {
+
+            modal.style.display =
+                "none";
+
+        }
+
+        await loadMonitoring();
+
+        alert(
+            "Project monitoring record updated successfully."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Monitoring save error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Unable to save monitoring record. Check your Supabase table and UPDATE policy."
+        );
+
+    } finally {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.textContent =
+                "SAVE CHANGES";
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   GET INPUT VALUE
+========================================================= */
+
+function getValue(
+    id
+) {
+
+    return (
+        $(id)?.value ??
+        ""
+    )
+        .trim();
+
+}
+
+
+/* =========================================================
+   MONITORING SETUP
+========================================================= */
+
+function setupMonitoring() {
+
+    if (monitoringReady) {
+        return;
+    }
+
+    monitoringReady =
+        true;
+
+    ensureMonitoringModal();
+
+    const search =
+        $("monitoringSearch");
+
+    const statusFilter =
+        $("monitoringStatusFilter");
+
+    const refresh =
+        $("refreshMonitoringButton");
+
+    const oneDrive =
+        $("openOneDriveMonitoring");
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            () => {
+
+                renderMonitoring(
+                    filterMonitoring(
+                        cachedMonitoring
+                    )
+                );
+
+            }
+        );
+
+    }
+
+    if (statusFilter) {
+
+        statusFilter.addEventListener(
+            "change",
+            () => {
+
+                renderMonitoring(
+                    filterMonitoring(
+                        cachedMonitoring
+                    )
+                );
+
+            }
+        );
+
+    }
+
+    if (refresh) {
+
+        refresh.addEventListener(
+            "click",
+            async () => {
+
+                refresh.disabled =
+                    true;
+
+                refresh.textContent =
+                    "↻ LOADING...";
+
+                await loadMonitoring();
+
+                refresh.textContent =
+                    "↻ REFRESH";
+
+                refresh.disabled =
+                    false;
+
+            }
+        );
+
+    }
+
+    if (oneDrive) {
+
+        oneDrive.addEventListener(
+            "click",
+            () => {
+
+                window.open(
+                    ONEDRIVE_MONITORING_URL,
+                    "_blank",
+                    "noopener,noreferrer"
+                );
+
+            }
+        );
+
+    }
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            const button =
+                event.target.closest(
+                    ".monitoring-edit-button"
+                );
+
+            if (!button) {
+                return;
+            }
+
+            event.preventDefault();
+
+            openMonitoringEditor(
+                button.dataset.monitoringId
+            );
+
+        }
+    );
+
+    const modal =
+        $("monitoringEditModal");
+
+    const close =
+        $("closeMonitoringEdit");
+
+    const cancel =
+        $("cancelMonitoringEdit");
+
+    const form =
+        $("monitoringEditForm");
+
+    if (close) {
+
+        close.addEventListener(
+            "click",
+            closeMonitoringEditor
+        );
+
+    }
+
+    if (cancel) {
+
+        cancel.addEventListener(
+            "click",
+            closeMonitoringEditor
+        );
+
+    }
+
+    if (modal) {
+
+        modal.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    event.target ===
+                    modal
+                ) {
+
+                    closeMonitoringEditor();
+
+                }
+
+            }
+        );
+
+    }
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            saveMonitoringRecord
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CLOSE MONITORING EDITOR
+========================================================= */
+
+function closeMonitoringEditor() {
+
+    const modal =
+        $("monitoringEditModal");
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
    PDS AI
 ========================================================= */
 
@@ -2696,10 +4991,8 @@ function setupPDSAI() {
         return;
     }
 
-
     aiReady =
         true;
-
 
     const launcher =
         $("pdsAiLauncher");
@@ -2716,6 +5009,8 @@ function setupPDSAI() {
     const fullButton =
         $("openFullPDSAI");
 
+    const closeButton =
+        $("pdsAiClose");
 
     if (
         launcher &&
@@ -2731,12 +5026,10 @@ function setupPDSAI() {
                     "none" ||
                     !chatbot.style.display;
 
-
                 chatbot.style.display =
                     isHidden
                         ? "flex"
                         : "none";
-
 
                 if (
                     isHidden &&
@@ -2759,6 +5052,23 @@ function setupPDSAI() {
 
     }
 
+    if (closeButton) {
+
+        closeButton.addEventListener(
+            "click",
+            () => {
+
+                if (chatbot) {
+
+                    chatbot.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+    }
 
     if (send) {
 
@@ -2768,7 +5078,6 @@ function setupPDSAI() {
         );
 
     }
-
 
     if (input) {
 
@@ -2792,7 +5101,6 @@ function setupPDSAI() {
 
     }
 
-
     if (fullButton) {
 
         fullButton.addEventListener(
@@ -2802,7 +5110,6 @@ function setupPDSAI() {
                 showPage(
                     "pds-ai-assistant"
                 );
-
 
                 if (chatbot) {
 
@@ -2831,30 +5138,24 @@ function appendAIMessage(
     const response =
         $("aiResponse");
 
-
     if (!response) {
         return;
     }
-
 
     const element =
         document.createElement(
             "div"
         );
 
-
     element.className =
         `ai-message ${sender}`;
-
 
     element.textContent =
         message;
 
-
     response.appendChild(
         element
     );
-
 
     response.scrollTop =
         response.scrollHeight;
@@ -2874,30 +5175,24 @@ async function askPDSAI() {
     const send =
         $("pdsAiSend");
 
-
     if (!input || !db) {
         return;
     }
 
-
     const message =
         input.value.trim();
-
 
     if (!message) {
         return;
     }
-
 
     appendAIMessage(
         message,
         "user"
     );
 
-
     input.value =
         "";
-
 
     if (send) {
 
@@ -2906,12 +5201,10 @@ async function askPDSAI() {
 
     }
 
-
     appendAIMessage(
         "PDS AI is thinking...",
         "ai"
     );
-
 
     try {
 
@@ -2925,22 +5218,18 @@ async function askPDSAI() {
                     body: {
 
                         message:
-
                             message,
 
                         history:
-
                             pdsAIHistory
 
                     }
                 }
             );
 
-
         if (error) {
             throw error;
         }
-
 
         const answer =
             data?.answer ||
@@ -2948,15 +5237,12 @@ async function askPDSAI() {
             data?.message ||
             "PDS AI did not return a response.";
 
-
         removeThinkingMessage();
-
 
         appendAIMessage(
             answer,
             "ai"
         );
-
 
         pdsAIHistory.push({
 
@@ -2968,7 +5254,6 @@ async function askPDSAI() {
 
         });
 
-
         pdsAIHistory.push({
 
             role:
@@ -2979,7 +5264,6 @@ async function askPDSAI() {
 
         });
 
-
     } catch (error) {
 
         console.error(
@@ -2987,9 +5271,7 @@ async function askPDSAI() {
             error
         );
 
-
         removeThinkingMessage();
-
 
         appendAIMessage(
             "PDS AI could not respond. Please try again.",
@@ -3004,7 +5286,6 @@ async function askPDSAI() {
                 false;
 
         }
-
 
         if (input) {
 
@@ -3026,23 +5307,19 @@ function removeThinkingMessage() {
     const response =
         $("aiResponse");
 
-
     if (!response) {
         return;
     }
-
 
     const messages =
         response.querySelectorAll(
             ".ai-message.ai"
         );
 
-
     const last =
         messages[
             messages.length - 1
         ];
-
 
     if (
         last &&
@@ -3066,11 +5343,9 @@ function setupNotifications() {
     const button =
         $("notificationButton");
 
-
     if (!button) {
         return;
     }
-
 
     button.addEventListener(
         "click",
@@ -3095,11 +5370,9 @@ function setupRefreshButton() {
     const button =
         $("refreshButton");
 
-
     if (!button) {
         return;
     }
-
 
     button.addEventListener(
         "click",
@@ -3109,9 +5382,7 @@ function setupRefreshButton() {
                 "is-loading"
             );
 
-
             await refreshAll();
-
 
             setTimeout(
                 () => {
@@ -3140,14 +5411,11 @@ function setupAuthForms() {
         return;
     }
 
-
     authFormsReady =
         true;
 
-
     const loginForm =
         $("loginForm");
-
 
     if (!loginForm) {
 
@@ -3158,25 +5426,21 @@ function setupAuthForms() {
         return;
     }
 
-
     loginForm.addEventListener(
         "submit",
         async event => {
 
             event.preventDefault();
 
-
             const email =
                 $("loginEmail")
                     ?.value
                     .trim();
 
-
             const password =
                 $("loginPassword")
                     ?.value ||
                 "";
-
 
             if (
                 !email ||
@@ -3191,12 +5455,10 @@ function setupAuthForms() {
                 return;
             }
 
-
             const button =
                 loginForm.querySelector(
                     'button[type="submit"]'
                 );
-
 
             if (button) {
 
@@ -3208,12 +5470,10 @@ function setupAuthForms() {
 
             }
 
-
             await loginUser(
                 email,
                 password
             );
-
 
             if (button) {
 
@@ -3243,17 +5503,14 @@ function setupSignOut() {
 
             const button =
                 event.target.closest(
-                    '[data-action="signout"], #signOutButton'
+                    '[data-action="signout"], #signOutButton, #logoutButton'
                 );
-
 
             if (!button) {
                 return;
             }
 
-
             event.preventDefault();
-
 
             signOut();
 
@@ -3273,7 +5530,6 @@ function setupAuthStateListener() {
         return;
     }
 
-
     db.auth.onAuthStateChange(
         (
             event,
@@ -3284,7 +5540,6 @@ function setupAuthStateListener() {
                 "PDS Auth Event:",
                 event
             );
-
 
             if (
                 event ===
@@ -3300,11 +5555,13 @@ function setupAuthStateListener() {
                 pdsAIHistory =
                     [];
 
+                cachedMonitoring =
+                    [];
+
                 showLogin();
 
                 return;
             }
-
 
             if (
                 session &&
@@ -3314,15 +5571,7 @@ function setupAuthStateListener() {
                 currentUser =
                     session.user;
 
-
-                /*
-                 * Never show login
-                 * when a valid session
-                 * exists.
-                 */
-
                 hideLogin();
-
 
                 if (
                     event ===
@@ -3336,7 +5585,6 @@ function setupAuthStateListener() {
                     );
 
                 }
-
 
                 updateUserInterface();
 
@@ -3364,7 +5612,6 @@ function escapeHTML(
         return "";
 
     }
-
 
     return String(value)
 
@@ -3413,7 +5660,6 @@ function escapeJS(
 
     }
 
-
     return String(value)
 
         .replace(
@@ -3454,27 +5700,18 @@ async function initializePDS() {
         return;
     }
 
-
     initialized =
         true;
-
 
     console.log(
         "PDS — Initializing..."
     );
-
-
-    /*
-     * Hide everything while
-     * authentication is checked.
-     */
 
     const authScreen =
         $("authScreen");
 
     const app =
         $("app");
-
 
     if (authScreen) {
 
@@ -3483,7 +5720,6 @@ async function initializePDS() {
 
     }
 
-
     if (app) {
 
         app.style.display =
@@ -3491,14 +5727,8 @@ async function initializePDS() {
 
     }
 
-
-    /*
-     * Initialize Supabase.
-     */
-
     const supabaseReady =
         initializeSupabase();
-
 
     if (!supabaseReady) {
 
@@ -3506,23 +5736,15 @@ async function initializePDS() {
             "PDS: Supabase initialization failed."
         );
 
-
         showLogin();
-
 
         authMessage(
             "Supabase configuration error. Check your Publishable API key in script.js.",
             "error"
         );
 
-
         return;
     }
-
-
-    /*
-     * Setup UI.
-     */
 
     setupNavigation();
 
@@ -3546,6 +5768,8 @@ async function initializePDS() {
 
     setupDepartmentOrderFilters();
 
+    setupMonitoring();
+
     setupPDSAI();
 
     setupNotifications();
@@ -3554,13 +5778,7 @@ async function initializePDS() {
 
     setupAuthStateListener();
 
-
-    /*
-     * Restore existing session.
-     */
-
     await restoreSession();
-
 
     console.log(
         "PDS — Ready."
