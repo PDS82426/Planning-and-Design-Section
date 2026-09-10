@@ -195,47 +195,31 @@ function $(id) {
 
 function showLogin() {
 
-    const authScreen =
-        $("authScreen");
-
-    const app =
-        $("app");
+    const authScreen = $("authScreen");
+    const app = $("app");
 
     if (app) {
-
-        app.style.display =
-            "none";
+        app.style.display = "none";
     }
 
     if (authScreen) {
-
-        authScreen.style.display =
-            "flex";
+        authScreen.style.display = "flex";
     }
-
 }
 
 
 function hideLogin() {
 
-    const authScreen =
-        $("authScreen");
-
-    const app =
-        $("app");
+    const authScreen = $("authScreen");
+    const app = $("app");
 
     if (authScreen) {
-
-        authScreen.style.display =
-            "none";
+        authScreen.style.display = "none";
     }
 
     if (app) {
-
-        app.style.display =
-            "flex";
+        app.style.display = "flex";
     }
-
 }
 
 
