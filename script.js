@@ -106,6 +106,8 @@ let pdsAIHistory = [];
 
 let cachedDocuments = [];
 
+let monitoringRecords = [];
+
 let navigationReady = false;
 let authFormsReady = false;
 let documentSearchReady = false;
@@ -882,6 +884,14 @@ function normalizePageId(
 
         myprojects:
             "projects",
+       monitoring:
+    "monitoring",
+
+monitor:
+    "monitoring",
+
+projectmonitoring:
+    "monitoring",
 
         document:
             "documents",
@@ -1102,11 +1112,14 @@ function showPage(
         dashboard:
             "Dashboard",
 
-        projects:
-            "Projects",
+projects:
+    "Projects",
 
-        documents:
-            "Document Library",
+monitoring:
+    "Monitoring",
+
+documents:
+    "Document Library",
 
         "standards-guidelines":
             "Standards & Guidelines",
@@ -1182,6 +1195,14 @@ function showPage(
         );
 
     }
+
+}
+if (
+    pageId ===
+    "monitoring"
+) {
+
+    loadMonitoring();
 
 }
 
@@ -1327,7 +1348,9 @@ async function refreshAll() {
 
         loadDocuments(),
 
-        loadDepartmentOrders()
+        loadDepartmentOrders(),
+
+        loadMonitoring()
 
     ]);
 
@@ -3442,7 +3465,1100 @@ function escapeJS(
         );
 
 }
+/* =========================================================
+   MONITORING
+========================================================= */
 
+/*
+ * Monitoring data structure
+ *
+ * This is prepared for the OneDrive Excel workbook.
+ * The Excel/OneDrive connection will be attached
+ * separately without changing the interface.
+ */
+
+async function loadMonitoring() {
+
+    const list =
+        $("monitoringList");
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = `
+        <div
+            style="
+                padding:45px 20px;
+                text-align:center;
+                color:var(--muted);
+            "
+        >
+            Loading monitoring records...
+        </div>
+    `;
+
+    try {
+
+        /*
+         * First attempt:
+         * load records from Supabase if the
+         * monitoring_assignments table exists.
+         */
+
+        if (db) {
+
+            const {
+                data,
+                error
+            } =
+                await db
+                    .from("monitoring_assignments")
+                    .select("*")
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    );
+
+            if (!error) {
+
+                monitoringRecords =
+                    data || [];
+
+                renderMonitoring(
+                    monitoringRecords
+                );
+
+                return;
+
+            }
+
+            /*
+             * If the table does not yet exist,
+             * continue with an empty monitoring
+             * state instead of breaking the app.
+             */
+
+            console.warn(
+                "Monitoring table not available yet:",
+                error
+            );
+
+        }
+
+        monitoringRecords = [];
+
+        renderMonitoring(
+            monitoringRecords
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Monitoring loading error:",
+            error
+        );
+
+        monitoringRecords = [];
+
+        renderMonitoring(
+            monitoringRecords
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER MONITORING
+========================================================= */
+
+function renderMonitoring(
+    records
+) {
+
+    const list =
+        $("monitoringList");
+
+    if (!list) {
+        return;
+    }
+
+    if (!records.length) {
+
+        list.innerHTML = `
+            <div
+                style="
+                    padding:45px 20px;
+                    text-align:center;
+                    color:var(--muted);
+                "
+            >
+                <div
+                    style="
+                        font-size:32px;
+                        margin-bottom:10px;
+                    "
+                >
+                    📊
+                </div>
+
+                <strong
+                    style="
+                        display:block;
+                        color:var(--text);
+                        margin-bottom:6px;
+                    "
+                >
+                    No monitoring records yet
+                </strong>
+
+                <span>
+                    Monitoring assignments
+                    will appear here.
+                </span>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    list.innerHTML =
+        records
+            .map(
+                record => {
+
+                    const id =
+                        escapeJS(
+                            record.id || ""
+                        );
+
+                    const project =
+                        escapeHTML(
+                            record.project_name ||
+                            record.project ||
+                            record.project_title ||
+                            "—"
+                        );
+
+                    const personnel =
+                        escapeHTML(
+                            record.personnel_name ||
+                            record.assigned_personnel ||
+                            record.personnel ||
+                            "—"
+                        );
+
+                    const position =
+                        escapeHTML(
+                            record.position ||
+                            "—"
+                        );
+
+                    const role =
+                        escapeHTML(
+                            record.role ||
+                            "—"
+                        );
+
+                    const status =
+                        escapeHTML(
+                            record.status ||
+                            "Active"
+                        );
+
+                    return `
+                        <div
+                            class="table-row"
+                            data-monitoring-id="${escapeHTML(
+                                record.id || ""
+                            )}"
+                            style="
+                                grid-template-columns:
+                                2fr
+                                1.5fr
+                                1.2fr
+                                1fr
+                                1fr
+                                .8fr;
+                            "
+                        >
+
+                            <div>
+                                <strong>
+                                    ${project}
+                                </strong>
+                            </div>
+
+                            <div>
+                                ${personnel}
+                            </div>
+
+                            <div>
+                                ${position}
+                            </div>
+
+                            <div>
+                                ${role}
+                            </div>
+
+                            <div>
+                                <span
+                                    class="project-status"
+                                >
+                                    ${status}
+                                </span>
+                            </div>
+
+                            <div
+                                style="
+                                    display:flex;
+                                    gap:6px;
+                                "
+                            >
+
+                                <button
+                                    type="button"
+                                    class="button secondary"
+                                    onclick="editMonitoring('${id}')"
+                                >
+                                    EDIT
+                                </button>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   MONITORING SEARCH
+========================================================= */
+
+function setupMonitoringSearch() {
+
+    const search =
+        $("monitoringSearch");
+
+    const status =
+        $("monitoringStatusFilter");
+
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            filterMonitoring
+        );
+
+    }
+
+
+    if (status) {
+
+        status.addEventListener(
+            "change",
+            filterMonitoring
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   FILTER MONITORING
+========================================================= */
+
+function filterMonitoring() {
+
+    const search =
+        $("monitoringSearch");
+
+    const status =
+        $("monitoringStatusFilter");
+
+
+    const query =
+        search?.value
+            ?.trim()
+            .toLowerCase() ||
+        "";
+
+    const selectedStatus =
+        status?.value ||
+        "";
+
+
+    const filtered =
+        monitoringRecords.filter(
+            record => {
+
+                const text = [
+
+                    record.project_name,
+
+                    record.project,
+
+                    record.project_title,
+
+                    record.personnel_name,
+
+                    record.assigned_personnel,
+
+                    record.personnel,
+
+                    record.position,
+
+                    record.role,
+
+                    record.status
+
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+
+                const matchesSearch =
+                    !query ||
+                    text.includes(
+                        query
+                    );
+
+
+                const matchesStatus =
+                    !selectedStatus ||
+                    String(
+                        record.status || ""
+                    ).toLowerCase() ===
+                    selectedStatus.toLowerCase();
+
+
+                return (
+                    matchesSearch &&
+                    matchesStatus
+                );
+
+            }
+        );
+
+
+    renderMonitoring(
+        filtered
+    );
+
+}
+
+
+/* =========================================================
+   ADD MONITORING ASSIGNMENT
+========================================================= */
+
+function setupMonitoringButton() {
+
+    const button =
+        $("addAssignmentButton");
+
+
+    if (!button) {
+        return;
+    }
+
+
+    button.addEventListener(
+        "click",
+        openMonitoringModal
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING MODAL
+========================================================= */
+
+function openMonitoringModal(
+    record = null
+) {
+
+    let modal =
+        $("monitoringModal");
+
+
+    if (!modal) {
+
+        modal =
+            document.createElement(
+                "div"
+            );
+
+        modal.id =
+            "monitoringModal";
+
+        modal.style.cssText = `
+            position:fixed;
+            inset:0;
+            z-index:5000;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:rgba(15,34,56,.45);
+            padding:20px;
+        `;
+
+        document.body.appendChild(
+            modal
+        );
+
+    }
+
+
+    const editing =
+        !!record;
+
+
+    modal.innerHTML = `
+
+        <div
+            style="
+                width:min(620px,100%);
+                background:#fff;
+                border-radius:16px;
+                box-shadow:0 20px 60px rgba(0,0,0,.18);
+                overflow:hidden;
+            "
+        >
+
+            <div
+                style="
+                    padding:22px 24px;
+                    border-bottom:1px solid var(--border);
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                "
+            >
+
+                <div>
+
+                    <div
+                        style="
+                            font-size:11px;
+                            font-weight:700;
+                            letter-spacing:.08em;
+                            color:var(--muted);
+                        "
+                    >
+                        PDS / MONITORING
+                    </div>
+
+                    <h2
+                        style="
+                            margin:4px 0 0;
+                            color:var(--text);
+                        "
+                    >
+                        ${editing
+                            ? "Edit Assignment"
+                            : "Add Assignment"}
+                    </h2>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="closeMonitoringModal"
+                    style="
+                        border:0;
+                        background:none;
+                        font-size:24px;
+                        cursor:pointer;
+                        color:var(--muted);
+                    "
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <form
+                id="monitoringForm"
+                style="
+                    padding:24px;
+                "
+            >
+
+                <div
+                    style="
+                        display:grid;
+                        grid-template-columns:1fr 1fr;
+                        gap:16px;
+                    "
+                >
+
+                    <div>
+
+                        <label
+                            style="
+                                display:block;
+                                margin-bottom:7px;
+                                font-weight:600;
+                                font-size:13px;
+                            "
+                        >
+                            Project
+                        </label>
+
+                        <input
+                            id="monitoringProject"
+                            type="text"
+                            required
+                            value="${escapeHTML(
+                                record?.project_name ||
+                                record?.project ||
+                                ""
+                            )}"
+                            placeholder="Project name"
+                            style="
+                                width:100%;
+                                height:42px;
+                                padding:0 12px;
+                                border:1px solid var(--border);
+                                border-radius:10px;
+                                box-sizing:border-box;
+                            "
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            style="
+                                display:block;
+                                margin-bottom:7px;
+                                font-weight:600;
+                                font-size:13px;
+                            "
+                        >
+                            Assigned Personnel
+                        </label>
+
+                        <input
+                            id="monitoringPersonnel"
+                            type="text"
+                            required
+                            value="${escapeHTML(
+                                record?.personnel_name ||
+                                record?.assigned_personnel ||
+                                record?.personnel ||
+                                ""
+                            )}"
+                            placeholder="Personnel name"
+                            style="
+                                width:100%;
+                                height:42px;
+                                padding:0 12px;
+                                border:1px solid var(--border);
+                                border-radius:10px;
+                                box-sizing:border-box;
+                            "
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            style="
+                                display:block;
+                                margin-bottom:7px;
+                                font-weight:600;
+                                font-size:13px;
+                            "
+                        >
+                            Position
+                        </label>
+
+                        <input
+                            id="monitoringPosition"
+                            type="text"
+                            value="${escapeHTML(
+                                record?.position ||
+                                ""
+                            )}"
+                            placeholder="Position"
+                            style="
+                                width:100%;
+                                height:42px;
+                                padding:0 12px;
+                                border:1px solid var(--border);
+                                border-radius:10px;
+                                box-sizing:border-box;
+                            "
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            style="
+                                display:block;
+                                margin-bottom:7px;
+                                font-weight:600;
+                                font-size:13px;
+                            "
+                        >
+                            Role
+                        </label>
+
+                        <input
+                            id="monitoringRole"
+                            type="text"
+                            value="${escapeHTML(
+                                record?.role ||
+                                ""
+                            )}"
+                            placeholder="Role"
+                            style="
+                                width:100%;
+                                height:42px;
+                                padding:0 12px;
+                                border:1px solid var(--border);
+                                border-radius:10px;
+                                box-sizing:border-box;
+                            "
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            style="
+                                display:block;
+                                margin-bottom:7px;
+                                font-weight:600;
+                                font-size:13px;
+                            "
+                        >
+                            Status
+                        </label>
+
+                        <select
+                            id="monitoringStatus"
+                            style="
+                                width:100%;
+                                height:42px;
+                                padding:0 12px;
+                                border:1px solid var(--border);
+                                border-radius:10px;
+                                box-sizing:border-box;
+                                background:#fff;
+                            "
+                        >
+
+                            <option value="Active">
+                                Active
+                            </option>
+
+                            <option value="Ongoing">
+                                Ongoing
+                            </option>
+
+                            <option value="Completed">
+                                Completed
+                            </option>
+
+                            <option value="On Hold">
+                                On Hold
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:flex-end;
+                        gap:10px;
+                        margin-top:24px;
+                    "
+                >
+
+                    <button
+                        type="button"
+                        class="button secondary"
+                        id="cancelMonitoring"
+                    >
+                        CANCEL
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="button primary"
+                    >
+                        ${editing
+                            ? "SAVE CHANGES"
+                            : "ADD ASSIGNMENT"}
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    `;
+
+
+    modal.style.display =
+        "flex";
+
+
+    const status =
+        $("monitoringStatus");
+
+
+    if (
+        status &&
+        record?.status
+    ) {
+
+        status.value =
+            record.status;
+
+    }
+
+
+    $("closeMonitoringModal")
+        ?.addEventListener(
+            "click",
+            closeMonitoringModal
+        );
+
+
+    $("cancelMonitoring")
+        ?.addEventListener(
+            "click",
+            closeMonitoringModal
+        );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                closeMonitoringModal();
+
+            }
+
+        },
+        {
+            once: true
+        }
+    );
+
+
+    $("monitoringForm")
+        ?.addEventListener(
+            "submit",
+            event => {
+
+                saveMonitoring(
+                    event,
+                    record
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   CLOSE MONITORING MODAL
+========================================================= */
+
+function closeMonitoringModal() {
+
+    const modal =
+        $("monitoringModal");
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   SAVE MONITORING
+========================================================= */
+
+async function saveMonitoring(
+    event,
+    existingRecord = null
+) {
+
+    event.preventDefault();
+
+
+    if (!db || !currentUser) {
+
+        alert(
+            "Please sign in again."
+        );
+
+        return;
+
+    }
+
+
+    const project =
+        $("monitoringProject")
+            ?.value
+            .trim() ||
+        "";
+
+    const personnel =
+        $("monitoringPersonnel")
+            ?.value
+            .trim() ||
+        "";
+
+    const position =
+        $("monitoringPosition")
+            ?.value
+            .trim() ||
+        "";
+
+    const role =
+        $("monitoringRole")
+            ?.value
+            .trim() ||
+        "";
+
+    const status =
+        $("monitoringStatus")
+            ?.value ||
+        "Active";
+
+
+    if (
+        !project ||
+        !personnel
+    ) {
+
+        alert(
+            "Please enter the project and assigned personnel."
+        );
+
+        return;
+
+    }
+
+
+    const record = {
+
+        project_name:
+            project,
+
+        personnel_name:
+            personnel,
+
+        position:
+            position,
+
+        role:
+            role,
+
+        status:
+            status,
+
+        updated_by:
+            currentUser.id
+
+    };
+
+
+    try {
+
+        let result;
+
+
+        if (
+            existingRecord?.id
+        ) {
+
+            result =
+                await db
+                    .from(
+                        "monitoring_assignments"
+                    )
+                    .update(
+                        record
+                    )
+                    .eq(
+                        "id",
+                        existingRecord.id
+                    );
+
+        } else {
+
+            record.created_by =
+                currentUser.id;
+
+            result =
+                await db
+                    .from(
+                        "monitoring_assignments"
+                    )
+                    .insert(
+                        record
+                    );
+
+        }
+
+
+        if (result.error) {
+
+            throw result.error;
+
+        }
+
+
+        closeMonitoringModal();
+
+
+        await loadMonitoring();
+
+
+        alert(
+            existingRecord
+                ? "Monitoring assignment updated."
+                : "Monitoring assignment added."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Save monitoring error:",
+            error
+        );
+
+
+        /*
+         * This will occur until the
+         * Supabase monitoring table
+         * is created.
+         */
+
+        if (
+            String(
+                error?.message || ""
+            )
+                .toLowerCase()
+                .includes(
+                    "monitoring_assignments"
+                )
+        ) {
+
+            alert(
+                "The Monitoring database table is not yet connected. We will connect this to the OneDrive Excel workbook in the next step."
+            );
+
+        } else {
+
+            alert(
+                error?.message ||
+                "Unable to save monitoring assignment."
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   EDIT MONITORING
+========================================================= */
+
+function editMonitoring(
+    id
+) {
+
+    const record =
+        monitoringRecords.find(
+            item =>
+                String(
+                    item.id
+                ) ===
+                String(id)
+        );
+
+
+    if (!record) {
+
+        return;
+
+    }
+
+
+    openMonitoringModal(
+        record
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING SETUP
+========================================================= */
+
+function setupMonitoring() {
+
+    setupMonitoringSearch();
+
+    setupMonitoringButton();
+
+}
+
+
+/* =========================================================
+   END MONITORING
+========================================================= */
 
 /* =========================================================
    INITIALIZATION
@@ -3546,9 +4662,11 @@ async function initializePDS() {
 
     setupDepartmentOrderFilters();
 
-    setupPDSAI();
+setupMonitoring();
 
-    setupNotifications();
+setupPDSAI();
+
+setupNotifications();
 
     setupRefreshButton();
 
