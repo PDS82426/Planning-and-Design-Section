@@ -1,4 +1,3 @@
-```javascript
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
@@ -24,7 +23,6 @@ const SUPABASE_URL =
  *
  * DO NOT use the service_role key.
  */
-
 const SUPABASE_ANON_KEY =
     "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
 
@@ -201,20 +199,16 @@ function showLogin() {
     const app =
         $("app");
 
+    if (app) {
+
+        app.style.display =
+            "none";
+    }
 
     if (authScreen) {
 
         authScreen.style.display =
             "flex";
-
-    }
-
-
-    if (app) {
-
-        app.style.display =
-            "none";
-
     }
 
 }
@@ -228,20 +222,16 @@ function hideLogin() {
     const app =
         $("app");
 
-
     if (authScreen) {
 
         authScreen.style.display =
             "none";
-
     }
-
 
     if (app) {
 
         app.style.display =
-            "block";
-
+            "flex";
     }
 
 }
@@ -259,7 +249,6 @@ function authMessage(
     const element =
         $("loginMessage");
 
-
     if (!element) {
 
         console.error(message);
@@ -267,10 +256,8 @@ function authMessage(
         return;
     }
 
-
     element.textContent =
         message;
-
 
     element.className =
         `auth-message ${type}`;
@@ -287,17 +274,12 @@ function clearAuthMessage() {
     const element =
         $("loginMessage");
 
-
     if (!element) {
-
         return;
-
     }
-
 
     element.textContent =
         "";
-
 
     element.className =
         "auth-message";
@@ -315,16 +297,12 @@ async function createProfile(
 ) {
 
     if (!user || !db) {
-
         return;
-
     }
-
 
     const profile = {
 
-        id:
-            user.id,
+        id: user.id,
 
         email:
             user.email || "",
@@ -336,7 +314,6 @@ async function createProfile(
             "PDS User"
 
     };
-
 
     const {
         error
@@ -350,7 +327,6 @@ async function createProfile(
                 }
             );
 
-
     if (error) {
 
         console.warn(
@@ -359,9 +335,7 @@ async function createProfile(
         );
 
         return;
-
     }
-
 
     currentProfile =
         profile;
@@ -388,20 +362,16 @@ async function loginUser(
         return {
             success: false
         };
-
     }
-
 
     try {
 
         clearAuthMessage();
 
-
         authMessage(
             "Signing in...",
             "loading"
         );
-
 
         const {
             data,
@@ -426,7 +396,6 @@ async function loginUser(
             );
 
             throw error;
-
         }
 
 
@@ -438,7 +407,6 @@ async function loginUser(
             throw new Error(
                 "No user account was returned by Supabase."
             );
-
         }
 
 
@@ -447,8 +415,9 @@ async function loginUser(
 
 
         /*
-         * Hide login immediately
-         * after successful authentication.
+         * IMPORTANT:
+         * Hide login immediately after
+         * successful authentication.
          */
 
         hideLogin();
@@ -459,11 +428,20 @@ async function loginUser(
         );
 
 
-        await loadUserProfile();
+        /*
+         * Load user information.
+         * These failures must NOT
+         * log the user out.
+         */
 
+        await loadUserProfile();
 
         updateUserInterface();
 
+
+        /*
+         * Load application data.
+         */
 
         await Promise.allSettled([
 
@@ -483,11 +461,8 @@ async function loginUser(
 
 
         return {
-
             success: true,
-
             data
-
         };
 
 
@@ -503,6 +478,10 @@ async function loginUser(
             error?.message ||
             "Unable to sign in.";
 
+
+        /*
+         * Make API-key problem obvious.
+         */
 
         if (
             message
@@ -525,11 +504,8 @@ async function loginUser(
 
 
         return {
-
             success: false,
-
             error
-
         };
 
     }
@@ -548,9 +524,7 @@ async function signOut() {
         showLogin();
 
         return;
-
     }
-
 
     try {
 
@@ -565,17 +539,13 @@ async function signOut() {
 
     } finally {
 
-        currentUser =
-            null;
+        currentUser = null;
 
-        currentProfile =
-            null;
+        currentProfile = null;
 
-        pdsAIHistory =
-            [];
+        pdsAIHistory = [];
 
         showLogin();
-
     }
 
 }
@@ -593,7 +563,6 @@ async function loadUserProfile() {
     ) {
 
         return;
-
     }
 
 
@@ -621,7 +590,6 @@ async function loadUserProfile() {
             );
 
             return;
-
         }
 
 
@@ -661,7 +629,6 @@ async function restoreSession() {
         showLogin();
 
         return false;
-
     }
 
 
@@ -689,7 +656,6 @@ async function restoreSession() {
             showLogin();
 
             return false;
-
         }
 
 
@@ -706,20 +672,19 @@ async function restoreSession() {
                 "PDS: No active session."
             );
 
+            currentUser = null;
 
-            currentUser =
-                null;
-
-            currentProfile =
-                null;
-
+            currentProfile = null;
 
             showLogin();
 
             return false;
-
         }
 
+
+        /*
+         * SESSION EXISTS
+         */
 
         currentUser =
             session.user;
@@ -733,8 +698,8 @@ async function restoreSession() {
 
         /*
          * IMPORTANT:
-         * Hide login before loading
-         * the application.
+         * Do this BEFORE loading
+         * projects/documents.
          */
 
         hideLogin();
@@ -750,6 +715,11 @@ async function restoreSession() {
 
         updateUserInterface();
 
+
+        /*
+         * Dashboard data can fail
+         * without forcing sign out.
+         */
 
         await Promise.allSettled([
 
@@ -792,17 +762,13 @@ async function restoreSession() {
                 currentUser =
                     data.session.user;
 
-
                 hideLogin();
-
 
                 showPage(
                     "dashboard"
                 );
 
-
                 return true;
-
             }
 
         } catch (secondError) {
@@ -811,14 +777,12 @@ async function restoreSession() {
                 "Final session check failed:",
                 secondError
             );
-
         }
 
 
         showLogin();
 
         return false;
-
     }
 
 }
@@ -899,7 +863,6 @@ function normalizePageId(
     if (!pageId) {
 
         return "dashboard";
-
     }
 
 
@@ -919,15 +882,6 @@ function normalizePageId(
 
         myprojects:
             "projects",
-
-        monitoring:
-            "monitoring",
-
-        monitor:
-            "monitoring",
-
-        projectmonitoring:
-            "monitoring",
 
         document:
             "documents",
@@ -1074,7 +1028,6 @@ function showPage(
                 "active"
             );
 
-
             page.style.display =
                 "none";
 
@@ -1108,7 +1061,6 @@ function showPage(
             "active"
         );
 
-
         targetPage.style.display =
             "block";
 
@@ -1116,7 +1068,7 @@ function showPage(
 
 
     /*
-     * Sidebar active state.
+     * Sidebar active state
      */
 
     document
@@ -1142,7 +1094,7 @@ function showPage(
 
 
     /*
-     * Page titles.
+     * Page title
      */
 
     const titles = {
@@ -1152,9 +1104,6 @@ function showPage(
 
         projects:
             "Projects",
-
-        monitoring:
-            "Monitoring",
 
         documents:
             "Document Library",
@@ -1244,11 +1193,8 @@ function showPage(
 function setupNavigation() {
 
     if (navigationReady) {
-
         return;
-
     }
-
 
     navigationReady =
         true;
@@ -1265,9 +1211,7 @@ function setupNavigation() {
 
 
             if (!navItem) {
-
                 return;
-
             }
 
 
@@ -1301,9 +1245,7 @@ function setupSectionTargets() {
 
 
             if (!target) {
-
                 return;
-
             }
 
 
@@ -1331,9 +1273,7 @@ function setupGlobalSearch() {
 
 
     if (!search) {
-
         return;
-
     }
 
 
@@ -1348,16 +1288,15 @@ function setupGlobalSearch() {
 
 
             if (!query) {
-
                 return;
-
             }
 
 
             const projectMatch =
-                document.querySelectorAll(
-                    ".project-card"
-                );
+                document
+                    .querySelectorAll(
+                        ".project-card"
+                    );
 
 
             if (
@@ -1405,13 +1344,8 @@ async function loadProjects() {
         $("projectList");
 
 
-    if (
-        !list ||
-        !db
-    ) {
-
+    if (!list || !db) {
         return;
-
     }
 
 
@@ -1440,9 +1374,7 @@ async function loadProjects() {
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -1560,9 +1492,7 @@ function renderProjects(
 
 
     if (!list) {
-
         return;
-
     }
 
 
@@ -1576,7 +1506,6 @@ function renderProjects(
         `;
 
         return;
-
     }
 
 
@@ -1617,9 +1546,7 @@ function renderProjects(
                     return `
                         <article
                             class="project-card"
-                            data-project-id="${escapeHTML(
-                                project.id || ""
-                            )}"
+                            data-project-id="${escapeHTML(project.id || "")}"
                             onclick="openProject('${id}')"
                         >
 
@@ -1663,7 +1590,6 @@ async function openProject(
     ) {
 
         return;
-
     }
 
 
@@ -1684,9 +1610,7 @@ async function openProject(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -1703,7 +1627,6 @@ async function openProject(
         ) {
 
             return;
-
         }
 
 
@@ -1805,9 +1728,7 @@ async function loadDocuments() {
 
 
     if (!db) {
-
         return;
-
     }
 
 
@@ -1829,9 +1750,7 @@ async function loadDocuments() {
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -1908,9 +1827,7 @@ function renderDocuments(
 
 
     if (!list) {
-
         return;
-
     }
 
 
@@ -1924,7 +1841,6 @@ function renderDocuments(
         `;
 
         return;
-
     }
 
 
@@ -1936,9 +1852,7 @@ function renderDocuments(
                     return `
                         <article
                             class="document-card"
-                            onclick="openDocument('${escapeJS(
-                                document.id || ""
-                            )}')"
+                            onclick="openDocument('${escapeJS(document.id || "")}')"
                         >
 
                             <div class="document-icon">
@@ -1982,9 +1896,7 @@ function renderDocuments(
 function setupDocumentSearch() {
 
     if (documentSearchReady) {
-
         return;
-
     }
 
 
@@ -1993,9 +1905,7 @@ function setupDocumentSearch() {
 
 
     if (!search) {
-
         return;
-
     }
 
 
@@ -2133,9 +2043,7 @@ function setupDocumentUpload() {
 
 
     if (!button) {
-
         return;
-
     }
 
 
@@ -2172,7 +2080,6 @@ async function uploadDocument(
         );
 
         return;
-
     }
 
 
@@ -2198,7 +2105,6 @@ async function uploadDocument(
         );
 
         return;
-
     }
 
 
@@ -2209,7 +2115,6 @@ async function uploadDocument(
         );
 
         return;
-
     }
 
 
@@ -2238,9 +2143,7 @@ async function uploadDocument(
 
 
         if (uploadError) {
-
             throw uploadError;
-
         }
 
 
@@ -2253,21 +2156,27 @@ async function uploadDocument(
                 .insert({
 
                     title:
+
                         title,
 
                     file_name:
+
                         file.name,
 
                     file_path:
+
                         filePath,
 
                     file_size:
+
                         file.size,
 
                     mime_type:
+
                         file.type,
 
                     uploaded_by:
+
                         currentUser.id
 
                 })
@@ -2276,9 +2185,7 @@ async function uploadDocument(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -2344,9 +2251,7 @@ function setupDocumentForm() {
 
 
     if (!form) {
-
         return;
-
     }
 
 
@@ -2372,7 +2277,6 @@ async function openDocument(
     ) {
 
         return;
-
     }
 
 
@@ -2393,9 +2297,7 @@ async function openDocument(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -2406,7 +2308,6 @@ async function openDocument(
             );
 
             return;
-
         }
 
 
@@ -2417,7 +2318,6 @@ async function openDocument(
             );
 
             return;
-
         }
 
 
@@ -2434,9 +2334,7 @@ async function openDocument(
 
 
         if (signedError) {
-
             throw signedError;
-
         }
 
 
@@ -2485,7 +2383,6 @@ async function deleteDocument(
     ) {
 
         return;
-
     }
 
 
@@ -2496,7 +2393,6 @@ async function deleteDocument(
     ) {
 
         return;
-
     }
 
 
@@ -2519,9 +2415,7 @@ async function deleteDocument(
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -2564,9 +2458,7 @@ async function deleteDocument(
 
 
         if (deleteError) {
-
             throw deleteError;
-
         }
 
 
@@ -2613,9 +2505,7 @@ function renderDepartmentOrders(
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -2628,7 +2518,6 @@ function renderDepartmentOrders(
         `;
 
         return;
-
     }
 
 
@@ -2691,9 +2580,7 @@ function setupDepartmentOrderFilters() {
 
 
     if (!search) {
-
         return;
-
     }
 
 
@@ -2760,9 +2647,7 @@ function setupProjectModal() {
 
 
     if (!modal) {
-
         return;
-
     }
 
 
@@ -2808,9 +2693,7 @@ function setupProjectModal() {
 function setupPDSAI() {
 
     if (aiReady) {
-
         return;
-
     }
 
 
@@ -2950,9 +2833,7 @@ function appendAIMessage(
 
 
     if (!response) {
-
         return;
-
     }
 
 
@@ -2994,13 +2875,8 @@ async function askPDSAI() {
         $("pdsAiSend");
 
 
-    if (
-        !input ||
-        !db
-    ) {
-
+    if (!input || !db) {
         return;
-
     }
 
 
@@ -3009,9 +2885,7 @@ async function askPDSAI() {
 
 
     if (!message) {
-
         return;
-
     }
 
 
@@ -3051,9 +2925,11 @@ async function askPDSAI() {
                     body: {
 
                         message:
+
                             message,
 
                         history:
+
                             pdsAIHistory
 
                     }
@@ -3062,9 +2938,7 @@ async function askPDSAI() {
 
 
         if (error) {
-
             throw error;
-
         }
 
 
@@ -3154,9 +3028,7 @@ function removeThinkingMessage() {
 
 
     if (!response) {
-
         return;
-
     }
 
 
@@ -3196,9 +3068,7 @@ function setupNotifications() {
 
 
     if (!button) {
-
         return;
-
     }
 
 
@@ -3227,9 +3097,7 @@ function setupRefreshButton() {
 
 
     if (!button) {
-
         return;
-
     }
 
 
@@ -3269,9 +3137,7 @@ function setupRefreshButton() {
 function setupAuthForms() {
 
     if (authFormsReady) {
-
         return;
-
     }
 
 
@@ -3290,7 +3156,6 @@ function setupAuthForms() {
         );
 
         return;
-
     }
 
 
@@ -3324,7 +3189,6 @@ function setupAuthForms() {
                 );
 
                 return;
-
             }
 
 
@@ -3384,9 +3248,7 @@ function setupSignOut() {
 
 
             if (!button) {
-
                 return;
-
             }
 
 
@@ -3408,9 +3270,7 @@ function setupSignOut() {
 function setupAuthStateListener() {
 
     if (!db) {
-
         return;
-
     }
 
 
@@ -3443,7 +3303,6 @@ function setupAuthStateListener() {
                 showLogin();
 
                 return;
-
             }
 
 
@@ -3458,7 +3317,8 @@ function setupAuthStateListener() {
 
                 /*
                  * Never show login
-                 * when a valid session exists.
+                 * when a valid session
+                 * exists.
                  */
 
                 hideLogin();
@@ -3591,9 +3451,7 @@ function escapeJS(
 async function initializePDS() {
 
     if (initialized) {
-
         return;
-
     }
 
 
@@ -3607,18 +3465,24 @@ async function initializePDS() {
 
 
     /*
-     * IMPORTANT FIX:
-     * Define the app element before using it.
+     * Hide everything while
+     * authentication is checked.
      */
+
+    const authScreen =
+        $("authScreen");
 
     const app =
         $("app");
 
 
-    /*
-     * Hide the application while
-     * authentication is checked.
-     */
+    if (authScreen) {
+
+        authScreen.style.display =
+            "none";
+
+    }
+
 
     if (app) {
 
@@ -3653,7 +3517,6 @@ async function initializePDS() {
 
 
         return;
-
     }
 
 
@@ -3725,4 +3588,3 @@ if (
     initializePDS();
 
 }
-```
