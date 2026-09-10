@@ -194,22 +194,19 @@ function $(id) {
 ========================================================= */
 
 function showLogin() {
-
     const authScreen = $("authScreen");
     const app = $("app");
-
-    if (app) {
-        app.style.display = "none";
-    }
 
     if (authScreen) {
         authScreen.style.display = "flex";
     }
+
+    if (app) {
+        app.style.display = "none";
+    }
 }
 
-
 function hideLogin() {
-
     const authScreen = $("authScreen");
     const app = $("app");
 
@@ -218,7 +215,7 @@ function hideLogin() {
     }
 
     if (app) {
-        app.style.display = "flex";
+        app.style.display = "block";
     }
 }
 
