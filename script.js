@@ -5224,15 +5224,6 @@ function setupMonitoringAssignmentButton() {
 /* =========================================================
    INITIALIZE MONITORING
 ========================================================= */
-
-function setupMonitoring() {
-
-    setupMonitoringFilters();
-
-    setupMonitoringAssignmentButton();
-
-    loadMonitoring();
-}
 /* =========================================================
    INITIALIZATION
 ========================================================= */
@@ -5334,8 +5325,6 @@ async function initializePDS() {
     setupDocumentSearch();
 
     setupDepartmentOrderFilters();
-
-setupMonitoring();
 
 setupPDSAI();
 
