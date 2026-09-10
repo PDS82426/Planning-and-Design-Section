@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,7 +35,7 @@
 
     <link
         rel="preconnect"
-        href="https://fonts.googleapis.com"
+        href="https://fonts.gstatic.com"
         crossorigin
     >
 
@@ -66,24 +65,35 @@
 
     <div class="auth-container">
 
+
+        <!-- DPWH LOGO -->
+
         <div class="auth-logo">
             DPWH
         </div>
+
+
+        <!-- TITLE -->
 
         <h1>
             Planning & Design
         </h1>
 
+
         <p>
             Department of Public Works and Highways
         </p>
+
 
         <div class="auth-section-label">
             PLANNING & DESIGN SECTION
         </div>
 
 
+        <!-- LOGIN -->
+
         <form id="loginForm">
+
 
             <div class="form-group">
 
@@ -126,6 +136,7 @@
                 SIGN IN
             </button>
 
+
         </form>
 
 
@@ -151,6 +162,7 @@
 
         </div>
 
+
     </div>
 
 </div>
@@ -164,19 +176,12 @@
 <div id="app">
 
 
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-
     <aside class="sidebar">
 
-
         <!-- BRAND -->
-
         <div class="brand">
 
             <div class="brand-logo-wrap">
-
                 <img
                     src="assets/dpwh-logo.png"
                     alt="DPWH Logo"
@@ -186,340 +191,144 @@
                         this.nextElementSibling.style.display='flex';
                     "
                 >
-
-                <div
-                    class="brand-logo-ring"
-                    style="display:none;"
-                >
-                    <div class="brand-logo-inner">
-                        DPWH
-                    </div>
+                <div class="brand-logo-ring" style="display:none;">
+                    <div class="brand-logo-inner">DPWH</div>
                 </div>
-
             </div>
 
-
             <div class="brand-copy">
-
-                <div class="brand-agency">
-                    DPWH
-                </div>
-
+                <div class="brand-agency">DPWH</div>
                 <div class="brand-subtitle">
-                    Department of Public Works<br>
-                    and Highways
+                    Department of Public Works<br>and Highways
                 </div>
-
             </div>
 
         </div>
 
+        <!-- NAVIGATION -->
+                <nav class="navigation" id="sidebarNav">
 
-        <!-- =================================================
-             NAVIGATION
-        ================================================== -->
+            <div class="nav-section-title">MAIN</div>
 
-        <nav
-            class="navigation"
-            id="sidebarNav"
-        >
-
-
-            <div class="nav-section-title">
-                MAIN
-            </div>
-
-
-            <div
-                class="nav-item active"
-                data-section="dashboard"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item active" data-section="dashboard" role="button" tabindex="0">
                 <span>⌂</span>
                 <span>Dashboard</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="projects"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="projects" role="button" tabindex="0">
                 <span>◫</span>
                 <span>Projects</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="documents"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="documents" role="button" tabindex="0">
                 <span>▤</span>
                 <span>Documents</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="standards-guidelines"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="standards-guidelines" role="button" tabindex="0">
                 <span>◈</span>
                 <span>Standards &amp; Guidelines</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="department-orders"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="department-orders" role="button" tabindex="0">
                 <span>▥</span>
                 <span>Department Orders</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="forms-templates"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="forms-templates" role="button" tabindex="0">
                 <span>▣</span>
                 <span>Forms &amp; Templates</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="announcements"
-                role="button"
-                tabindex="0"
-            >
-                <span>📢</span>
+            <div class="nav-item" data-section="announcements" role="button" tabindex="0">
+                <span>◔</span>
                 <span>News &amp; Announcements</span>
             </div>
 
-
-            <!-- =================================================
-                 MONITORING
-            ================================================== -->
-
-            <div
-                class="nav-item"
-                data-section="monitoring"
-                role="button"
-                tabindex="0"
-            >
-                <span>📊</span>
-                <span>Monitoring</span>
-            </div>
-
-
-            <!-- =================================================
-                 PDS AI
-            ================================================== -->
-
-            <div
-                class="nav-item"
-                data-section="pds-ai-assistant"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="pds-ai-assistant" role="button" tabindex="0">
                 <span>✦</span>
                 <span>PDS AI Assistant</span>
             </div>
 
+            <div class="nav-section-title">SYSTEM</div>
 
-            <div class="nav-section-title">
-                SYSTEM
-            </div>
-
-
-            <div
-                class="nav-item"
-                data-section="aboutpds"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="aboutpds" role="button" tabindex="0">
                 <span>ⓘ</span>
                 <span>About PDS</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="contact-us"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="contact-us" role="button" tabindex="0">
                 <span>☎</span>
                 <span>Contact Us</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                data-section="profile"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" data-section="profile" role="button" tabindex="0">
                 <span>◎</span>
                 <span>Profile</span>
             </div>
 
-
-            <div
-                class="nav-item"
-                id="logoutButton"
-                role="button"
-                tabindex="0"
-            >
+            <div class="nav-item" id="logoutButton" role="button" tabindex="0">
                 <span>⇥</span>
                 <span>Sign Out</span>
             </div>
 
-
         </nav>
 
-
-        <!-- SIDEBAR HELP -->
-
         <div class="sidebar-help">
-
-            <strong>
-                PDS CONTROL DESK
-            </strong>
-
-            <p>
-                Planning, design, technical documents,
-                project monitoring and engineering references.
-            </p>
-
+            <strong>PDS CONTROL DESK</strong>
+            <p>Planning, design, technical documents, project monitoring and engineering references.</p>
         </div>
-
-
-        <!-- SIDEBAR PROFILE -->
 
         <div class="sidebar-profile">
-
-            <div
-                class="avatar"
-                id="sidebarAvatar"
-            >
-                PDS
-            </div>
-
+            <div class="avatar" id="sidebarAvatar">PDS</div>
             <div>
-
-                <strong id="sidebarUserName">
-                    PDS User
-                </strong>
-
-                <small id="sidebarUserRole">
-                    PLANNING &amp; DESIGN
-                </small>
-
+                <strong id="sidebarUserName">PDS User</strong>
+                <small id="sidebarUserRole">PLANNING &amp; DESIGN</small>
             </div>
-
         </div>
-
 
     </aside>
 
-
-
-    <!-- =====================================================
-         MAIN AREA
-    ====================================================== -->
-
+    <!-- MAIN AREA -->
     <main class="main">
-
-
-        <!-- TOPBAR -->
 
         <header class="topbar">
 
-
             <div class="topbar-left">
 
-
                 <div class="mobile-brand">
-
-                    <div class="brand-mark">
-                        PDS
-                    </div>
-
+                    <div class="brand-mark">PDS</div>
                 </div>
-
 
                 <div class="search-container">
-
-                    <span>
-                        ⌕
-                    </span>
-
-                    <input
-                        type="search"
-                        id="globalSearch"
-                        placeholder="Search documents, projects..."
-                    >
-
+                    <span>⌕</span>
+                    <input type="search" id="globalSearch" placeholder="Search documents, projects...">
                 </div>
 
-
             </div>
-
 
             <div class="topbar-right">
 
-
-                <button
-                    class="icon-button"
-                    id="notificationButton"
-                    type="button"
-                    title="Notifications"
-                >
+                <button class="icon-button" id="notificationButton" type="button" title="Notifications">
                     ◉
                 </button>
 
-
-                <button
-                    class="icon-button"
-                    id="refreshButton"
-                    type="button"
-                    title="Refresh"
-                >
+                <button class="icon-button" id="refreshButton" type="button" title="Refresh">
                     ↻
                 </button>
 
-
-                <div
-                    class="top-avatar"
-                    id="topAvatar"
-                >
-                    PDS
-                </div>
-
+                <div class="top-avatar" id="topAvatar">PDS</div>
 
             </div>
 
-
         </header>
-
-
 
         <!-- =================================================
              CONTENT
         ================================================== -->
 
         <div class="content">
+
 
 
             <!-- =================================================
@@ -535,763 +344,260 @@
 
                 <div class="page">
 
-
                     <div class="page-title">
-
                         <div>
-
-                            <div class="date-label">
-                                DPWH • PLANNING & DESIGN SECTION
-                            </div>
-
-                            <h1>
-                                Dashboard
-                            </h1>
-
-                            <p>
-                                Planning & Design Section Control Desk
-                            </p>
-
+                            <div class="date-label">DPWH • PLANNING & DESIGN SECTION</div>
+                            <h1>Dashboard</h1>
+                            <p>Planning & Design Section Control Desk</p>
                         </div>
-
                     </div>
 
-
+                    <!-- HERO -->
                     <div class="hero">
-
                         <div class="hero-content">
-
-                            <div class="date-label">
-                                WELCOME TO
-                            </div>
-
-                            <h1>
-                                Planning and Design Unit
-                            </h1>
-
+                            <div class="date-label">WELCOME TO</div>
+                            <h1>Planning and Design Unit</h1>
                             <p>
-                                We plan today for a better tomorrow.
-                                Delivering quality infrastructure through
-                                innovative planning and sustainable design.
+                                We plan today for a better tomorrow. Delivering quality
+                                infrastructure through innovative planning and sustainable design.
                             </p>
-
                         </div>
-
                     </div>
 
-
+                    <!-- AT A GLANCE -->
                     <div style="height:18px;"></div>
-
-
                     <div class="stats-grid">
-
-
                         <div class="stat-card">
-
-                            <div class="stat-label">
-                                Total Projects
-                            </div>
-
-                            <div
-                                class="stat-number"
-                                id="totalProjects"
-                            >
-                                0
-                            </div>
-
-                            <div class="stat-change">
-                                REGISTERED PDS PROJECTS
-                            </div>
-
+                            <div class="stat-label">Total Projects</div>
+                            <div class="stat-number" id="totalProjects">0</div>
+                            <div class="stat-change">REGISTERED PDS PROJECTS</div>
                         </div>
-
-
                         <div class="stat-card">
-
-                            <div class="stat-label">
-                                Ongoing
-                            </div>
-
-                            <div
-                                class="stat-number"
-                                id="ongoingProjects"
-                            >
-                                0
-                            </div>
-
-                            <div class="stat-change positive">
-                                ACTIVE PROJECTS
-                            </div>
-
+                            <div class="stat-label">Ongoing</div>
+                            <div class="stat-number" id="ongoingProjects">0</div>
+                            <div class="stat-change positive">ACTIVE PROJECTS</div>
                         </div>
-
-
                         <div class="stat-card">
-
-                            <div class="stat-label">
-                                Completed
-                            </div>
-
-                            <div
-                                class="stat-number"
-                                id="completedProjects"
-                            >
-                                0
-                            </div>
-
-                            <div class="stat-change">
-                                COMPLETED PROJECTS
-                            </div>
-
+                            <div class="stat-label">Completed</div>
+                            <div class="stat-number" id="completedProjects">0</div>
+                            <div class="stat-change">COMPLETED PROJECTS</div>
                         </div>
-
-
                         <div class="stat-card">
-
-                            <div class="stat-label">
-                                Documents
-                            </div>
-
-                            <div
-                                class="stat-number"
-                                id="totalDocuments"
-                            >
-                                0
-                            </div>
-
-                            <div class="stat-change warning">
-                                DOCUMENT CONTROL
-                            </div>
-
+                            <div class="stat-label">Documents</div>
+                            <div class="stat-number" id="totalDocuments">0</div>
+                            <div class="stat-change warning">DOCUMENT CONTROL</div>
                         </div>
-
-
                     </div>
 
-
+                    <!-- QUICK ACTIONS -->
                     <div class="section-heading">
                         <h2>Quick Access</h2>
                     </div>
 
-
                     <div class="quick-grid">
-
-
-                        <div
-                            class="quick-card"
-                            data-section-target="projects"
-                            role="button"
-                            tabindex="0"
-                        >
-
-                            <div class="quick-icon">
-                                P
-                            </div>
-
+                        <div class="quick-card" data-section-target="projects" role="button" tabindex="0">
+                            <div class="quick-icon">P</div>
                             <div>
-
-                                <strong>
-                                    Program of Work
-                                </strong>
-
-                                <span>
-                                    Create and manage Program of Work
-                                </span>
-
+                                <strong>Program of Work</strong>
+                                <span>Create and manage Program of Work</span>
                             </div>
-
                         </div>
 
-
-                        <div
-                            class="quick-card"
-                            data-section-target="documents"
-                            role="button"
-                            tabindex="0"
-                        >
-
-                            <div class="quick-icon">
-                                D
-                            </div>
-
+                        <div class="quick-card" data-section-target="documents" role="button" tabindex="0">
+                            <div class="quick-icon">D</div>
                             <div>
-
-                                <strong>
-                                    DUPA
-                                </strong>
-
-                                <span>
-                                    Generate and manage DUPA documents
-                                </span>
-
+                                <strong>DUPA</strong>
+                                <span>Generate and manage DUPA documents</span>
                             </div>
-
                         </div>
 
-
-                        <div
-                            class="quick-card"
-                            data-section-target="documents"
-                            role="button"
-                            tabindex="0"
-                        >
-
-                            <div class="quick-icon">
-                                A
-                            </div>
-
+                        <div class="quick-card" data-section-target="documents" role="button" tabindex="0">
+                            <div class="quick-icon">A</div>
                             <div>
-
-                                <strong>
-                                    ABC
-                                </strong>
-
-                                <span>
-                                    Prepare and compute ABC estimates
-                                </span>
-
+                                <strong>ABC</strong>
+                                <span>Prepare and compute ABC estimates</span>
                             </div>
-
                         </div>
 
-
-                        <div
-                            class="quick-card"
-                            data-section-target="forms-templates"
-                            role="button"
-                            tabindex="0"
-                        >
-
-                            <div class="quick-icon">
-                                F
-                            </div>
-
+                        <div class="quick-card" data-section-target="forms-templates" role="button" tabindex="0">
+                            <div class="quick-icon">F</div>
                             <div>
-
-                                <strong>
-                                    Forms & Templates
-                                </strong>
-
-                                <span>
-                                    Download forms and templates
-                                </span>
-
+                                <strong>Forms & Templates</strong>
+                                <span>Download forms and templates</span>
                             </div>
-
                         </div>
-
-
                     </div>
 
-
+                    <!-- RECENT PROJECTS + ANNOUNCEMENTS + QUICK LINKS -->
                     <div style="height:20px;"></div>
-
-
                     <div class="two-column">
 
-
                         <div class="panel">
-
                             <div class="panel-header">
-
-                                <h2>
-                                    Recent Projects
-                                </h2>
-
-                                <button
-                                    class="button secondary"
-                                    type="button"
-                                    data-section-target="projects"
-                                >
+                                <h2>Recent Projects</h2>
+                                <button class="button secondary" type="button" data-section-target="projects">
                                     View all
                                 </button>
+                            </div>
+                            <div class="panel-body" id="dashboardRecentProjects">
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Construction of Malindig Bridge</strong>
+                                        <span>Marinduque</span>
+                                        <span>Updated: May 19, 2026</span>
+                                    </div>
+                                    <span class="status ongoing">On Going</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Multi-Purpose Building (Barangay Hall)</strong>
+                                        <span>Bauan, Batangas</span>
+                                        <span>Updated: May 18, 2026</span>
+                                    </div>
+                                    <span class="status ongoing">On Going</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Construction of Road, Barangay Poblacion</strong>
+                                        <span>Batangas City</span>
+                                        <span>Updated: May 17, 2026</span>
+                                    </div>
+                                    <span class="status bidding">For Bidding</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
+
+                                <div class="pds-row">
+                                    <div class="thumb"></div>
+                                    <div class="info">
+                                        <strong>Flood Control Structure along Taal River</strong>
+                                        <span>Taal, Batangas</span>
+                                        <span>Updated: May 16, 2026</span>
+                                    </div>
+                                    <span class="status hold">On Hold</span>
+                                    <button class="kebab" type="button">⋮</button>
+                                </div>
 
                             </div>
-
-
-                            <div
-                                class="panel-body"
-                                id="dashboardRecentProjects"
-                            >
-
-                                <div class="pds-row">
-
-                                    <div class="thumb"></div>
-
-                                    <div class="info">
-
-                                        <strong>
-                                            Construction of Malindig Bridge
-                                        </strong>
-
-                                        <span>
-                                            Marinduque
-                                        </span>
-
-                                        <span>
-                                            Updated: May 19, 2026
-                                        </span>
-
-                                    </div>
-
-                                    <span class="status ongoing">
-                                        On Going
-                                    </span>
-
-                                    <button
-                                        class="kebab"
-                                        type="button"
-                                    >
-                                        ⋮
-                                    </button>
-
-                                </div>
-
-
-                                <div class="pds-row">
-
-                                    <div class="thumb"></div>
-
-                                    <div class="info">
-
-                                        <strong>
-                                            Multi-Purpose Building (Barangay Hall)
-                                        </strong>
-
-                                        <span>
-                                            Bauan, Batangas
-                                        </span>
-
-                                        <span>
-                                            Updated: May 18, 2026
-                                        </span>
-
-                                    </div>
-
-                                    <span class="status ongoing">
-                                        On Going
-                                    </span>
-
-                                    <button
-                                        class="kebab"
-                                        type="button"
-                                    >
-                                        ⋮
-                                    </button>
-
-                                </div>
-
-
-                                <div class="pds-row">
-
-                                    <div class="thumb"></div>
-
-                                    <div class="info">
-
-                                        <strong>
-                                            Construction of Road, Barangay Poblacion
-                                        </strong>
-
-                                        <span>
-                                            Batangas City
-                                        </span>
-
-                                        <span>
-                                            Updated: May 17, 2026
-                                        </span>
-
-                                    </div>
-
-                                    <span class="status bidding">
-                                        For Bidding
-                                    </span>
-
-                                    <button
-                                        class="kebab"
-                                        type="button"
-                                    >
-                                        ⋮
-                                    </button>
-
-                                </div>
-
-
-                                <div class="pds-row">
-
-                                    <div class="thumb"></div>
-
-                                    <div class="info">
-
-                                        <strong>
-                                            Flood Control Structure along Taal River
-                                        </strong>
-
-                                        <span>
-                                            Taal, Batangas
-                                        </span>
-
-                                        <span>
-                                            Updated: May 16, 2026
-                                        </span>
-
-                                    </div>
-
-                                    <span class="status hold">
-                                        On Hold
-                                    </span>
-
-                                    <button
-                                        class="kebab"
-                                        type="button"
-                                    >
-                                        ⋮
-                                    </button>
-
-                                </div>
-
-
-                            </div>
-
                         </div>
 
-
                         <div class="panel">
-
                             <div class="panel-header">
-
-                                <h2>
-                                    Announcements
-                                </h2>
-
-                                <button
-                                    class="button secondary"
-                                    type="button"
-                                    data-section-target="announcements"
-                                >
+                                <h2>Announcements</h2>
+                                <button class="button secondary" type="button" data-section-target="announcements">
                                     View all
                                 </button>
-
                             </div>
-
-
-                            <div
-                                class="panel-body"
-                                id="announcementPanel"
-                            >
+                            <div class="panel-body" id="announcementPanel">
 
                                 <div class="announce-item">
-
                                     <div class="row">
-
-                                        <strong>
-                                            New Department Order Released
-                                        </strong>
-
-                                        <span class="pill-new">
-                                            New
-                                        </span>
-
+                                        <strong>New Department Order Released</strong>
+                                        <span class="pill-new">New</span>
                                     </div>
-
-                                    <p>
-                                        DO 12, s. 2025 — Updated Guidelines
-                                        on the Implementation of Infrastructure Projects
-                                    </p>
-
-                                    <time>
-                                        May 15, 2026
-                                    </time>
-
+                                    <p>DO 12, s. 2025 — Updated Guidelines on the Implementation of Infrastructure Projects</p>
+                                    <time>May 15, 2026</time>
                                 </div>
-
 
                                 <div class="announce-item">
-
-                                    <strong>
-                                        PDS Training Schedule
-                                    </strong>
-
-                                    <p>
-                                        Training on Civil 3D and Plan Preparation
-                                    </p>
-
-                                    <time>
-                                        May 22–24, 2026 &nbsp;·&nbsp; May 14, 2026
-                                    </time>
-
+                                    <strong>PDS Training Schedule</strong>
+                                    <p>Training on Civil 3D and Plan Preparation</p>
+                                    <time>May 22–24, 2026 &nbsp;·&nbsp; May 14, 2026</time>
                                 </div>
-
 
                                 <div class="announce-item">
-
-                                    <strong>
-                                        Reminder: Submission of POW
-                                    </strong>
-
-                                    <p>
-                                        Please submit your Program of Work
-                                        for FY 2027 on or before May 30, 2026.
-                                    </p>
-
-                                    <time>
-                                        May 13, 2026
-                                    </time>
-
+                                    <strong>Reminder: Submission of POW</strong>
+                                    <p>Please submit your Program of Work for FY 2027 on or before May 30, 2026.</p>
+                                    <time>May 13, 2026</time>
                                 </div>
-
 
                             </div>
-
                         </div>
-
 
                     </div>
 
-
+                    <!-- QUICK LINKS -->
                     <div style="height:20px;"></div>
-
-
-                    <div
-                        class="two-column"
-                        style="grid-template-columns:1fr;"
-                    >
-
-                        <div
-                            class="panel"
-                            style="max-width:320px;"
-                        >
-
+                    <div class="two-column" style="grid-template-columns:1fr;">
+                        <div class="panel" style="max-width:320px;">
                             <div class="panel-header">
-
-                                <h2>
-                                    Quick Links
-                                </h2>
-
+                                <h2>Quick Links</h2>
                             </div>
-
-
                             <div class="panel-body">
-
-                                <a
-                                    class="quick-link"
-                                    href="https://www.dpwh.gov.ph/"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    <span class="dot"></span>
-                                    DPWH Official Website
-                                    <span>↗</span>
+                                <a class="quick-link" href="https://www.dpwh.gov.ph/" target="_blank" rel="noopener">
+                                    <span class="dot"></span> DPWH Official Website <span>↗</span>
                                 </a>
-
-
-                                <a
-                                    class="quick-link"
-                                    href="https://www.philgeps.gov.ph/"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    <span class="dot"></span>
-                                    PhilGEPS
-                                    <span>↗</span>
+                                <a class="quick-link" href="https://www.philgeps.gov.ph/" target="_blank" rel="noopener">
+                                    <span class="dot"></span> PhilGEPS <span>↗</span>
                                 </a>
-
-
-                                <a
-                                    class="quick-link"
-                                    href="#"
-                                    data-section-target="documents"
-                                >
-                                    <span class="dot"></span>
-                                    e-Submission Portal
-                                    <span>↗</span>
+                                <a class="quick-link" href="#" data-section-target="documents">
+                                    <span class="dot"></span> e-Submission Portal <span>↗</span>
                                 </a>
-
-
-                                <a
-                                    class="quick-link"
-                                    href="#"
-                                    data-section-target="monitoring"
-                                >
-                                    <span class="dot"></span>
-                                    Project Monitoring System
-                                    <span>↗</span>
+                                <a class="quick-link" href="#" data-section-target="projects">
+                                    <span class="dot"></span> Project Monitoring System <span>↗</span>
                                 </a>
-
-
-                                <a
-                                    class="quick-link"
-                                    href="#"
-                                    data-section-target="documents"
-                                >
-                                    <span class="dot"></span>
-                                    DPWH Library
-                                    <span>↗</span>
+                                <a class="quick-link" href="#" data-section-target="documents">
+                                    <span class="dot"></span> DPWH Library <span>↗</span>
                                 </a>
-
                             </div>
-
                         </div>
-
                     </div>
 
-
+                    <!-- DOCUMENT CATEGORIES + CALENDAR -->
                     <div style="height:20px;"></div>
-
-
                     <div class="two-column">
 
-
                         <div class="panel">
-
                             <div class="panel-header">
-
-                                <h2>
-                                    Document Categories
-                                </h2>
-
+                                <h2>Document Categories</h2>
                             </div>
-
-
                             <div class="panel-body pad">
-
                                 <div class="doc-categories">
-
-
                                     <div class="doc-category">
-
-                                        <div
-                                            class="dot-icon"
-                                            style="background:var(--blue);"
-                                        >
-                                            DO
-                                        </div>
-
-                                        <div>
-                                            <strong>24</strong>
-                                            <span>Department Orders</span>
-                                        </div>
-
+                                        <div class="dot-icon" style="background:var(--blue);">DO</div>
+                                        <div><strong>24</strong><span>Department Orders</span></div>
                                     </div>
-
-
                                     <div class="doc-category">
-
-                                        <div
-                                            class="dot-icon"
-                                            style="background:var(--green);"
-                                        >
-                                            DS
-                                        </div>
-
-                                        <div>
-                                            <strong>18</strong>
-                                            <span>Design Standards</span>
-                                        </div>
-
+                                        <div class="dot-icon" style="background:var(--green);">DS</div>
+                                        <div><strong>18</strong><span>Design Standards</span></div>
                                     </div>
-
-
                                     <div class="doc-category">
-
-                                        <div
-                                            class="dot-icon"
-                                            style="background:var(--amber);"
-                                        >
-                                            MG
-                                        </div>
-
-                                        <div>
-                                            <strong>31</strong>
-                                            <span>Manuals & Guides</span>
-                                        </div>
-
+                                        <div class="dot-icon" style="background:var(--amber);">MG</div>
+                                        <div><strong>31</strong><span>Manuals & Guides</span></div>
                                     </div>
-
-
                                     <div class="doc-category">
-
-                                        <div
-                                            class="dot-icon"
-                                            style="background:var(--purple);"
-                                        >
-                                            FT
-                                        </div>
-
-                                        <div>
-                                            <strong>45</strong>
-                                            <span>Forms & Templates</span>
-                                        </div>
-
+                                        <div class="dot-icon" style="background:var(--purple);">FT</div>
+                                        <div><strong>45</strong><span>Forms & Templates</span></div>
                                     </div>
-
-
                                 </div>
-
                             </div>
-
                         </div>
-
 
                         <div class="panel">
-
                             <div class="panel-header">
-
-                                <h2>
-                                    Calendar
-                                </h2>
-
-                                <button
-                                    class="button secondary"
-                                    type="button"
-                                >
-                                    View calendar
-                                </button>
-
+                                <h2>Calendar</h2>
+                                <button class="button secondary" type="button">View calendar</button>
                             </div>
-
-
                             <div class="panel-body">
-
                                 <div class="cal-event">
-
-                                    <div class="cal-date">
-
-                                        <span class="m">
-                                            MAY
-                                        </span>
-
-                                        <span class="d">
-                                            20
-                                        </span>
-
-                                    </div>
-
-
+                                    <div class="cal-date"><span class="m">MAY</span><span class="d">20</span></div>
                                     <div class="cal-info">
-
-                                        <strong>
-                                            PDS Coordination Meeting
-                                        </strong>
-
-                                        <span>
-                                            9:00 AM – 12:00 PM
-                                        </span>
-
-                                        <span>
-                                            PDS Conference Room
-                                        </span>
-
+                                        <strong>PDS Coordination Meeting</strong>
+                                        <span>9:00 AM – 12:00 PM</span>
+                                        <span>PDS Conference Room</span>
                                     </div>
-
                                 </div>
-
                             </div>
-
                         </div>
-
 
                     </div>
-
 
                 </div>
 
@@ -1349,6 +655,7 @@
 
                     <div class="project-table">
 
+
                         <div
                             class="table-header"
                             style="
@@ -1394,262 +701,6 @@
 
                         </div>
 
-                    </div>
-
-
-                </div>
-
-            </section>
-
-
-
-            <!-- =================================================
-                 03 — MONITORING
-            ================================================== -->
-
-            <section
-                id="monitoring"
-                class="page-section"
-                data-page-section="monitoring"
-                data-section="monitoring"
-            >
-
-                <div class="page">
-
-
-                    <div class="page-title">
-
-                        <div>
-
-                            <div class="date-label">
-                                PDS / PROJECT MONITORING
-                            </div>
-
-                            <h1>
-                                Monitoring
-                            </h1>
-
-                            <p>
-                                Plan and Program of Works Monitoring
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="section-heading">
-
-                        <div>
-
-                            <h2>
-                                Assigned Personnel
-                            </h2>
-
-                            <p>
-                                View and manage personnel assigned
-                                to Planning & Design projects.
-                            </p>
-
-                        </div>
-
-
-                        <button
-                            class="button primary"
-                            id="addAssignmentButton"
-                            type="button"
-                        >
-                            + ADD ASSIGNMENT
-                        </button>
-
-                    </div>
-
-
-                    <div class="panel">
-
-
-                        <div class="panel-header">
-
-                            <div>
-
-                                <h2>
-                                    Project Assignments
-                                </h2>
-
-                                <p>
-                                    Personnel assignment and project
-                                    monitoring records.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="panel-body">
-
-
-                            <!-- MONITORING SEARCH -->
-
-                            <div
-                                style="
-                                    display:flex;
-                                    gap:12px;
-                                    align-items:center;
-                                    margin-bottom:20px;
-                                    flex-wrap:wrap;
-                                "
-                            >
-
-                                <input
-                                    type="search"
-                                    id="monitoringSearch"
-                                    placeholder="Search project or personnel..."
-                                    style="
-                                        flex:1;
-                                        min-width:240px;
-                                        height:42px;
-                                        padding:0 14px;
-                                        border:1px solid var(--border);
-                                        border-radius:10px;
-                                        background:#fff;
-                                        color:var(--text);
-                                        outline:none;
-                                    "
-                                >
-
-
-                                <select
-                                    id="monitoringStatusFilter"
-                                    style="
-                                        height:42px;
-                                        padding:0 14px;
-                                        border:1px solid var(--border);
-                                        border-radius:10px;
-                                        background:#fff;
-                                        color:var(--text);
-                                        outline:none;
-                                    "
-                                >
-
-                                    <option value="">
-                                        All Status
-                                    </option>
-
-                                    <option value="Active">
-                                        Active
-                                    </option>
-
-                                    <option value="Ongoing">
-                                        Ongoing
-                                    </option>
-
-                                    <option value="Completed">
-                                        Completed
-                                    </option>
-
-                                    <option value="On Hold">
-                                        On Hold
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-
-                            <!-- MONITORING TABLE -->
-
-                            <div class="project-table">
-
-
-                                <div
-                                    class="table-header"
-                                    style="
-                                        grid-template-columns:
-                                        2fr
-                                        1.5fr
-                                        1.2fr
-                                        1fr
-                                        1fr
-                                        .8fr;
-                                    "
-                                >
-
-                                    <div>
-                                        PROJECT
-                                    </div>
-
-                                    <div>
-                                        ASSIGNED PERSONNEL
-                                    </div>
-
-                                    <div>
-                                        POSITION
-                                    </div>
-
-                                    <div>
-                                        ROLE
-                                    </div>
-
-                                    <div>
-                                        STATUS
-                                    </div>
-
-                                    <div>
-                                        ACTION
-                                    </div>
-
-                                </div>
-
-
-                                <div id="monitoringList">
-
-
-                                    <div
-                                        style="
-                                            padding:45px 20px;
-                                            text-align:center;
-                                            color:var(--muted);
-                                        "
-                                    >
-
-                                        <div
-                                            style="
-                                                font-size:32px;
-                                                margin-bottom:10px;
-                                            "
-                                        >
-                                            📊
-                                        </div>
-
-
-                                        <strong
-                                            style="
-                                                display:block;
-                                                color:var(--text);
-                                                margin-bottom:6px;
-                                            "
-                                        >
-                                            No monitoring records yet
-                                        </strong>
-
-
-                                        <span>
-                                            Monitoring assignments
-                                            will appear here.
-                                        </span>
-
-                                    </div>
-
-
-                                </div>
-
-
-                            </div>
-
-
-                        </div>
-
 
                     </div>
 
@@ -1661,7 +712,7 @@
 
 
             <!-- =================================================
-                 04 — DOCUMENTS
+                 03 — DOCUMENTS
             ================================================== -->
 
             <section
@@ -1779,7 +830,7 @@
 
 
             <!-- =================================================
-                 05 — STANDARDS & GUIDELINES
+                 04 — STANDARDS & GUIDELINES
             ================================================== -->
 
             <section
@@ -1924,7 +975,7 @@
 
 
             <!-- =================================================
-                 06 — DEPARTMENT ORDERS
+                 05 — DEPARTMENT ORDERS
             ================================================== -->
 
             <section
@@ -1994,7 +1045,7 @@
 
 
             <!-- =================================================
-                 07 — FORMS & TEMPLATES
+                 06 — FORMS & TEMPLATES
             ================================================== -->
 
             <section
@@ -2138,7 +1189,7 @@
 
 
             <!-- =================================================
-                 08 — ANNOUNCEMENTS
+                 07 — ANNOUNCEMENTS
             ================================================== -->
 
             <section
@@ -2187,7 +1238,9 @@
                         <div class="panel-body">
 
 
-                            <div class="announcement">
+                            <div
+                                class="announcement"
+                            >
 
                                 <strong>
                                     Planning & Design Section
@@ -2202,7 +1255,9 @@
                             </div>
 
 
-                            <div class="announcement">
+                            <div
+                                class="announcement"
+                            >
 
                                 <strong>
                                     Technical Reference Updates
@@ -2230,7 +1285,7 @@
 
 
             <!-- =================================================
-                 09 — PDS AI ASSISTANT
+                 08 — PDS AI ASSISTANT
             ================================================== -->
 
             <section
@@ -2338,6 +1393,7 @@
                         </div>
 
 
+
                         <div class="panel">
 
 
@@ -2402,7 +1458,7 @@
 
 
             <!-- =================================================
-                 10 — ABOUT PDS
+                 09 — ABOUT PDS
             ================================================== -->
 
             <section
@@ -2441,6 +1497,7 @@
 
                         <div class="panel">
 
+
                             <div class="panel-header">
 
                                 <h2>
@@ -2464,22 +1521,25 @@
                                 </p>
 
 
-                                <p style="margin-top:14px;">
-
+                                <p
+                                    style="margin-top:14px;"
+                                >
                                     This PDS system provides a centralized
                                     digital workspace for project information,
                                     documents, standards, forms and
                                     technical references.
-
                                 </p>
 
 
                             </div>
 
+
                         </div>
 
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -2532,6 +1592,7 @@
 
                             </div>
 
+
                         </div>
 
 
@@ -2545,7 +1606,7 @@
 
 
             <!-- =================================================
-                 11 — CONTACT US
+                 10 — CONTACT US
             ================================================== -->
 
             <section
@@ -2583,6 +1644,7 @@
 
 
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -2629,10 +1691,13 @@
 
                             </div>
 
+
                         </div>
 
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -2665,6 +1730,7 @@
 
                             </div>
 
+
                         </div>
 
 
@@ -2678,7 +1744,7 @@
 
 
             <!-- =================================================
-                 12 — PROFILE
+                 11 — PROFILE
             ================================================== -->
 
             <section
@@ -2716,6 +1782,7 @@
 
 
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -2762,10 +1829,13 @@
 
                             </div>
 
+
                         </div>
 
 
+
                         <div class="panel">
+
 
                             <div class="panel-header">
 
@@ -2785,7 +1855,9 @@
                                     AUTHENTICATED
                                 </div>
 
+
                             </div>
+
 
                         </div>
 
@@ -2866,10 +1938,12 @@
         </div>
 
 
+
         <div
             class="pds-ai-messages"
             id="aiResponse"
         >
+
 
             <div class="pds-ai-message pds-ai-bot">
 
@@ -2886,7 +1960,9 @@
 
             </div>
 
+
         </div>
+
 
 
         <div class="pds-ai-input-area">
@@ -2926,14 +2002,17 @@
         style="display:none;"
     >
 
+
         <div class="modal-box">
 
 
             <div class="modal-header">
 
+
                 <h2>
                     Project
                 </h2>
+
 
                 <button
                     type="button"
@@ -2941,6 +2020,7 @@
                 >
                     ×
                 </button>
+
 
             </div>
 
@@ -2952,6 +2032,7 @@
 
 
         </div>
+
 
     </div>
 
@@ -2967,14 +2048,17 @@
         style="display:none;"
     >
 
+
         <div class="modal-box">
 
 
             <div class="modal-header">
 
+
                 <h2>
                     Upload Document
                 </h2>
+
 
                 <button
                     type="button"
@@ -2982,6 +2066,7 @@
                 >
                     ×
                 </button>
+
 
             </div>
 
@@ -3038,6 +2123,7 @@
 
         </div>
 
+
     </div>
 
 
@@ -3054,4 +2140,3 @@
 
 </body>
 </html>
-```
