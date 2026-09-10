@@ -522,7 +522,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
    PDS AI — SMALL FLOATING CHATBOT
 ========================================================= */
 
-/* SMALL AI BUTTON */
 .pds-ai-launcher{
     position:fixed;
     right:20px;
@@ -548,11 +547,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
     cursor:pointer;
 
-    transition:transform .15s ease;
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease;
 }
 
 .pds-ai-launcher:hover{
     transform:scale(1.06);
+    box-shadow:0 8px 22px rgba(0,0,0,.25);
 }
 
 .pds-ai-icon{
@@ -576,24 +578,24 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
 
 /* =========================================================
-   CHATBOX
+   PDS AI CHATBOX
 ========================================================= */
 
-#pdsAiChatbot{
+.pds-ai-chatbot{
     position:fixed;
 
     right:20px;
     bottom:78px;
 
-    width:320px;
-    height:430px;
+    width:340px;
+    height:460px;
 
     background:#fff;
 
     border:1px solid var(--border);
     border-radius:16px;
 
-    box-shadow:0 16px 40px rgba(16,32,64,.18);
+    box-shadow:0 18px 45px rgba(16,32,64,.20);
 
     overflow:hidden;
 
@@ -608,56 +610,78 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
    CHAT HEADER
 ========================================================= */
 
-.pds-ai-header{
-    min-height:52px;
+.pds-ai-chat-header{
+    min-height:60px;
 
     display:flex;
     align-items:center;
     justify-content:space-between;
 
-    padding:0 14px;
+    padding:10px 14px;
 
-    background:var(--navy);
+    background:
+        linear-gradient(
+            135deg,
+            var(--navy) 0%,
+            var(--navy-2) 100%
+        );
+
     color:#fff;
+
+    border-bottom:3px solid var(--orange);
 }
 
-.pds-ai-header strong,
-.pds-ai-header span{
-    font-size:13px;
-    font-weight:700;
+.pds-ai-chat-header > div{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
 }
 
+.pds-ai-chat-header strong{
+    font-size:14px;
+    font-weight:800;
+    letter-spacing:.01em;
+}
 
-/* HEADER BUTTONS */
+.pds-ai-chat-header small{
+    font-size:10px;
+    color:#b9c9df;
+    letter-spacing:.02em;
+}
 
-.pds-ai-header button{
-    width:28px;
-    height:28px;
+.pds-ai-chat-close{
+    width:30px;
+    height:30px;
 
     padding:0;
 
     border:none;
-    border-radius:6px;
+    border-radius:7px;
 
     background:rgba(255,255,255,.10);
     color:#fff;
 
-    font-size:17px;
-    line-height:28px;
+    font-size:20px;
+    line-height:30px;
 
     cursor:pointer;
+
+    transition:
+        background .12s ease,
+        transform .12s ease;
 }
 
-.pds-ai-header button:hover{
+.pds-ai-chat-close:hover{
     background:rgba(255,255,255,.20);
+    transform:scale(1.04);
 }
 
 
 /* =========================================================
-   CHAT CONTENT
+   CHAT MESSAGES
 ========================================================= */
 
-#aiResponse{
+.pds-ai-messages{
     flex:1;
 
     overflow-y:auto;
@@ -670,9 +694,40 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     line-height:1.55;
 }
 
+.pds-ai-message{
+    max-width:88%;
+    margin-bottom:12px;
+}
+
+.pds-ai-bot{
+    padding:11px 12px;
+
+    background:#fff;
+
+    border:1px solid var(--border);
+    border-left:3px solid var(--blue);
+
+    border-radius:10px;
+
+    color:var(--text-2);
+
+    box-shadow:var(--shadow-sm);
+}
+
+.pds-ai-bot strong{
+    display:block;
+
+    color:var(--navy);
+
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.03em;
+    margin-bottom:4px;
+}
+
 
 /* =========================================================
-   CHAT INPUT AREA
+   CHAT INPUT
 ========================================================= */
 
 .pds-ai-input-area{
@@ -692,6 +747,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
     min-width:0;
 
+    height:38px;
+
     padding:9px 11px;
 
     border:1px solid var(--border);
@@ -704,18 +761,30 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     font-size:12px;
 
     outline:none;
+
+    transition:
+        border-color .12s ease,
+        background .12s ease,
+        box-shadow .12s ease;
+}
+
+#aiInput::placeholder{
+    color:var(--faint);
 }
 
 #aiInput:focus{
     border-color:var(--blue);
     background:#fff;
+
+    box-shadow:
+        0 0 0 3px var(--blue-soft);
 }
 
 #pdsAiSend{
-    width:36px;
-    height:36px;
+    width:38px;
+    height:38px;
 
-    flex:0 0 36px;
+    flex:0 0 38px;
 
     border:none;
     border-radius:9px;
@@ -727,10 +796,40 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     font-weight:700;
 
     cursor:pointer;
+
+    transition:
+        background .12s ease,
+        transform .08s ease;
 }
 
 #pdsAiSend:hover{
     background:var(--blue-dark);
+}
+
+#pdsAiSend:active{
+    transform:translateY(1px);
+}
+
+
+/* =========================================================
+   AI SCROLLBAR
+========================================================= */
+
+.pds-ai-messages::-webkit-scrollbar{
+    width:6px;
+}
+
+.pds-ai-messages::-webkit-scrollbar-track{
+    background:transparent;
+}
+
+.pds-ai-messages::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:10px;
+}
+
+.pds-ai-messages::-webkit-scrollbar-thumb:hover{
+    background:#aebaca;
 }
 
 
@@ -740,12 +839,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
 @media(max-width:600px){
 
-    #pdsAiChatbot{
+    .pds-ai-chatbot{
         right:12px;
         bottom:72px;
 
         width:calc(100vw - 24px);
-        max-width:320px;
+        max-width:340px;
 
         height:420px;
     }
