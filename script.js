@@ -5230,19 +5230,6 @@ async function initializePDS() {
      * authentication is checked.
      */
 
-    const authScreen =
-        $("authScreen");
-
-    const app =
-        $("app");
-
-
-    if (authScreen) {
-
-        authScreen.style.display =
-            "none";
-
-    }
 
 
     if (app) {
