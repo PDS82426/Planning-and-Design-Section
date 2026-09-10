@@ -1,3 +1,4 @@
+```javascript
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
@@ -23,6 +24,7 @@ const SUPABASE_URL =
  *
  * DO NOT use the service_role key.
  */
+
 const SUPABASE_ANON_KEY =
     "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
 
@@ -105,8 +107,6 @@ let currentProfile = null;
 let pdsAIHistory = [];
 
 let cachedDocuments = [];
-
-let monitoringRecords = [];
 
 let navigationReady = false;
 let authFormsReady = false;
@@ -194,29 +194,56 @@ function $(id) {
 ========================================================= */
 
 function showLogin() {
-    const authScreen = $("authScreen");
-    const app = $("app");
+
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
+
 
     if (authScreen) {
-        authScreen.style.display = "flex";
+
+        authScreen.style.display =
+            "flex";
+
     }
 
+
     if (app) {
-        app.style.display = "none";
+
+        app.style.display =
+            "none";
+
     }
+
 }
 
+
 function hideLogin() {
-    const authScreen = $("authScreen");
-    const app = $("app");
+
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
+
 
     if (authScreen) {
-        authScreen.style.display = "none";
+
+        authScreen.style.display =
+            "none";
+
     }
 
+
     if (app) {
-        app.style.display = "block";
+
+        app.style.display =
+            "block";
+
     }
+
 }
 
 
@@ -232,6 +259,7 @@ function authMessage(
     const element =
         $("loginMessage");
 
+
     if (!element) {
 
         console.error(message);
@@ -239,8 +267,10 @@ function authMessage(
         return;
     }
 
+
     element.textContent =
         message;
+
 
     element.className =
         `auth-message ${type}`;
@@ -257,12 +287,17 @@ function clearAuthMessage() {
     const element =
         $("loginMessage");
 
+
     if (!element) {
+
         return;
+
     }
+
 
     element.textContent =
         "";
+
 
     element.className =
         "auth-message";
@@ -280,12 +315,16 @@ async function createProfile(
 ) {
 
     if (!user || !db) {
+
         return;
+
     }
+
 
     const profile = {
 
-        id: user.id,
+        id:
+            user.id,
 
         email:
             user.email || "",
@@ -297,6 +336,7 @@ async function createProfile(
             "PDS User"
 
     };
+
 
     const {
         error
@@ -310,6 +350,7 @@ async function createProfile(
                 }
             );
 
+
     if (error) {
 
         console.warn(
@@ -318,7 +359,9 @@ async function createProfile(
         );
 
         return;
+
     }
+
 
     currentProfile =
         profile;
@@ -345,16 +388,20 @@ async function loginUser(
         return {
             success: false
         };
+
     }
+
 
     try {
 
         clearAuthMessage();
 
+
         authMessage(
             "Signing in...",
             "loading"
         );
+
 
         const {
             data,
@@ -379,6 +426,7 @@ async function loginUser(
             );
 
             throw error;
+
         }
 
 
@@ -390,6 +438,7 @@ async function loginUser(
             throw new Error(
                 "No user account was returned by Supabase."
             );
+
         }
 
 
@@ -398,9 +447,8 @@ async function loginUser(
 
 
         /*
-         * IMPORTANT:
-         * Hide login immediately after
-         * successful authentication.
+         * Hide login immediately
+         * after successful authentication.
          */
 
         hideLogin();
@@ -411,20 +459,11 @@ async function loginUser(
         );
 
 
-        /*
-         * Load user information.
-         * These failures must NOT
-         * log the user out.
-         */
-
         await loadUserProfile();
+
 
         updateUserInterface();
 
-
-        /*
-         * Load application data.
-         */
 
         await Promise.allSettled([
 
@@ -444,8 +483,11 @@ async function loginUser(
 
 
         return {
+
             success: true,
+
             data
+
         };
 
 
@@ -461,10 +503,6 @@ async function loginUser(
             error?.message ||
             "Unable to sign in.";
 
-
-        /*
-         * Make API-key problem obvious.
-         */
 
         if (
             message
@@ -487,8 +525,11 @@ async function loginUser(
 
 
         return {
+
             success: false,
+
             error
+
         };
 
     }
@@ -507,7 +548,9 @@ async function signOut() {
         showLogin();
 
         return;
+
     }
+
 
     try {
 
@@ -522,13 +565,17 @@ async function signOut() {
 
     } finally {
 
-        currentUser = null;
+        currentUser =
+            null;
 
-        currentProfile = null;
+        currentProfile =
+            null;
 
-        pdsAIHistory = [];
+        pdsAIHistory =
+            [];
 
         showLogin();
+
     }
 
 }
@@ -546,6 +593,7 @@ async function loadUserProfile() {
     ) {
 
         return;
+
     }
 
 
@@ -573,6 +621,7 @@ async function loadUserProfile() {
             );
 
             return;
+
         }
 
 
@@ -612,6 +661,7 @@ async function restoreSession() {
         showLogin();
 
         return false;
+
     }
 
 
@@ -639,6 +689,7 @@ async function restoreSession() {
             showLogin();
 
             return false;
+
         }
 
 
@@ -655,19 +706,20 @@ async function restoreSession() {
                 "PDS: No active session."
             );
 
-            currentUser = null;
 
-            currentProfile = null;
+            currentUser =
+                null;
+
+            currentProfile =
+                null;
+
 
             showLogin();
 
             return false;
+
         }
 
-
-        /*
-         * SESSION EXISTS
-         */
 
         currentUser =
             session.user;
@@ -681,8 +733,8 @@ async function restoreSession() {
 
         /*
          * IMPORTANT:
-         * Do this BEFORE loading
-         * projects/documents.
+         * Hide login before loading
+         * the application.
          */
 
         hideLogin();
@@ -698,11 +750,6 @@ async function restoreSession() {
 
         updateUserInterface();
 
-
-        /*
-         * Dashboard data can fail
-         * without forcing sign out.
-         */
 
         await Promise.allSettled([
 
@@ -745,13 +792,17 @@ async function restoreSession() {
                 currentUser =
                     data.session.user;
 
+
                 hideLogin();
+
 
                 showPage(
                     "dashboard"
                 );
 
+
                 return true;
+
             }
 
         } catch (secondError) {
@@ -760,12 +811,14 @@ async function restoreSession() {
                 "Final session check failed:",
                 secondError
             );
+
         }
 
 
         showLogin();
 
         return false;
+
     }
 
 }
@@ -846,6 +899,7 @@ function normalizePageId(
     if (!pageId) {
 
         return "dashboard";
+
     }
 
 
@@ -865,14 +919,15 @@ function normalizePageId(
 
         myprojects:
             "projects",
-       monitoring:
-    "monitoring",
 
-monitor:
-    "monitoring",
+        monitoring:
+            "monitoring",
 
-projectmonitoring:
-    "monitoring",
+        monitor:
+            "monitoring",
+
+        projectmonitoring:
+            "monitoring",
 
         document:
             "documents",
@@ -1019,6 +1074,7 @@ function showPage(
                 "active"
             );
 
+
             page.style.display =
                 "none";
 
@@ -1052,6 +1108,7 @@ function showPage(
             "active"
         );
 
+
         targetPage.style.display =
             "block";
 
@@ -1059,7 +1116,7 @@ function showPage(
 
 
     /*
-     * Sidebar active state
+     * Sidebar active state.
      */
 
     document
@@ -1085,7 +1142,7 @@ function showPage(
 
 
     /*
-     * Page title
+     * Page titles.
      */
 
     const titles = {
@@ -1093,14 +1150,14 @@ function showPage(
         dashboard:
             "Dashboard",
 
-projects:
-    "Projects",
+        projects:
+            "Projects",
 
-monitoring:
-    "Monitoring",
+        monitoring:
+            "Monitoring",
 
-documents:
-    "Document Library",
+        documents:
+            "Document Library",
 
         "standards-guidelines":
             "Standards & Guidelines",
@@ -1178,14 +1235,6 @@ documents:
     }
 
 }
-if (
-    pageId ===
-    "monitoring"
-) {
-
-    loadMonitoring();
-
-}
 
 
 /* =========================================================
@@ -1195,8 +1244,11 @@ if (
 function setupNavigation() {
 
     if (navigationReady) {
+
         return;
+
     }
+
 
     navigationReady =
         true;
@@ -1213,7 +1265,9 @@ function setupNavigation() {
 
 
             if (!navItem) {
+
                 return;
+
             }
 
 
@@ -1247,7 +1301,9 @@ function setupSectionTargets() {
 
 
             if (!target) {
+
                 return;
+
             }
 
 
@@ -1275,7 +1331,9 @@ function setupGlobalSearch() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -1290,15 +1348,16 @@ function setupGlobalSearch() {
 
 
             if (!query) {
+
                 return;
+
             }
 
 
             const projectMatch =
-                document
-                    .querySelectorAll(
-                        ".project-card"
-                    );
+                document.querySelectorAll(
+                    ".project-card"
+                );
 
 
             if (
@@ -1329,9 +1388,7 @@ async function refreshAll() {
 
         loadDocuments(),
 
-        loadDepartmentOrders(),
-
-        loadMonitoring()
+        loadDepartmentOrders()
 
     ]);
 
@@ -1348,8 +1405,13 @@ async function loadProjects() {
         $("projectList");
 
 
-    if (!list || !db) {
+    if (
+        !list ||
+        !db
+    ) {
+
         return;
+
     }
 
 
@@ -1378,7 +1440,9 @@ async function loadProjects() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1496,7 +1560,9 @@ function renderProjects(
 
 
     if (!list) {
+
         return;
+
     }
 
 
@@ -1510,6 +1576,7 @@ function renderProjects(
         `;
 
         return;
+
     }
 
 
@@ -1550,7 +1617,9 @@ function renderProjects(
                     return `
                         <article
                             class="project-card"
-                            data-project-id="${escapeHTML(project.id || "")}"
+                            data-project-id="${escapeHTML(
+                                project.id || ""
+                            )}"
                             onclick="openProject('${id}')"
                         >
 
@@ -1594,6 +1663,7 @@ async function openProject(
     ) {
 
         return;
+
     }
 
 
@@ -1614,7 +1684,9 @@ async function openProject(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1631,6 +1703,7 @@ async function openProject(
         ) {
 
             return;
+
         }
 
 
@@ -1732,7 +1805,9 @@ async function loadDocuments() {
 
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -1754,7 +1829,9 @@ async function loadDocuments() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1831,7 +1908,9 @@ function renderDocuments(
 
 
     if (!list) {
+
         return;
+
     }
 
 
@@ -1845,6 +1924,7 @@ function renderDocuments(
         `;
 
         return;
+
     }
 
 
@@ -1856,7 +1936,9 @@ function renderDocuments(
                     return `
                         <article
                             class="document-card"
-                            onclick="openDocument('${escapeJS(document.id || "")}')"
+                            onclick="openDocument('${escapeJS(
+                                document.id || ""
+                            )}')"
                         >
 
                             <div class="document-icon">
@@ -1900,7 +1982,9 @@ function renderDocuments(
 function setupDocumentSearch() {
 
     if (documentSearchReady) {
+
         return;
+
     }
 
 
@@ -1909,7 +1993,9 @@ function setupDocumentSearch() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -2047,7 +2133,9 @@ function setupDocumentUpload() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -2084,6 +2172,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2109,6 +2198,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2119,6 +2209,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2147,7 +2238,9 @@ async function uploadDocument(
 
 
         if (uploadError) {
+
             throw uploadError;
+
         }
 
 
@@ -2160,27 +2253,21 @@ async function uploadDocument(
                 .insert({
 
                     title:
-
                         title,
 
                     file_name:
-
                         file.name,
 
                     file_path:
-
                         filePath,
 
                     file_size:
-
                         file.size,
 
                     mime_type:
-
                         file.type,
 
                     uploaded_by:
-
                         currentUser.id
 
                 })
@@ -2189,7 +2276,9 @@ async function uploadDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2255,7 +2344,9 @@ function setupDocumentForm() {
 
 
     if (!form) {
+
         return;
+
     }
 
 
@@ -2281,6 +2372,7 @@ async function openDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2301,7 +2393,9 @@ async function openDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2312,6 +2406,7 @@ async function openDocument(
             );
 
             return;
+
         }
 
 
@@ -2322,6 +2417,7 @@ async function openDocument(
             );
 
             return;
+
         }
 
 
@@ -2338,7 +2434,9 @@ async function openDocument(
 
 
         if (signedError) {
+
             throw signedError;
+
         }
 
 
@@ -2387,6 +2485,7 @@ async function deleteDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2397,6 +2496,7 @@ async function deleteDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2419,7 +2519,9 @@ async function deleteDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2462,7 +2564,9 @@ async function deleteDocument(
 
 
         if (deleteError) {
+
             throw deleteError;
+
         }
 
 
@@ -2509,7 +2613,9 @@ function renderDepartmentOrders(
 
 
     if (!container) {
+
         return;
+
     }
 
 
@@ -2522,6 +2628,7 @@ function renderDepartmentOrders(
         `;
 
         return;
+
     }
 
 
@@ -2584,7 +2691,9 @@ function setupDepartmentOrderFilters() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -2651,7 +2760,9 @@ function setupProjectModal() {
 
 
     if (!modal) {
+
         return;
+
     }
 
 
@@ -2697,7 +2808,9 @@ function setupProjectModal() {
 function setupPDSAI() {
 
     if (aiReady) {
+
         return;
+
     }
 
 
@@ -2837,7 +2950,9 @@ function appendAIMessage(
 
 
     if (!response) {
+
         return;
+
     }
 
 
@@ -2879,8 +2994,13 @@ async function askPDSAI() {
         $("pdsAiSend");
 
 
-    if (!input || !db) {
+    if (
+        !input ||
+        !db
+    ) {
+
         return;
+
     }
 
 
@@ -2889,7 +3009,9 @@ async function askPDSAI() {
 
 
     if (!message) {
+
         return;
+
     }
 
 
@@ -2929,11 +3051,9 @@ async function askPDSAI() {
                     body: {
 
                         message:
-
                             message,
 
                         history:
-
                             pdsAIHistory
 
                     }
@@ -2942,7 +3062,9 @@ async function askPDSAI() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -3032,7 +3154,9 @@ function removeThinkingMessage() {
 
 
     if (!response) {
+
         return;
+
     }
 
 
@@ -3072,7 +3196,9 @@ function setupNotifications() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -3101,7 +3227,9 @@ function setupRefreshButton() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -3141,7 +3269,9 @@ function setupRefreshButton() {
 function setupAuthForms() {
 
     if (authFormsReady) {
+
         return;
+
     }
 
 
@@ -3160,6 +3290,7 @@ function setupAuthForms() {
         );
 
         return;
+
     }
 
 
@@ -3193,6 +3324,7 @@ function setupAuthForms() {
                 );
 
                 return;
+
             }
 
 
@@ -3252,7 +3384,9 @@ function setupSignOut() {
 
 
             if (!button) {
+
                 return;
+
             }
 
 
@@ -3274,7 +3408,9 @@ function setupSignOut() {
 function setupAuthStateListener() {
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -3307,6 +3443,7 @@ function setupAuthStateListener() {
                 showLogin();
 
                 return;
+
             }
 
 
@@ -3321,8 +3458,7 @@ function setupAuthStateListener() {
 
                 /*
                  * Never show login
-                 * when a valid session
-                 * exists.
+                 * when a valid session exists.
                  */
 
                 hideLogin();
@@ -3446,1765 +3582,8 @@ function escapeJS(
         );
 
 }
-/* =========================================================
-   MONITORING
-========================================================= */
 
-/*
- * Monitoring data structure
- *
- * This is prepared for the OneDrive Excel workbook.
- * The Excel/OneDrive connection will be attached
- * separately without changing the interface.
- */
 
-async function loadMonitoring() {
-
-    const list =
-        $("monitoringList");
-
-    if (!list) {
-        return;
-    }
-
-    list.innerHTML = `
-        <div
-            style="
-                padding:45px 20px;
-                text-align:center;
-                color:var(--muted);
-            "
-        >
-            Loading monitoring records...
-        </div>
-    `;
-
-    try {
-
-        /*
-         * First attempt:
-         * load records from Supabase if the
-         * monitoring_assignments table exists.
-         */
-
-        if (db) {
-
-            const {
-                data,
-                error
-            } =
-                await db
-                    .from("monitoring_assignments")
-                    .select("*")
-                    .order(
-                        "created_at",
-                        {
-                            ascending: false
-                        }
-                    );
-
-            if (!error) {
-
-                monitoringRecords =
-                    data || [];
-
-                renderMonitoring(
-                    monitoringRecords
-                );
-
-                return;
-
-            }
-
-            /*
-             * If the table does not yet exist,
-             * continue with an empty monitoring
-             * state instead of breaking the app.
-             */
-
-            console.warn(
-                "Monitoring table not available yet:",
-                error
-            );
-
-        }
-
-        monitoringRecords = [];
-
-        renderMonitoring(
-            monitoringRecords
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Monitoring loading error:",
-            error
-        );
-
-        monitoringRecords = [];
-
-        renderMonitoring(
-            monitoringRecords
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   RENDER MONITORING
-========================================================= */
-
-function renderMonitoring(
-    records
-) {
-
-    const list =
-        $("monitoringList");
-
-    if (!list) {
-        return;
-    }
-
-    if (!records.length) {
-
-        list.innerHTML = `
-            <div
-                style="
-                    padding:45px 20px;
-                    text-align:center;
-                    color:var(--muted);
-                "
-            >
-                <div
-                    style="
-                        font-size:32px;
-                        margin-bottom:10px;
-                    "
-                >
-                    📊
-                </div>
-
-                <strong
-                    style="
-                        display:block;
-                        color:var(--text);
-                        margin-bottom:6px;
-                    "
-                >
-                    No monitoring records yet
-                </strong>
-
-                <span>
-                    Monitoring assignments
-                    will appear here.
-                </span>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    list.innerHTML =
-        records
-            .map(
-                record => {
-
-                    const id =
-                        escapeJS(
-                            record.id || ""
-                        );
-
-                    const project =
-                        escapeHTML(
-                            record.project_name ||
-                            record.project ||
-                            record.project_title ||
-                            "—"
-                        );
-
-                    const personnel =
-                        escapeHTML(
-                            record.personnel_name ||
-                            record.assigned_personnel ||
-                            record.personnel ||
-                            "—"
-                        );
-
-                    const position =
-                        escapeHTML(
-                            record.position ||
-                            "—"
-                        );
-
-                    const role =
-                        escapeHTML(
-                            record.role ||
-                            "—"
-                        );
-
-                    const status =
-                        escapeHTML(
-                            record.status ||
-                            "Active"
-                        );
-
-                    return `
-                        <div
-                            class="table-row"
-                            data-monitoring-id="${escapeHTML(
-                                record.id || ""
-                            )}"
-                            style="
-                                grid-template-columns:
-                                2fr
-                                1.5fr
-                                1.2fr
-                                1fr
-                                1fr
-                                .8fr;
-                            "
-                        >
-
-                            <div>
-                                <strong>
-                                    ${project}
-                                </strong>
-                            </div>
-
-                            <div>
-                                ${personnel}
-                            </div>
-
-                            <div>
-                                ${position}
-                            </div>
-
-                            <div>
-                                ${role}
-                            </div>
-
-                            <div>
-                                <span
-                                    class="project-status"
-                                >
-                                    ${status}
-                                </span>
-                            </div>
-
-                            <div
-                                style="
-                                    display:flex;
-                                    gap:6px;
-                                "
-                            >
-
-                                <button
-                                    type="button"
-                                    class="button secondary"
-                                    onclick="editMonitoring('${id}')"
-                                >
-                                    EDIT
-                                </button>
-
-                            </div>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =========================================================
-   MONITORING SEARCH
-========================================================= */
-
-function setupMonitoringSearch() {
-
-    const search =
-        $("monitoringSearch");
-
-    const status =
-        $("monitoringStatusFilter");
-
-
-    if (search) {
-
-        search.addEventListener(
-            "input",
-            filterMonitoring
-        );
-
-    }
-
-
-    if (status) {
-
-        status.addEventListener(
-            "change",
-            filterMonitoring
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   FILTER MONITORING
-========================================================= */
-
-function filterMonitoring() {
-
-    const search =
-        $("monitoringSearch");
-
-    const status =
-        $("monitoringStatusFilter");
-
-
-    const query =
-        search?.value
-            ?.trim()
-            .toLowerCase() ||
-        "";
-
-    const selectedStatus =
-        status?.value ||
-        "";
-
-
-    const filtered =
-        monitoringRecords.filter(
-            record => {
-
-                const text = [
-
-                    record.project_name,
-
-                    record.project,
-
-                    record.project_title,
-
-                    record.personnel_name,
-
-                    record.assigned_personnel,
-
-                    record.personnel,
-
-                    record.position,
-
-                    record.role,
-
-                    record.status
-
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-
-
-                const matchesSearch =
-                    !query ||
-                    text.includes(
-                        query
-                    );
-
-
-                const matchesStatus =
-                    !selectedStatus ||
-                    String(
-                        record.status || ""
-                    ).toLowerCase() ===
-                    selectedStatus.toLowerCase();
-
-
-                return (
-                    matchesSearch &&
-                    matchesStatus
-                );
-
-            }
-        );
-
-
-    renderMonitoring(
-        filtered
-    );
-
-}
-
-
-/* =========================================================
-   ADD MONITORING ASSIGNMENT
-========================================================= */
-
-function setupMonitoringButton() {
-
-    const button =
-        $("addAssignmentButton");
-
-
-    if (!button) {
-        return;
-    }
-
-
-    button.addEventListener(
-        "click",
-        openMonitoringModal
-    );
-
-}
-
-
-/* =========================================================
-   MONITORING MODAL
-========================================================= */
-
-function openMonitoringModal(
-    record = null
-) {
-
-    let modal =
-        $("monitoringModal");
-
-
-    if (!modal) {
-
-        modal =
-            document.createElement(
-                "div"
-            );
-
-        modal.id =
-            "monitoringModal";
-
-        modal.style.cssText = `
-            position:fixed;
-            inset:0;
-            z-index:5000;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background:rgba(15,34,56,.45);
-            padding:20px;
-        `;
-
-        document.body.appendChild(
-            modal
-        );
-
-    }
-
-
-    const editing =
-        !!record;
-
-
-    modal.innerHTML = `
-
-        <div
-            style="
-                width:min(620px,100%);
-                background:#fff;
-                border-radius:16px;
-                box-shadow:0 20px 60px rgba(0,0,0,.18);
-                overflow:hidden;
-            "
-        >
-
-            <div
-                style="
-                    padding:22px 24px;
-                    border-bottom:1px solid var(--border);
-                    display:flex;
-                    align-items:center;
-                    justify-content:space-between;
-                "
-            >
-
-                <div>
-
-                    <div
-                        style="
-                            font-size:11px;
-                            font-weight:700;
-                            letter-spacing:.08em;
-                            color:var(--muted);
-                        "
-                    >
-                        PDS / MONITORING
-                    </div>
-
-                    <h2
-                        style="
-                            margin:4px 0 0;
-                            color:var(--text);
-                        "
-                    >
-                        ${editing
-                            ? "Edit Assignment"
-                            : "Add Assignment"}
-                    </h2>
-
-                </div>
-
-                <button
-                    type="button"
-                    id="closeMonitoringModal"
-                    style="
-                        border:0;
-                        background:none;
-                        font-size:24px;
-                        cursor:pointer;
-                        color:var(--muted);
-                    "
-                >
-                    ×
-                </button>
-
-            </div>
-
-
-            <form
-                id="monitoringForm"
-                style="
-                    padding:24px;
-                "
-            >
-
-                <div
-                    style="
-                        display:grid;
-                        grid-template-columns:1fr 1fr;
-                        gap:16px;
-                    "
-                >
-
-                    <div>
-
-                        <label
-                            style="
-                                display:block;
-                                margin-bottom:7px;
-                                font-weight:600;
-                                font-size:13px;
-                            "
-                        >
-                            Project
-                        </label>
-
-                        <input
-                            id="monitoringProject"
-                            type="text"
-                            required
-                            value="${escapeHTML(
-                                record?.project_name ||
-                                record?.project ||
-                                ""
-                            )}"
-                            placeholder="Project name"
-                            style="
-                                width:100%;
-                                height:42px;
-                                padding:0 12px;
-                                border:1px solid var(--border);
-                                border-radius:10px;
-                                box-sizing:border-box;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label
-                            style="
-                                display:block;
-                                margin-bottom:7px;
-                                font-weight:600;
-                                font-size:13px;
-                            "
-                        >
-                            Assigned Personnel
-                        </label>
-
-                        <input
-                            id="monitoringPersonnel"
-                            type="text"
-                            required
-                            value="${escapeHTML(
-                                record?.personnel_name ||
-                                record?.assigned_personnel ||
-                                record?.personnel ||
-                                ""
-                            )}"
-                            placeholder="Personnel name"
-                            style="
-                                width:100%;
-                                height:42px;
-                                padding:0 12px;
-                                border:1px solid var(--border);
-                                border-radius:10px;
-                                box-sizing:border-box;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label
-                            style="
-                                display:block;
-                                margin-bottom:7px;
-                                font-weight:600;
-                                font-size:13px;
-                            "
-                        >
-                            Position
-                        </label>
-
-                        <input
-                            id="monitoringPosition"
-                            type="text"
-                            value="${escapeHTML(
-                                record?.position ||
-                                ""
-                            )}"
-                            placeholder="Position"
-                            style="
-                                width:100%;
-                                height:42px;
-                                padding:0 12px;
-                                border:1px solid var(--border);
-                                border-radius:10px;
-                                box-sizing:border-box;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label
-                            style="
-                                display:block;
-                                margin-bottom:7px;
-                                font-weight:600;
-                                font-size:13px;
-                            "
-                        >
-                            Role
-                        </label>
-
-                        <input
-                            id="monitoringRole"
-                            type="text"
-                            value="${escapeHTML(
-                                record?.role ||
-                                ""
-                            )}"
-                            placeholder="Role"
-                            style="
-                                width:100%;
-                                height:42px;
-                                padding:0 12px;
-                                border:1px solid var(--border);
-                                border-radius:10px;
-                                box-sizing:border-box;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label
-                            style="
-                                display:block;
-                                margin-bottom:7px;
-                                font-weight:600;
-                                font-size:13px;
-                            "
-                        >
-                            Status
-                        </label>
-
-                        <select
-                            id="monitoringStatus"
-                            style="
-                                width:100%;
-                                height:42px;
-                                padding:0 12px;
-                                border:1px solid var(--border);
-                                border-radius:10px;
-                                box-sizing:border-box;
-                                background:#fff;
-                            "
-                        >
-
-                            <option value="Active">
-                                Active
-                            </option>
-
-                            <option value="Ongoing">
-                                Ongoing
-                            </option>
-
-                            <option value="Completed">
-                                Completed
-                            </option>
-
-                            <option value="On Hold">
-                                On Hold
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-
-                <div
-                    style="
-                        display:flex;
-                        justify-content:flex-end;
-                        gap:10px;
-                        margin-top:24px;
-                    "
-                >
-
-                    <button
-                        type="button"
-                        class="button secondary"
-                        id="cancelMonitoring"
-                    >
-                        CANCEL
-                    </button>
-
-                    <button
-                        type="submit"
-                        class="button primary"
-                    >
-                        ${editing
-                            ? "SAVE CHANGES"
-                            : "ADD ASSIGNMENT"}
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-    `;
-
-
-    modal.style.display =
-        "flex";
-
-
-    const status =
-        $("monitoringStatus");
-
-
-    if (
-        status &&
-        record?.status
-    ) {
-
-        status.value =
-            record.status;
-
-    }
-
-
-    $("closeMonitoringModal")
-        ?.addEventListener(
-            "click",
-            closeMonitoringModal
-        );
-
-
-    $("cancelMonitoring")
-        ?.addEventListener(
-            "click",
-            closeMonitoringModal
-        );
-
-
-    modal.addEventListener(
-        "click",
-        event => {
-
-            if (
-                event.target ===
-                modal
-            ) {
-
-                closeMonitoringModal();
-
-            }
-
-        },
-        {
-            once: true
-        }
-    );
-
-
-    $("monitoringForm")
-        ?.addEventListener(
-            "submit",
-            event => {
-
-                saveMonitoring(
-                    event,
-                    record
-                );
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   CLOSE MONITORING MODAL
-========================================================= */
-
-function closeMonitoringModal() {
-
-    const modal =
-        $("monitoringModal");
-
-    if (modal) {
-
-        modal.style.display =
-            "none";
-
-    }
-
-}
-
-
-/* =========================================================
-   SAVE MONITORING
-========================================================= */
-
-async function saveMonitoring(
-    event,
-    existingRecord = null
-) {
-
-    event.preventDefault();
-
-
-    if (!db || !currentUser) {
-
-        alert(
-            "Please sign in again."
-        );
-
-        return;
-
-    }
-
-
-    const project =
-        $("monitoringProject")
-            ?.value
-            .trim() ||
-        "";
-
-    const personnel =
-        $("monitoringPersonnel")
-            ?.value
-            .trim() ||
-        "";
-
-    const position =
-        $("monitoringPosition")
-            ?.value
-            .trim() ||
-        "";
-
-    const role =
-        $("monitoringRole")
-            ?.value
-            .trim() ||
-        "";
-
-    const status =
-        $("monitoringStatus")
-            ?.value ||
-        "Active";
-
-
-    if (
-        !project ||
-        !personnel
-    ) {
-
-        alert(
-            "Please enter the project and assigned personnel."
-        );
-
-        return;
-
-    }
-
-
-    const record = {
-
-        project_name:
-            project,
-
-        personnel_name:
-            personnel,
-
-        position:
-            position,
-
-        role:
-            role,
-
-        status:
-            status,
-
-        updated_by:
-            currentUser.id
-
-    };
-
-
-    try {
-
-        let result;
-
-
-        if (
-            existingRecord?.id
-        ) {
-
-            result =
-                await db
-                    .from(
-                        "monitoring_assignments"
-                    )
-                    .update(
-                        record
-                    )
-                    .eq(
-                        "id",
-                        existingRecord.id
-                    );
-
-        } else {
-
-            record.created_by =
-                currentUser.id;
-
-            result =
-                await db
-                    .from(
-                        "monitoring_assignments"
-                    )
-                    .insert(
-                        record
-                    );
-
-        }
-
-
-        if (result.error) {
-
-            throw result.error;
-
-        }
-
-
-        closeMonitoringModal();
-
-
-        await loadMonitoring();
-
-
-        alert(
-            existingRecord
-                ? "Monitoring assignment updated."
-                : "Monitoring assignment added."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Save monitoring error:",
-            error
-        );
-
-
-        /*
-         * This will occur until the
-         * Supabase monitoring table
-         * is created.
-         */
-
-        if (
-            String(
-                error?.message || ""
-            )
-                .toLowerCase()
-                .includes(
-                    "monitoring_assignments"
-                )
-        ) {
-
-            alert(
-                "The Monitoring database table is not yet connected. We will connect this to the OneDrive Excel workbook in the next step."
-            );
-
-        } else {
-
-            alert(
-                error?.message ||
-                "Unable to save monitoring assignment."
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   EDIT MONITORING
-========================================================= */
-
-function editMonitoring(
-    id
-) {
-
-    const record =
-        monitoringRecords.find(
-            item =>
-                String(
-                    item.id
-                ) ===
-                String(id)
-        );
-
-
-    if (!record) {
-
-        return;
-
-    }
-
-
-    openMonitoringModal(
-        record
-    );
-
-}
-
-
-/* =========================================================
-   MONITORING SETUP
-========================================================= */
-
-function setupMonitoring() {
-
-    setupMonitoringSearch();
-
-    setupMonitoringButton();
-
-}
-
-
-/* =========================================================
-   END MONITORING
-========================================================= */
-/* =========================================================
-   PDS MONITORING — EXCEL DATA STRUCTURE
-   UI ONLY — DOES NOT CHANGE EXISTING INTERFACE
-========================================================= */
-
-let monitoringRecords = [];
-
-/*
- * Exact column names from:
- * MONITORING_OF_PLAN_AND_POW.xlsx
- */
-const MONITORING_FIELDS = {
-    category: "CATEGORY",
-    program: "PROGRAM",
-    subProgram: "SUB-PROGRAM",
-    projectTitle: "PROJECT TITLE AS PER GAA",
-    noOfProjs: "NO. OF PROJS",
-    allocation: "ALLOCATION",
-    municipality: "MUNICIPALITY",
-
-    assignedPersonnel1: "PROGRAM2",
-    assignedPersonnel2: "PLAN",
-
-    advertisementBatch: "ADVERTISEMENT BATCH",
-    contractId: "CONTRACT ID",
-
-    canvass: "CANVASS",
-    marketScoping: "MARKET SCOPING",
-    certDED: "CERT OF DED",
-    certCMPD: "CERT OF CMPD",
-    certValidation: "CERT OF VALIDATION",
-
-    printedCompleteProgram: "PRINTED COMPLETE PROGRAM",
-    submittedExcelFile: "SUBMITTED EXCEL FILE",
-
-    remarks: "REMARKS",
-    programStatus: "PROGRAM STATUS",
-    programPercent: "PROGRAM % COMPLETE",
-    lastUpdated: "LAST UPDATED",
-    daysSinceUpdate: "DAYS SINCE UPDATE",
-    overallStatus: "OVERALL STATUS"
-};
-
-
-/* =========================================================
-   LOAD MONITORING
-========================================================= */
-
-async function loadMonitoring() {
-
-    try {
-
-        /*
-         * TEMPORARY DATA ADAPTER
-         *
-         * This prepares the Monitoring page for the
-         * OneDrive Excel structure.
-         *
-         * The OneDrive connection will be inserted here
-         * once the Microsoft data bridge is available.
-         */
-
-        if (!Array.isArray(monitoringRecords)) {
-            monitoringRecords = [];
-        }
-
-        renderMonitoring(monitoringRecords);
-
-    } catch (error) {
-
-        console.error("Monitoring load error:", error);
-
-        const container = $("monitoringList");
-
-        if (container) {
-            container.innerHTML = `
-                <div style="
-                    padding:45px 20px;
-                    text-align:center;
-                    color:var(--muted);
-                ">
-                    Unable to load monitoring records.
-                </div>
-            `;
-        }
-    }
-}
-
-
-/* =========================================================
-   RENDER MONITORING
-========================================================= */
-
-function renderMonitoring(records = monitoringRecords) {
-
-    const container = $("monitoringList");
-
-    if (!container) return;
-
-    const searchInput = $("monitoringSearch");
-    const statusFilter = $("monitoringStatusFilter");
-
-    const searchTerm = searchInput
-        ? searchInput.value.trim().toLowerCase()
-        : "";
-
-    const selectedStatus = statusFilter
-        ? statusFilter.value.trim().toLowerCase()
-        : "";
-
-    const filtered = records.filter(record => {
-
-        const project =
-            String(record[MONITORING_FIELDS.projectTitle] || "")
-                .toLowerCase();
-
-        const personnel1 =
-            String(record[MONITORING_FIELDS.assignedPersonnel1] || "")
-                .toLowerCase();
-
-        const personnel2 =
-            String(record[MONITORING_FIELDS.assignedPersonnel2] || "")
-                .toLowerCase();
-
-        const status =
-            String(record[MONITORING_FIELDS.overallStatus] || "")
-                .toLowerCase();
-
-        const programStatus =
-            String(record[MONITORING_FIELDS.programStatus] || "")
-                .toLowerCase();
-
-        const matchesSearch =
-            !searchTerm ||
-            project.includes(searchTerm) ||
-            personnel1.includes(searchTerm) ||
-            personnel2.includes(searchTerm);
-
-        const matchesStatus =
-            !selectedStatus ||
-            status.includes(selectedStatus) ||
-            programStatus.includes(selectedStatus);
-
-        return matchesSearch && matchesStatus;
-    });
-
-
-    if (!filtered.length) {
-
-        container.innerHTML = `
-            <div style="
-                padding:45px 20px;
-                text-align:center;
-                color:var(--muted);
-            ">
-                <div style="
-                    font-size:32px;
-                    margin-bottom:10px;
-                ">📊</div>
-
-                <strong style="
-                    display:block;
-                    margin-bottom:5px;
-                ">
-                    No monitoring records found
-                </strong>
-
-                <span>
-                    Try changing your search or status filter.
-                </span>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML = filtered.map((record, index) => {
-
-        const projectTitle =
-            record[MONITORING_FIELDS.projectTitle] || "Untitled Project";
-
-        const personnel1 =
-            record[MONITORING_FIELDS.assignedPersonnel1] || "—";
-
-        const personnel2 =
-            record[MONITORING_FIELDS.assignedPersonnel2] || "—";
-
-        const contractId =
-            record[MONITORING_FIELDS.contractId] || "—";
-
-        const programStatus =
-            record[MONITORING_FIELDS.programStatus] || "—";
-
-        const percentage =
-            record[MONITORING_FIELDS.programPercent] || "0%";
-
-        const overallStatus =
-            record[MONITORING_FIELDS.overallStatus] || "—";
-
-
-        return `
-            <div
-                class="monitoring-row"
-                data-monitoring-index="${index}"
-                style="
-                    display:grid;
-                    grid-template-columns:
-                        2fr
-                        1.25fr
-                        1.25fr
-                        1.1fr
-                        1fr
-                        .8fr
-                        1fr
-                        .8fr;
-                    gap:16px;
-                    align-items:center;
-                    padding:16px 20px;
-                    border-bottom:1px solid var(--border);
-                "
-            >
-
-                <div>
-                    <div style="
-                        font-weight:600;
-                        line-height:1.35;
-                    ">
-                        ${escapeHTML(projectTitle)}
-                    </div>
-
-                    <div style="
-                        margin-top:5px;
-                        font-size:12px;
-                        color:var(--muted);
-                    ">
-                        ${escapeHTML(contractId)}
-                    </div>
-                </div>
-
-
-                <div>
-                    <div style="
-                        font-size:13px;
-                        font-weight:600;
-                    ">
-                        ${escapeHTML(personnel1)}
-                    </div>
-
-                    <div style="
-                        font-size:12px;
-                        color:var(--muted);
-                        margin-top:3px;
-                    ">
-                        PROGRAM2
-                    </div>
-                </div>
-
-
-                <div>
-                    <div style="
-                        font-size:13px;
-                        font-weight:600;
-                    ">
-                        ${escapeHTML(personnel2)}
-                    </div>
-
-                    <div style="
-                        font-size:12px;
-                        color:var(--muted);
-                        margin-top:3px;
-                    ">
-                        PLAN
-                    </div>
-                </div>
-
-
-                <div>
-                    ${escapeHTML(contractId)}
-                </div>
-
-
-                <div>
-                    ${escapeHTML(programStatus)}
-                </div>
-
-
-                <div style="
-                    font-weight:700;
-                ">
-                    ${escapeHTML(String(percentage))}
-                </div>
-
-
-                <div>
-                    <span class="status-badge">
-                        ${escapeHTML(overallStatus)}
-                    </span>
-                </div>
-
-
-                <div>
-                    <button
-                        type="button"
-                        class="button secondary"
-                        onclick="openMonitoringRecord(${index})"
-                    >
-                        VIEW
-                    </button>
-                </div>
-
-            </div>
-        `;
-
-    }).join("");
-}
-
-
-/* =========================================================
-   SEARCH + FILTER
-========================================================= */
-
-function setupMonitoringFilters() {
-
-    const searchInput = $("monitoringSearch");
-    const statusFilter = $("monitoringStatusFilter");
-
-    if (searchInput) {
-
-        searchInput.addEventListener("input", () => {
-            renderMonitoring(monitoringRecords);
-        });
-
-    }
-
-    if (statusFilter) {
-
-        statusFilter.addEventListener("change", () => {
-            renderMonitoring(monitoringRecords);
-        });
-
-    }
-}
-
-
-/* =========================================================
-   VIEW MONITORING RECORD
-========================================================= */
-
-function openMonitoringRecord(index) {
-
-    const record = monitoringRecords[index];
-
-    if (!record) return;
-
-    const projectTitle =
-        record[MONITORING_FIELDS.projectTitle] || "Monitoring Record";
-
-
-    const existing = $("monitoringDetailModal");
-
-    if (existing) {
-        existing.remove();
-    }
-
-
-    const modal = document.createElement("div");
-
-    modal.id = "monitoringDetailModal";
-
-    modal.style.cssText = `
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.45);
-        z-index:5000;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding:24px;
-    `;
-
-
-    modal.innerHTML = `
-        <div style="
-            background:var(--surface,#fff);
-            width:min(1100px,100%);
-            max-height:90vh;
-            overflow:auto;
-            border-radius:10px;
-            box-shadow:0 20px 60px rgba(0,0,0,.20);
-        ">
-
-            <div style="
-                padding:22px 26px;
-                border-bottom:1px solid var(--border);
-                display:flex;
-                justify-content:space-between;
-                gap:20px;
-                align-items:flex-start;
-            ">
-
-                <div>
-
-                    <div style="
-                        font-size:12px;
-                        color:var(--muted);
-                        text-transform:uppercase;
-                        letter-spacing:.08em;
-                    ">
-                        Project Monitoring
-                    </div>
-
-                    <h2 style="
-                        margin:6px 0 0;
-                    ">
-                        ${escapeHTML(projectTitle)}
-                    </h2>
-
-                </div>
-
-                <button
-                    type="button"
-                    class="button secondary"
-                    onclick="closeMonitoringRecord()"
-                >
-                    CLOSE
-                </button>
-
-            </div>
-
-
-            <div style="
-                padding:26px;
-                display:grid;
-                grid-template-columns:
-                    repeat(2,minmax(0,1fr));
-                gap:18px;
-            ">
-
-                ${monitoringDetailField(
-                    "CATEGORY",
-                    record[MONITORING_FIELDS.category]
-                )}
-
-                ${monitoringDetailField(
-                    "PROGRAM",
-                    record[MONITORING_FIELDS.program]
-                )}
-
-                ${monitoringDetailField(
-                    "SUB-PROGRAM",
-                    record[MONITORING_FIELDS.subProgram]
-                )}
-
-                ${monitoringDetailField(
-                    "MUNICIPALITY",
-                    record[MONITORING_FIELDS.municipality]
-                )}
-
-                ${monitoringDetailField(
-                    "ALLOCATION",
-                    record[MONITORING_FIELDS.allocation]
-                )}
-
-                ${monitoringDetailField(
-                    "ADVERTISEMENT BATCH",
-                    record[MONITORING_FIELDS.advertisementBatch]
-                )}
-
-                ${monitoringDetailField(
-                    "CONTRACT ID",
-                    record[MONITORING_FIELDS.contractId]
-                )}
-
-                ${monitoringDetailField(
-                    "PROGRAM2 / ASSIGNED PERSONNEL",
-                    record[MONITORING_FIELDS.assignedPersonnel1]
-                )}
-
-                ${monitoringDetailField(
-                    "PLAN / ASSIGNED PERSONNEL",
-                    record[MONITORING_FIELDS.assignedPersonnel2]
-                )}
-
-                ${monitoringDetailField(
-                    "CANVASS",
-                    record[MONITORING_FIELDS.canvass]
-                )}
-
-                ${monitoringDetailField(
-                    "MARKET SCOPING",
-                    record[MONITORING_FIELDS.marketScoping]
-                )}
-
-                ${monitoringDetailField(
-                    "CERTIFICATE OF DED",
-                    record[MONITORING_FIELDS.certDED]
-                )}
-
-                ${monitoringDetailField(
-                    "CERTIFICATE OF CMPD",
-                    record[MONITORING_FIELDS.certCMPD]
-                )}
-
-                ${monitoringDetailField(
-                    "CERTIFICATE OF VALIDATION",
-                    record[MONITORING_FIELDS.certValidation]
-                )}
-
-                ${monitoringDetailField(
-                    "PRINTED COMPLETE PROGRAM",
-                    record[MONITORING_FIELDS.printedCompleteProgram]
-                )}
-
-                ${monitoringDetailField(
-                    "SUBMITTED EXCEL FILE",
-                    record[MONITORING_FIELDS.submittedExcelFile]
-                )}
-
-                ${monitoringDetailField(
-                    "PROGRAM STATUS",
-                    record[MONITORING_FIELDS.programStatus]
-                )}
-
-                ${monitoringDetailField(
-                    "PROGRAM % COMPLETE",
-                    record[MONITORING_FIELDS.programPercent]
-                )}
-
-                ${monitoringDetailField(
-                    "LAST UPDATED",
-                    record[MONITORING_FIELDS.lastUpdated]
-                )}
-
-                ${monitoringDetailField(
-                    "DAYS SINCE UPDATE",
-                    record[MONITORING_FIELDS.daysSinceUpdate]
-                )}
-
-                ${monitoringDetailField(
-                    "OVERALL STATUS",
-                    record[MONITORING_FIELDS.overallStatus]
-                )}
-
-                <div style="
-                    grid-column:1/-1;
-                ">
-                    <div style="
-                        font-size:12px;
-                        font-weight:700;
-                        color:var(--muted);
-                        margin-bottom:7px;
-                    ">
-                        REMARKS
-                    </div>
-
-                    <div style="
-                        padding:12px 14px;
-                        border:1px solid var(--border);
-                        border-radius:6px;
-                        min-height:70px;
-                    ">
-                        ${escapeHTML(
-                            record[MONITORING_FIELDS.remarks] || "—"
-                        )}
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-    `;
-
-
-    modal.addEventListener("click", event => {
-
-        if (event.target === modal) {
-            closeMonitoringRecord();
-        }
-
-    });
-
-
-    document.body.appendChild(modal);
-}
-
-
-/* =========================================================
-   MONITORING DETAIL FIELD
-========================================================= */
-
-function monitoringDetailField(label, value) {
-
-    return `
-        <div>
-
-            <div style="
-                font-size:12px;
-                font-weight:700;
-                color:var(--muted);
-                margin-bottom:7px;
-            ">
-                ${escapeHTML(label)}
-            </div>
-
-            <div style="
-                padding:11px 13px;
-                border:1px solid var(--border);
-                border-radius:6px;
-                min-height:42px;
-                line-height:1.4;
-            ">
-                ${escapeHTML(
-                    value === null ||
-                    value === undefined ||
-                    value === ""
-                        ? "—"
-                        : String(value)
-                )}
-            </div>
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   CLOSE MONITORING RECORD
-========================================================= */
-
-function closeMonitoringRecord() {
-
-    const modal = $("monitoringDetailModal");
-
-    if (modal) {
-        modal.remove();
-    }
-}
-
-
-/* =========================================================
-   ADD ASSIGNMENT BUTTON
-========================================================= */
-
-function setupMonitoringAssignmentButton() {
-
-    const button = $("addAssignmentButton");
-
-    if (!button) return;
-
-    button.addEventListener("click", () => {
-
-        alert(
-            "The Monitoring structure is ready. " +
-            "The next step is connecting this page to the " +
-            "OneDrive Excel data source."
-        );
-
-    });
-}
-
-
-/* =========================================================
-   INITIALIZE MONITORING
-========================================================= */
 /* =========================================================
    INITIALIZATION
 ========================================================= */
@@ -5212,7 +3591,9 @@ function setupMonitoringAssignmentButton() {
 async function initializePDS() {
 
     if (initialized) {
+
         return;
+
     }
 
 
@@ -5226,11 +3607,18 @@ async function initializePDS() {
 
 
     /*
-     * Hide everything while
-     * authentication is checked.
+     * IMPORTANT FIX:
+     * Define the app element before using it.
      */
 
+    const app =
+        $("app");
 
+
+    /*
+     * Hide the application while
+     * authentication is checked.
+     */
 
     if (app) {
 
@@ -5265,6 +3653,7 @@ async function initializePDS() {
 
 
         return;
+
     }
 
 
@@ -5294,9 +3683,9 @@ async function initializePDS() {
 
     setupDepartmentOrderFilters();
 
-setupPDSAI();
+    setupPDSAI();
 
-setupNotifications();
+    setupNotifications();
 
     setupRefreshButton();
 
@@ -5336,3 +3725,4 @@ if (
     initializePDS();
 
 }
+```
