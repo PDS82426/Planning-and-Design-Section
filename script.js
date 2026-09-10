@@ -4559,7 +4559,680 @@ function setupMonitoring() {
 /* =========================================================
    END MONITORING
 ========================================================= */
+/* =========================================================
+   PDS MONITORING — EXCEL DATA STRUCTURE
+   UI ONLY — DOES NOT CHANGE EXISTING INTERFACE
+========================================================= */
 
+let monitoringRecords = [];
+
+/*
+ * Exact column names from:
+ * MONITORING_OF_PLAN_AND_POW.xlsx
+ */
+const MONITORING_FIELDS = {
+    category: "CATEGORY",
+    program: "PROGRAM",
+    subProgram: "SUB-PROGRAM",
+    projectTitle: "PROJECT TITLE AS PER GAA",
+    noOfProjs: "NO. OF PROJS",
+    allocation: "ALLOCATION",
+    municipality: "MUNICIPALITY",
+
+    assignedPersonnel1: "PROGRAM2",
+    assignedPersonnel2: "PLAN",
+
+    advertisementBatch: "ADVERTISEMENT BATCH",
+    contractId: "CONTRACT ID",
+
+    canvass: "CANVASS",
+    marketScoping: "MARKET SCOPING",
+    certDED: "CERT OF DED",
+    certCMPD: "CERT OF CMPD",
+    certValidation: "CERT OF VALIDATION",
+
+    printedCompleteProgram: "PRINTED COMPLETE PROGRAM",
+    submittedExcelFile: "SUBMITTED EXCEL FILE",
+
+    remarks: "REMARKS",
+    programStatus: "PROGRAM STATUS",
+    programPercent: "PROGRAM % COMPLETE",
+    lastUpdated: "LAST UPDATED",
+    daysSinceUpdate: "DAYS SINCE UPDATE",
+    overallStatus: "OVERALL STATUS"
+};
+
+
+/* =========================================================
+   LOAD MONITORING
+========================================================= */
+
+async function loadMonitoring() {
+
+    try {
+
+        /*
+         * TEMPORARY DATA ADAPTER
+         *
+         * This prepares the Monitoring page for the
+         * OneDrive Excel structure.
+         *
+         * The OneDrive connection will be inserted here
+         * once the Microsoft data bridge is available.
+         */
+
+        if (!Array.isArray(monitoringRecords)) {
+            monitoringRecords = [];
+        }
+
+        renderMonitoring(monitoringRecords);
+
+    } catch (error) {
+
+        console.error("Monitoring load error:", error);
+
+        const container = $("monitoringList");
+
+        if (container) {
+            container.innerHTML = `
+                <div style="
+                    padding:45px 20px;
+                    text-align:center;
+                    color:var(--muted);
+                ">
+                    Unable to load monitoring records.
+                </div>
+            `;
+        }
+    }
+}
+
+
+/* =========================================================
+   RENDER MONITORING
+========================================================= */
+
+function renderMonitoring(records = monitoringRecords) {
+
+    const container = $("monitoringList");
+
+    if (!container) return;
+
+    const searchInput = $("monitoringSearch");
+    const statusFilter = $("monitoringStatusFilter");
+
+    const searchTerm = searchInput
+        ? searchInput.value.trim().toLowerCase()
+        : "";
+
+    const selectedStatus = statusFilter
+        ? statusFilter.value.trim().toLowerCase()
+        : "";
+
+    const filtered = records.filter(record => {
+
+        const project =
+            String(record[MONITORING_FIELDS.projectTitle] || "")
+                .toLowerCase();
+
+        const personnel1 =
+            String(record[MONITORING_FIELDS.assignedPersonnel1] || "")
+                .toLowerCase();
+
+        const personnel2 =
+            String(record[MONITORING_FIELDS.assignedPersonnel2] || "")
+                .toLowerCase();
+
+        const status =
+            String(record[MONITORING_FIELDS.overallStatus] || "")
+                .toLowerCase();
+
+        const programStatus =
+            String(record[MONITORING_FIELDS.programStatus] || "")
+                .toLowerCase();
+
+        const matchesSearch =
+            !searchTerm ||
+            project.includes(searchTerm) ||
+            personnel1.includes(searchTerm) ||
+            personnel2.includes(searchTerm);
+
+        const matchesStatus =
+            !selectedStatus ||
+            status.includes(selectedStatus) ||
+            programStatus.includes(selectedStatus);
+
+        return matchesSearch && matchesStatus;
+    });
+
+
+    if (!filtered.length) {
+
+        container.innerHTML = `
+            <div style="
+                padding:45px 20px;
+                text-align:center;
+                color:var(--muted);
+            ">
+                <div style="
+                    font-size:32px;
+                    margin-bottom:10px;
+                ">📊</div>
+
+                <strong style="
+                    display:block;
+                    margin-bottom:5px;
+                ">
+                    No monitoring records found
+                </strong>
+
+                <span>
+                    Try changing your search or status filter.
+                </span>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML = filtered.map((record, index) => {
+
+        const projectTitle =
+            record[MONITORING_FIELDS.projectTitle] || "Untitled Project";
+
+        const personnel1 =
+            record[MONITORING_FIELDS.assignedPersonnel1] || "—";
+
+        const personnel2 =
+            record[MONITORING_FIELDS.assignedPersonnel2] || "—";
+
+        const contractId =
+            record[MONITORING_FIELDS.contractId] || "—";
+
+        const programStatus =
+            record[MONITORING_FIELDS.programStatus] || "—";
+
+        const percentage =
+            record[MONITORING_FIELDS.programPercent] || "0%";
+
+        const overallStatus =
+            record[MONITORING_FIELDS.overallStatus] || "—";
+
+
+        return `
+            <div
+                class="monitoring-row"
+                data-monitoring-index="${index}"
+                style="
+                    display:grid;
+                    grid-template-columns:
+                        2fr
+                        1.25fr
+                        1.25fr
+                        1.1fr
+                        1fr
+                        .8fr
+                        1fr
+                        .8fr;
+                    gap:16px;
+                    align-items:center;
+                    padding:16px 20px;
+                    border-bottom:1px solid var(--border);
+                "
+            >
+
+                <div>
+                    <div style="
+                        font-weight:600;
+                        line-height:1.35;
+                    ">
+                        ${escapeHTML(projectTitle)}
+                    </div>
+
+                    <div style="
+                        margin-top:5px;
+                        font-size:12px;
+                        color:var(--muted);
+                    ">
+                        ${escapeHTML(contractId)}
+                    </div>
+                </div>
+
+
+                <div>
+                    <div style="
+                        font-size:13px;
+                        font-weight:600;
+                    ">
+                        ${escapeHTML(personnel1)}
+                    </div>
+
+                    <div style="
+                        font-size:12px;
+                        color:var(--muted);
+                        margin-top:3px;
+                    ">
+                        PROGRAM2
+                    </div>
+                </div>
+
+
+                <div>
+                    <div style="
+                        font-size:13px;
+                        font-weight:600;
+                    ">
+                        ${escapeHTML(personnel2)}
+                    </div>
+
+                    <div style="
+                        font-size:12px;
+                        color:var(--muted);
+                        margin-top:3px;
+                    ">
+                        PLAN
+                    </div>
+                </div>
+
+
+                <div>
+                    ${escapeHTML(contractId)}
+                </div>
+
+
+                <div>
+                    ${escapeHTML(programStatus)}
+                </div>
+
+
+                <div style="
+                    font-weight:700;
+                ">
+                    ${escapeHTML(String(percentage))}
+                </div>
+
+
+                <div>
+                    <span class="status-badge">
+                        ${escapeHTML(overallStatus)}
+                    </span>
+                </div>
+
+
+                <div>
+                    <button
+                        type="button"
+                        class="button secondary"
+                        onclick="openMonitoringRecord(${index})"
+                    >
+                        VIEW
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+    }).join("");
+}
+
+
+/* =========================================================
+   SEARCH + FILTER
+========================================================= */
+
+function setupMonitoringFilters() {
+
+    const searchInput = $("monitoringSearch");
+    const statusFilter = $("monitoringStatusFilter");
+
+    if (searchInput) {
+
+        searchInput.addEventListener("input", () => {
+            renderMonitoring(monitoringRecords);
+        });
+
+    }
+
+    if (statusFilter) {
+
+        statusFilter.addEventListener("change", () => {
+            renderMonitoring(monitoringRecords);
+        });
+
+    }
+}
+
+
+/* =========================================================
+   VIEW MONITORING RECORD
+========================================================= */
+
+function openMonitoringRecord(index) {
+
+    const record = monitoringRecords[index];
+
+    if (!record) return;
+
+    const projectTitle =
+        record[MONITORING_FIELDS.projectTitle] || "Monitoring Record";
+
+
+    const existing = $("monitoringDetailModal");
+
+    if (existing) {
+        existing.remove();
+    }
+
+
+    const modal = document.createElement("div");
+
+    modal.id = "monitoringDetailModal";
+
+    modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.45);
+        z-index:5000;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:24px;
+    `;
+
+
+    modal.innerHTML = `
+        <div style="
+            background:var(--surface,#fff);
+            width:min(1100px,100%);
+            max-height:90vh;
+            overflow:auto;
+            border-radius:10px;
+            box-shadow:0 20px 60px rgba(0,0,0,.20);
+        ">
+
+            <div style="
+                padding:22px 26px;
+                border-bottom:1px solid var(--border);
+                display:flex;
+                justify-content:space-between;
+                gap:20px;
+                align-items:flex-start;
+            ">
+
+                <div>
+
+                    <div style="
+                        font-size:12px;
+                        color:var(--muted);
+                        text-transform:uppercase;
+                        letter-spacing:.08em;
+                    ">
+                        Project Monitoring
+                    </div>
+
+                    <h2 style="
+                        margin:6px 0 0;
+                    ">
+                        ${escapeHTML(projectTitle)}
+                    </h2>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="button secondary"
+                    onclick="closeMonitoringRecord()"
+                >
+                    CLOSE
+                </button>
+
+            </div>
+
+
+            <div style="
+                padding:26px;
+                display:grid;
+                grid-template-columns:
+                    repeat(2,minmax(0,1fr));
+                gap:18px;
+            ">
+
+                ${monitoringDetailField(
+                    "CATEGORY",
+                    record[MONITORING_FIELDS.category]
+                )}
+
+                ${monitoringDetailField(
+                    "PROGRAM",
+                    record[MONITORING_FIELDS.program]
+                )}
+
+                ${monitoringDetailField(
+                    "SUB-PROGRAM",
+                    record[MONITORING_FIELDS.subProgram]
+                )}
+
+                ${monitoringDetailField(
+                    "MUNICIPALITY",
+                    record[MONITORING_FIELDS.municipality]
+                )}
+
+                ${monitoringDetailField(
+                    "ALLOCATION",
+                    record[MONITORING_FIELDS.allocation]
+                )}
+
+                ${monitoringDetailField(
+                    "ADVERTISEMENT BATCH",
+                    record[MONITORING_FIELDS.advertisementBatch]
+                )}
+
+                ${monitoringDetailField(
+                    "CONTRACT ID",
+                    record[MONITORING_FIELDS.contractId]
+                )}
+
+                ${monitoringDetailField(
+                    "PROGRAM2 / ASSIGNED PERSONNEL",
+                    record[MONITORING_FIELDS.assignedPersonnel1]
+                )}
+
+                ${monitoringDetailField(
+                    "PLAN / ASSIGNED PERSONNEL",
+                    record[MONITORING_FIELDS.assignedPersonnel2]
+                )}
+
+                ${monitoringDetailField(
+                    "CANVASS",
+                    record[MONITORING_FIELDS.canvass]
+                )}
+
+                ${monitoringDetailField(
+                    "MARKET SCOPING",
+                    record[MONITORING_FIELDS.marketScoping]
+                )}
+
+                ${monitoringDetailField(
+                    "CERTIFICATE OF DED",
+                    record[MONITORING_FIELDS.certDED]
+                )}
+
+                ${monitoringDetailField(
+                    "CERTIFICATE OF CMPD",
+                    record[MONITORING_FIELDS.certCMPD]
+                )}
+
+                ${monitoringDetailField(
+                    "CERTIFICATE OF VALIDATION",
+                    record[MONITORING_FIELDS.certValidation]
+                )}
+
+                ${monitoringDetailField(
+                    "PRINTED COMPLETE PROGRAM",
+                    record[MONITORING_FIELDS.printedCompleteProgram]
+                )}
+
+                ${monitoringDetailField(
+                    "SUBMITTED EXCEL FILE",
+                    record[MONITORING_FIELDS.submittedExcelFile]
+                )}
+
+                ${monitoringDetailField(
+                    "PROGRAM STATUS",
+                    record[MONITORING_FIELDS.programStatus]
+                )}
+
+                ${monitoringDetailField(
+                    "PROGRAM % COMPLETE",
+                    record[MONITORING_FIELDS.programPercent]
+                )}
+
+                ${monitoringDetailField(
+                    "LAST UPDATED",
+                    record[MONITORING_FIELDS.lastUpdated]
+                )}
+
+                ${monitoringDetailField(
+                    "DAYS SINCE UPDATE",
+                    record[MONITORING_FIELDS.daysSinceUpdate]
+                )}
+
+                ${monitoringDetailField(
+                    "OVERALL STATUS",
+                    record[MONITORING_FIELDS.overallStatus]
+                )}
+
+                <div style="
+                    grid-column:1/-1;
+                ">
+                    <div style="
+                        font-size:12px;
+                        font-weight:700;
+                        color:var(--muted);
+                        margin-bottom:7px;
+                    ">
+                        REMARKS
+                    </div>
+
+                    <div style="
+                        padding:12px 14px;
+                        border:1px solid var(--border);
+                        border-radius:6px;
+                        min-height:70px;
+                    ">
+                        ${escapeHTML(
+                            record[MONITORING_FIELDS.remarks] || "—"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+
+    modal.addEventListener("click", event => {
+
+        if (event.target === modal) {
+            closeMonitoringRecord();
+        }
+
+    });
+
+
+    document.body.appendChild(modal);
+}
+
+
+/* =========================================================
+   MONITORING DETAIL FIELD
+========================================================= */
+
+function monitoringDetailField(label, value) {
+
+    return `
+        <div>
+
+            <div style="
+                font-size:12px;
+                font-weight:700;
+                color:var(--muted);
+                margin-bottom:7px;
+            ">
+                ${escapeHTML(label)}
+            </div>
+
+            <div style="
+                padding:11px 13px;
+                border:1px solid var(--border);
+                border-radius:6px;
+                min-height:42px;
+                line-height:1.4;
+            ">
+                ${escapeHTML(
+                    value === null ||
+                    value === undefined ||
+                    value === ""
+                        ? "—"
+                        : String(value)
+                )}
+            </div>
+
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   CLOSE MONITORING RECORD
+========================================================= */
+
+function closeMonitoringRecord() {
+
+    const modal = $("monitoringDetailModal");
+
+    if (modal) {
+        modal.remove();
+    }
+}
+
+
+/* =========================================================
+   ADD ASSIGNMENT BUTTON
+========================================================= */
+
+function setupMonitoringAssignmentButton() {
+
+    const button = $("addAssignmentButton");
+
+    if (!button) return;
+
+    button.addEventListener("click", () => {
+
+        alert(
+            "The Monitoring structure is ready. " +
+            "The next step is connecting this page to the " +
+            "OneDrive Excel data source."
+        );
+
+    });
+}
+
+
+/* =========================================================
+   INITIALIZE MONITORING
+========================================================= */
+
+function setupMonitoring() {
+
+    setupMonitoringFilters();
+
+    setupMonitoringAssignmentButton();
+
+    loadMonitoring();
+}
 /* =========================================================
    INITIALIZATION
 ========================================================= */
