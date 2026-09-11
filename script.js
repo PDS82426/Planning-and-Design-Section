@@ -5806,3 +5806,447 @@ if (
     initializePDS();
 
 }
+/* =========================================================
+   GITHUB PROJECT MONITORING
+========================================================= */
+
+function normalizeMonitoringName(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
+function getCurrentMonitoringName() {
+    /*
+     * Uses the logged-in user's profile name.
+     * If monitoring_name exists in the profile, use that first.
+     */
+    return normalizeMonitoringName(
+        currentProfile?.monitoring_name ||
+        currentProfile?.full_name ||
+        currentUser?.user_metadata?.full_name ||
+        ""
+    );
+}
+
+function getAssignedMonitoringProjects() {
+    if (!Array.isArray(monitoringData)) {
+        return [];
+    }
+
+    const userName = getCurrentMonitoringName();
+
+    if (!userName) {
+        return [];
+    }
+
+    return monitoringData.filter(project => {
+        const program = normalizeMonitoringName(project.program2);
+        const plan = normalizeMonitoringName(project.plan);
+
+        return program === userName || plan === userName;
+    });
+}
+
+function renderMonitoringProjects() {
+
+    const container = document.getElementById("monitoringList");
+
+    if (!container) return;
+
+    const projects = getAssignedMonitoringProjects();
+
+    const searchInput =
+        document.getElementById("monitoringSearch");
+
+    const statusFilter =
+        document.getElementById("monitoringStatusFilter");
+
+    const search = normalizeMonitoringName(
+        searchInput?.value || ""
+    );
+
+    const status =
+        normalizeMonitoringName(
+            statusFilter?.value || ""
+        );
+
+    const filtered = projects.filter(project => {
+
+        const searchable = [
+            project.contract_id,
+            project.project_title,
+            project.municipality,
+            project.program2,
+            project.plan
+        ]
+            .join(" ")
+            .toLowerCase();
+
+        if (search && !searchable.includes(search)) {
+            return false;
+        }
+
+        if (status) {
+            const projectStatus =
+                normalizeMonitoringName(
+                    project.overall_status
+                );
+
+            if (projectStatus !== status) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    if (!filtered.length) {
+
+        container.innerHTML = `
+            <div style="
+                padding:40px;
+                text-align:center;
+                color:var(--muted);
+                border:1px solid #d5e0e7;
+                background:#f8fafb;
+            ">
+                <div style="
+                    font-size:22px;
+                    margin-bottom:8px;
+                ">⌕</div>
+
+                <strong style="
+                    color:var(--navy);
+                    font-size:11px;
+                ">
+                    NO ASSIGNED PROJECTS FOUND
+                </strong>
+
+                <div style="
+                    margin-top:6px;
+                    font-size:9px;
+                ">
+                    Projects assigned through PROGRAM2 or PLAN
+                    will appear here.
+                </div>
+            </div>
+        `;
+
+        updateMonitoringStats([]);
+        return;
+    }
+
+    container.innerHTML = `
+        <table style="
+            width:100%;
+            border-collapse:collapse;
+            font-size:9px;
+            min-width:900px;
+        ">
+            <thead>
+                <tr style="
+                    background:#063b61;
+                    color:#fff;
+                    text-align:left;
+                ">
+                    <th style="padding:10px;">CONTRACT ID</th>
+                    <th style="padding:10px;">PROJECT</th>
+                    <th style="padding:10px;">MUNICIPALITY</th>
+                    <th style="padding:10px;">PROGRAM</th>
+                    <th style="padding:10px;">PLAN</th>
+                    <th style="padding:10px;">STATUS</th>
+                    <th style="padding:10px;">ACTION</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${filtered.map((project, index) => {
+
+                    const status =
+                        project.overall_status ||
+                        "Not Yet Started";
+
+                    return `
+                        <tr style="
+                            border-bottom:1px solid #d9e2e8;
+                            background:#fff;
+                        ">
+
+                            <td style="
+                                padding:10px;
+                                font-weight:700;
+                                color:#063b61;
+                            ">
+                                ${escapeHTML(project.contract_id || "")}
+                            </td>
+
+                            <td style="padding:10px;">
+                                ${escapeHTML(
+                                    project.project_title ||
+                                    "Project details not yet encoded"
+                                )}
+                            </td>
+
+                            <td style="padding:10px;">
+                                ${escapeHTML(
+                                    project.municipality || "—"
+                                )}
+                            </td>
+
+                            <td style="padding:10px;">
+                                ${escapeHTML(
+                                    project.program2 || "—"
+                                )}
+                            </td>
+
+                            <td style="padding:10px;">
+                                ${escapeHTML(
+                                    project.plan || "—"
+                                )}
+                            </td>
+
+                            <td style="padding:10px;">
+                                <span style="
+                                    display:inline-block;
+                                    padding:5px 8px;
+                                    border:1px solid #d5e0e7;
+                                    background:#f5f8fa;
+                                    font-weight:700;
+                                ">
+                                    ${escapeHTML(status)}
+                                </span>
+                            </td>
+
+                            <td style="
+                                padding:10px;
+                                white-space:nowrap;
+                            ">
+
+                                <button
+                                    type="button"
+                                    class="button secondary"
+                                    onclick="viewMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                                >
+                                    VIEW
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="button primary"
+                                    onclick="editMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                                >
+                                    EDIT
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+    `;
+
+    updateMonitoringStats(filtered);
+}
+
+function updateMonitoringStats(projects) {
+
+    const total =
+        document.getElementById("monitoringTotalProjects");
+
+    const notStarted =
+        document.getElementById("monitoringNotStarted");
+
+    const ongoing =
+        document.getElementById("monitoringOngoing");
+
+    const forCompletion =
+        document.getElementById("monitoringForCompletion");
+
+    const completed =
+        document.getElementById("monitoringCompleted");
+
+    const overall =
+        document.getElementById("monitoringOverallProgress");
+
+    if (!Array.isArray(projects)) {
+        projects = [];
+    }
+
+    if (total) {
+        total.textContent = projects.length;
+    }
+
+    let notStartedCount = 0;
+    let ongoingCount = 0;
+    let completionCount = 0;
+    let completedCount = 0;
+
+    projects.forEach(project => {
+
+        const status =
+            normalizeMonitoringName(
+                project.overall_status ||
+                "Not Yet Started"
+            );
+
+        if (
+            status === "not started" ||
+            status === "not yet started"
+        ) {
+            notStartedCount++;
+        }
+
+        else if (
+            status === "ongoing" ||
+            status === "on-going"
+        ) {
+            ongoingCount++;
+        }
+
+        else if (
+            status === "for completion"
+        ) {
+            completionCount++;
+        }
+
+        else if (
+            status === "completed"
+        ) {
+            completedCount++;
+        }
+    });
+
+    if (notStarted) {
+        notStarted.textContent = notStartedCount;
+    }
+
+    if (ongoing) {
+        ongoing.textContent = ongoingCount;
+    }
+
+    if (forCompletion) {
+        forCompletion.textContent = completionCount;
+    }
+
+    if (completed) {
+        completed.textContent = completedCount;
+    }
+
+    /*
+     * Percent data is not yet available in the GitHub
+     * assignment file, so do not invent a percentage.
+     */
+    if (overall) {
+        overall.textContent = "—";
+    }
+}
+
+function loadMonitoring() {
+
+    try {
+
+        if (!Array.isArray(monitoringData)) {
+            console.warn(
+                "monitoringData is not available."
+            );
+            return;
+        }
+
+        renderMonitoringProjects();
+
+    } catch (error) {
+
+        console.error(
+            "Monitoring load error:",
+            error
+        );
+    }
+}
+
+function setupMonitoring() {
+
+    const search =
+        document.getElementById("monitoringSearch");
+
+    const status =
+        document.getElementById("monitoringStatusFilter");
+
+    const refresh =
+        document.getElementById("refreshMonitoringButton");
+
+    if (search) {
+        search.addEventListener(
+            "input",
+            renderMonitoringProjects
+        );
+    }
+
+    if (status) {
+        status.addEventListener(
+            "change",
+            renderMonitoringProjects
+        );
+    }
+
+    if (refresh) {
+        refresh.addEventListener(
+            "click",
+            loadMonitoring
+        );
+    }
+
+    loadMonitoring();
+}
+
+function viewMonitoringProject(contractId) {
+
+    const project =
+        monitoringData.find(
+            item =>
+                String(item.contract_id) ===
+                String(contractId)
+        );
+
+    if (!project) {
+        alert("Project record not found.");
+        return;
+    }
+
+    alert(
+        "Contract ID: " +
+        (project.contract_id || "") +
+        "\n\n" +
+        "Program Personnel: " +
+        (project.program2 || "—") +
+        "\n" +
+        "Plan Personnel: " +
+        (project.plan || "—")
+    );
+}
+
+function editMonitoringProject(contractId) {
+
+    const project =
+        monitoringData.find(
+            item =>
+                String(item.contract_id) ===
+                String(contractId)
+        );
+
+    if (!project) {
+        alert("Project record not found.");
+        return;
+    }
+
+    alert(
+        "EDIT FUNCTION\n\n" +
+        "Contract ID: " +
+        (project.contract_id || "") +
+        "\n\n" +
+        "The project editor will be added in the next step."
+    );
+}
