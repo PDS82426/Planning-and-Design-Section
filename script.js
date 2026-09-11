@@ -5817,20 +5817,41 @@ function normalizeMonitoringName(value) {
         .replace(/\s+/g, " ");
 }
 
+/* =========================================================
+   PDS PROJECT MONITORING
+   GITHUB + ONEDRIVE ONLY
+========================================================= */
+
+function normalizeMonitoringName(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
+
+/* =========================================================
+   CURRENT USER NAME
+   Uses the existing PDS login profile only.
+   No monitoring_name field required.
+========================================================= */
+
 function getCurrentMonitoringName() {
-    /*
-     * Uses the logged-in user's profile name.
-     * If monitoring_name exists in the profile, use that first.
-     */
+
     return normalizeMonitoringName(
-        currentProfile?.monitoring_name ||
         currentProfile?.full_name ||
         currentUser?.user_metadata?.full_name ||
         ""
     );
 }
 
+
+/* =========================================================
+   ASSIGNED PROJECTS
+========================================================= */
+
 function getAssignedMonitoringProjects() {
+
     if (!Array.isArray(monitoringData)) {
         return [];
     }
@@ -5842,20 +5863,34 @@ function getAssignedMonitoringProjects() {
     }
 
     return monitoringData.filter(project => {
-        const program = normalizeMonitoringName(project.program2);
-        const plan = normalizeMonitoringName(project.plan);
 
-        return program === userName || plan === userName;
+        const program =
+            normalizeMonitoringName(project.program2);
+
+        const plan =
+            normalizeMonitoringName(project.plan);
+
+        return (
+            program === userName ||
+            plan === userName
+        );
     });
 }
 
+
+/* =========================================================
+   RENDER MONITORING TABLE
+========================================================= */
+
 function renderMonitoringProjects() {
 
-    const container = document.getElementById("monitoringList");
+    const container =
+        document.getElementById("monitoringList");
 
     if (!container) return;
 
-    const projects = getAssignedMonitoringProjects();
+    const assignedProjects =
+        getAssignedMonitoringProjects();
 
     const searchInput =
         document.getElementById("monitoringSearch");
@@ -5863,44 +5898,58 @@ function renderMonitoringProjects() {
     const statusFilter =
         document.getElementById("monitoringStatusFilter");
 
-    const search = normalizeMonitoringName(
-        searchInput?.value || ""
-    );
+    const search =
+        normalizeMonitoringName(
+            searchInput?.value || ""
+        );
 
     const status =
         normalizeMonitoringName(
             statusFilter?.value || ""
         );
 
-    const filtered = projects.filter(project => {
+    const filtered =
+        assignedProjects.filter(project => {
 
-        const searchable = [
-            project.contract_id,
-            project.project_title,
-            project.municipality,
-            project.program2,
-            project.plan
-        ]
-            .join(" ")
-            .toLowerCase();
+            const searchable = [
+                project.contract_id,
+                project.project_title,
+                project.municipality,
+                project.program2,
+                project.plan,
+                project.program,
+                project.sub_program
+            ]
+                .join(" ")
+                .toLowerCase();
 
-        if (search && !searchable.includes(search)) {
-            return false;
-        }
-
-        if (status) {
-            const projectStatus =
-                normalizeMonitoringName(
-                    project.overall_status
-                );
-
-            if (projectStatus !== status) {
+            if (
+                search &&
+                !searchable.includes(search)
+            ) {
                 return false;
             }
-        }
 
-        return true;
-    });
+            if (status) {
+
+                const projectStatus =
+                    normalizeMonitoringName(
+                        project.overall_status ||
+                        "Not Yet Started"
+                    );
+
+                if (projectStatus !== status) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+
+    /* =====================================================
+       NO PROJECTS
+    ===================================================== */
 
     if (!filtered.length) {
 
@@ -5912,6 +5961,7 @@ function renderMonitoringProjects() {
                 border:1px solid #d5e0e7;
                 background:#f8fafb;
             ">
+
                 <div style="
                     font-size:22px;
                     margin-bottom:8px;
@@ -5931,12 +5981,19 @@ function renderMonitoringProjects() {
                     Projects assigned through PROGRAM2 or PLAN
                     will appear here.
                 </div>
+
             </div>
         `;
 
         updateMonitoringStats([]);
+
         return;
     }
+
+
+    /* =====================================================
+       TABLE
+    ===================================================== */
 
     container.innerHTML = `
         <table style="
@@ -5945,30 +6002,57 @@ function renderMonitoringProjects() {
             font-size:9px;
             min-width:900px;
         ">
+
             <thead>
+
                 <tr style="
                     background:#063b61;
                     color:#fff;
                     text-align:left;
                 ">
-                    <th style="padding:10px;">CONTRACT ID</th>
-                    <th style="padding:10px;">PROJECT</th>
-                    <th style="padding:10px;">MUNICIPALITY</th>
-                    <th style="padding:10px;">PROGRAM</th>
-                    <th style="padding:10px;">PLAN</th>
-                    <th style="padding:10px;">STATUS</th>
-                    <th style="padding:10px;">ACTION</th>
+
+                    <th style="padding:10px;">
+                        CONTRACT ID
+                    </th>
+
+                    <th style="padding:10px;">
+                        PROJECT
+                    </th>
+
+                    <th style="padding:10px;">
+                        MUNICIPALITY
+                    </th>
+
+                    <th style="padding:10px;">
+                        PROGRAM
+                    </th>
+
+                    <th style="padding:10px;">
+                        PLAN
+                    </th>
+
+                    <th style="padding:10px;">
+                        STATUS
+                    </th>
+
+                    <th style="padding:10px;">
+                        ACTION
+                    </th>
+
                 </tr>
+
             </thead>
 
             <tbody>
-                ${filtered.map((project, index) => {
 
-                    const status =
+                ${filtered.map(project => {
+
+                    const projectStatus =
                         project.overall_status ||
                         "Not Yet Started";
 
                     return `
+
                         <tr style="
                             border-bottom:1px solid #d9e2e8;
                             background:#fff;
@@ -5979,7 +6063,9 @@ function renderMonitoringProjects() {
                                 font-weight:700;
                                 color:#063b61;
                             ">
-                                ${escapeHTML(project.contract_id || "")}
+                                ${escapeHTML(
+                                    project.contract_id || ""
+                                )}
                             </td>
 
                             <td style="padding:10px;">
@@ -6008,6 +6094,7 @@ function renderMonitoringProjects() {
                             </td>
 
                             <td style="padding:10px;">
+
                                 <span style="
                                     display:inline-block;
                                     padding:5px 8px;
@@ -6015,8 +6102,11 @@ function renderMonitoringProjects() {
                                     background:#f5f8fa;
                                     font-weight:700;
                                 ">
-                                    ${escapeHTML(status)}
+                                    ${escapeHTML(
+                                        projectStatus
+                                    )}
                                 </span>
+
                             </td>
 
                             <td style="
@@ -6027,7 +6117,9 @@ function renderMonitoringProjects() {
                                 <button
                                     type="button"
                                     class="button secondary"
-                                    onclick="viewMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                                    onclick="viewMonitoringProject('${escapeJS(
+                                        project.contract_id || ""
+                                    )}')"
                                 >
                                     VIEW
                                 </button>
@@ -6035,7 +6127,9 @@ function renderMonitoringProjects() {
                                 <button
                                     type="button"
                                     class="button primary"
-                                    onclick="editMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                                    onclick="editMonitoringProject('${escapeJS(
+                                        project.contract_id || ""
+                                    )}')"
                                 >
                                     EDIT
                                 </button>
@@ -6044,46 +6138,70 @@ function renderMonitoringProjects() {
 
                         </tr>
                     `;
+
                 }).join("")}
+
             </tbody>
+
         </table>
     `;
 
     updateMonitoringStats(filtered);
 }
 
+
+/* =========================================================
+   MONITORING STATISTICS
+========================================================= */
+
 function updateMonitoringStats(projects) {
 
     const total =
-        document.getElementById("monitoringTotalProjects");
+        document.getElementById(
+            "monitoringTotalProjects"
+        );
 
     const notStarted =
-        document.getElementById("monitoringNotStarted");
+        document.getElementById(
+            "monitoringNotStarted"
+        );
 
     const ongoing =
-        document.getElementById("monitoringOngoing");
+        document.getElementById(
+            "monitoringOngoing"
+        );
 
     const forCompletion =
-        document.getElementById("monitoringForCompletion");
+        document.getElementById(
+            "monitoringForCompletion"
+        );
 
     const completed =
-        document.getElementById("monitoringCompleted");
+        document.getElementById(
+            "monitoringCompleted"
+        );
 
     const overall =
-        document.getElementById("monitoringOverallProgress");
+        document.getElementById(
+            "monitoringOverallProgress"
+        );
+
 
     if (!Array.isArray(projects)) {
         projects = [];
     }
 
+
     if (total) {
         total.textContent = projects.length;
     }
+
 
     let notStartedCount = 0;
     let ongoingCount = 0;
     let completionCount = 0;
     let completedCount = 0;
+
 
     projects.forEach(project => {
 
@@ -6092,6 +6210,7 @@ function updateMonitoringStats(projects) {
                 project.overall_status ||
                 "Not Yet Started"
             );
+
 
         if (
             status === "not started" ||
@@ -6118,89 +6237,135 @@ function updateMonitoringStats(projects) {
         ) {
             completedCount++;
         }
+
     });
 
+
     if (notStarted) {
-        notStarted.textContent = notStartedCount;
+        notStarted.textContent =
+            notStartedCount;
     }
 
     if (ongoing) {
-        ongoing.textContent = ongoingCount;
+        ongoing.textContent =
+            ongoingCount;
     }
 
     if (forCompletion) {
-        forCompletion.textContent = completionCount;
+        forCompletion.textContent =
+            completionCount;
     }
 
     if (completed) {
-        completed.textContent = completedCount;
+        completed.textContent =
+            completedCount;
     }
 
+
     /*
-     * Percent data is not yet available in the GitHub
-     * assignment file, so do not invent a percentage.
+     * Progress percentage is not currently
+     * available in monitoring-data.js.
+     *
+     * Do not invent a value.
      */
+
     if (overall) {
         overall.textContent = "—";
     }
 }
+
+
+/* =========================================================
+   LOAD MONITORING
+========================================================= */
 
 function loadMonitoring() {
 
     try {
 
         if (!Array.isArray(monitoringData)) {
+
             console.warn(
                 "monitoringData is not available."
             );
+
             return;
         }
 
         renderMonitoringProjects();
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
             "Monitoring load error:",
             error
         );
+
     }
 }
+
+
+/* =========================================================
+   SETUP MONITORING
+========================================================= */
 
 function setupMonitoring() {
 
     const search =
-        document.getElementById("monitoringSearch");
+        document.getElementById(
+            "monitoringSearch"
+        );
 
     const status =
-        document.getElementById("monitoringStatusFilter");
+        document.getElementById(
+            "monitoringStatusFilter"
+        );
 
     const refresh =
-        document.getElementById("refreshMonitoringButton");
+        document.getElementById(
+            "refreshMonitoringButton"
+        );
+
 
     if (search) {
+
         search.addEventListener(
             "input",
             renderMonitoringProjects
         );
+
     }
 
+
     if (status) {
+
         status.addEventListener(
             "change",
             renderMonitoringProjects
         );
+
     }
 
+
     if (refresh) {
+
         refresh.addEventListener(
             "click",
             loadMonitoring
         );
+
     }
+
 
     loadMonitoring();
 }
+
+
+/* =========================================================
+   VIEW PROJECT
+========================================================= */
 
 function viewMonitoringProject(contractId) {
 
@@ -6211,21 +6376,31 @@ function viewMonitoringProject(contractId) {
                 String(contractId)
         );
 
+
     if (!project) {
-        alert("Project record not found.");
+
+        alert(
+            "Project record not found."
+        );
+
         return;
     }
 
-    const existing =
-        document.getElementById("monitoringDetailModal");
 
-    if (existing) {
-        existing.remove();
-    }
+    document
+        .getElementById(
+            "monitoringDetailModal"
+        )
+        ?.remove();
 
-    const modal = document.createElement("div");
 
-    modal.id = "monitoringDetailModal";
+    const modal =
+        document.createElement("div");
+
+
+    modal.id =
+        "monitoringDetailModal";
+
 
     modal.style.cssText = `
         position:fixed;
@@ -6238,7 +6413,9 @@ function viewMonitoringProject(contractId) {
         padding:20px;
     `;
 
+
     modal.innerHTML = `
+
         <div style="
             width:min(900px,96vw);
             max-height:90vh;
@@ -6258,6 +6435,7 @@ function viewMonitoringProject(contractId) {
             ">
 
                 <div>
+
                     <div style="
                         font-size:9px;
                         letter-spacing:1px;
@@ -6273,11 +6451,19 @@ function viewMonitoringProject(contractId) {
                     ">
                         PROJECT DETAILS
                     </div>
+
                 </div>
+
 
                 <button
                     type="button"
-                    onclick="document.getElementById('monitoringDetailModal')?.remove()"
+                    onclick="
+                        document
+                        .getElementById(
+                            'monitoringDetailModal'
+                        )
+                        ?.remove()
+                    "
                     style="
                         border:0;
                         background:transparent;
@@ -6291,33 +6477,50 @@ function viewMonitoringProject(contractId) {
 
             </div>
 
+
             <div style="padding:20px;">
 
                 <div style="
                     display:grid;
-                    grid-template-columns:repeat(2,minmax(0,1fr));
+                    grid-template-columns:
+                        repeat(2,minmax(0,1fr));
                     gap:15px;
                 ">
 
                     <div>
+
                         <div class="stat-label">
                             CONTRACT ID
                         </div>
+
                         <strong>
-                            ${escapeHTML(project.contract_id || "—")}
+                            ${escapeHTML(
+                                project.contract_id || "—"
+                            )}
                         </strong>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             MUNICIPALITY
                         </div>
+
                         <strong>
-                            ${escapeHTML(project.municipality || "—")}
+                            ${escapeHTML(
+                                project.municipality || "—"
+                            )}
                         </strong>
+
                     </div>
 
-                    <div style="grid-column:1/-1;">
+
+                    <div style="
+                        grid-column:1/-1;
+                    ">
+
                         <div class="stat-label">
                             PROJECT TITLE
                         </div>
@@ -6334,61 +6537,88 @@ function viewMonitoringProject(contractId) {
                                 "Project title not yet encoded"
                             )}
                         </div>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             PROGRAM PERSONNEL
                         </div>
 
                         <strong>
-                            ${escapeHTML(project.program2 || "—")}
+                            ${escapeHTML(
+                                project.program2 || "—"
+                            )}
                         </strong>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             PLAN PERSONNEL
                         </div>
 
                         <strong>
-                            ${escapeHTML(project.plan || "—")}
+                            ${escapeHTML(
+                                project.plan || "—"
+                            )}
                         </strong>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             PROGRAM
                         </div>
 
                         <span>
-                            ${escapeHTML(project.program || "—")}
+                            ${escapeHTML(
+                                project.program || "—"
+                            )}
                         </span>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             SUB-PROGRAM
                         </div>
 
                         <span>
-                            ${escapeHTML(project.sub_program || "—")}
+                            ${escapeHTML(
+                                project.sub_program || "—"
+                            )}
                         </span>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             ADVERTISEMENT BATCH
                         </div>
 
                         <span>
                             ${escapeHTML(
-                                project.advertisement_batch || "—"
+                                project.advertisement_batch ||
+                                "—"
                             )}
                         </span>
+
                     </div>
 
+
                     <div>
+
                         <div class="stat-label">
                             STATUS
                         </div>
@@ -6399,9 +6629,11 @@ function viewMonitoringProject(contractId) {
                                 "Not Yet Started"
                             )}
                         </span>
+
                     </div>
 
                 </div>
+
 
                 <div style="
                     margin-top:20px;
@@ -6415,15 +6647,28 @@ function viewMonitoringProject(contractId) {
                     <button
                         type="button"
                         class="button secondary"
-                        onclick="document.getElementById('monitoringDetailModal')?.remove()"
+                        onclick="
+                            document
+                            .getElementById(
+                                'monitoringDetailModal'
+                            )
+                            ?.remove()
+                        "
                     >
                         CLOSE
                     </button>
 
+
                     <button
                         type="button"
                         class="button primary"
-                        onclick="editMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                        onclick="
+                            editMonitoringProject(
+                                '${escapeJS(
+                                    project.contract_id || ""
+                                )}'
+                            )
+                        "
                     >
                         EDIT PROJECT
                     </button>
@@ -6431,11 +6676,19 @@ function viewMonitoringProject(contractId) {
                 </div>
 
             </div>
+
         </div>
     `;
 
+
     document.body.appendChild(modal);
 }
+
+
+/* =========================================================
+   EDIT PROJECT
+========================================================= */
+
 function editMonitoringProject(contractId) {
 
     const project =
@@ -6445,23 +6698,38 @@ function editMonitoringProject(contractId) {
                 String(contractId)
         );
 
+
     if (!project) {
-        alert("Project record not found.");
+
+        alert(
+            "Project record not found."
+        );
+
         return;
     }
 
-    document.getElementById("monitoringDetailModal")?.remove();
 
-    const existing =
-        document.getElementById("monitoringEditModal");
+    document
+        .getElementById(
+            "monitoringDetailModal"
+        )
+        ?.remove();
 
-    if (existing) {
-        existing.remove();
-    }
 
-    const modal = document.createElement("div");
+    document
+        .getElementById(
+            "monitoringEditModal"
+        )
+        ?.remove();
 
-    modal.id = "monitoringEditModal";
+
+    const modal =
+        document.createElement("div");
+
+
+    modal.id =
+        "monitoringEditModal";
+
 
     modal.style.cssText = `
         position:fixed;
@@ -6474,7 +6742,9 @@ function editMonitoringProject(contractId) {
         padding:20px;
     `;
 
+
     modal.innerHTML = `
+
         <div style="
             width:min(900px,96vw);
             max-height:90vh;
@@ -6494,6 +6764,7 @@ function editMonitoringProject(contractId) {
             ">
 
                 <div>
+
                     <div style="
                         font-size:9px;
                         letter-spacing:1px;
@@ -6509,11 +6780,19 @@ function editMonitoringProject(contractId) {
                     ">
                         EDIT PROJECT
                     </div>
+
                 </div>
+
 
                 <button
                     type="button"
-                    onclick="document.getElementById('monitoringEditModal')?.remove()"
+                    onclick="
+                        document
+                        .getElementById(
+                            'monitoringEditModal'
+                        )
+                        ?.remove()
+                    "
                     style="
                         border:0;
                         background:transparent;
@@ -6527,6 +6806,7 @@ function editMonitoringProject(contractId) {
 
             </div>
 
+
             <form
                 id="monitoringEditForm"
                 style="padding:20px;"
@@ -6534,19 +6814,23 @@ function editMonitoringProject(contractId) {
 
                 <div style="
                     display:grid;
-                    grid-template-columns:repeat(2,minmax(0,1fr));
+                    grid-template-columns:
+                        repeat(2,minmax(0,1fr));
                     gap:15px;
                 ">
 
+
                     <div>
+
                         <label class="stat-label">
                             CONTRACT ID
                         </label>
 
                         <input
                             type="text"
-                            id="editMonitoringContractId"
-                            value="${escapeHTML(project.contract_id || "")}"
+                            value="${escapeHTML(
+                                project.contract_id || ""
+                            )}"
                             readonly
                             style="
                                 width:100%;
@@ -6558,9 +6842,12 @@ function editMonitoringProject(contractId) {
                                 border-radius:3px;
                             "
                         >
+
                     </div>
 
+
                     <div>
+
                         <label class="stat-label">
                             MUNICIPALITY
                         </label>
@@ -6568,7 +6855,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringMunicipality"
-                            value="${escapeHTML(project.municipality || "")}"
+                            value="${escapeHTML(
+                                project.municipality || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6578,9 +6867,13 @@ function editMonitoringProject(contractId) {
                                 border-radius:3px;
                             "
                         >
+
                     </div>
 
-                    <div style="grid-column:1/-1;">
+
+                    <div style="
+                        grid-column:1/-1;
+                    ">
 
                         <label class="stat-label">
                             PROJECT TITLE
@@ -6597,9 +6890,12 @@ function editMonitoringProject(contractId) {
                                 border-radius:3px;
                                 resize:vertical;
                             "
-                        >${escapeHTML(project.project_title || "")}</textarea>
+                        >${escapeHTML(
+                            project.project_title || ""
+                        )}</textarea>
 
                     </div>
+
 
                     <div>
 
@@ -6610,7 +6906,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringProgram"
-                            value="${escapeHTML(project.program2 || "")}"
+                            value="${escapeHTML(
+                                project.program2 || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6622,6 +6920,7 @@ function editMonitoringProject(contractId) {
                         >
 
                     </div>
+
 
                     <div>
 
@@ -6632,7 +6931,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringPlan"
-                            value="${escapeHTML(project.plan || "")}"
+                            value="${escapeHTML(
+                                project.plan || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6644,6 +6945,7 @@ function editMonitoringProject(contractId) {
                         >
 
                     </div>
+
 
                     <div>
 
@@ -6654,7 +6956,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringProgramName"
-                            value="${escapeHTML(project.program || "")}"
+                            value="${escapeHTML(
+                                project.program || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6666,6 +6970,7 @@ function editMonitoringProject(contractId) {
                         >
 
                     </div>
+
 
                     <div>
 
@@ -6676,7 +6981,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringSubProgram"
-                            value="${escapeHTML(project.sub_program || "")}"
+                            value="${escapeHTML(
+                                project.sub_program || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6688,6 +6995,7 @@ function editMonitoringProject(contractId) {
                         >
 
                     </div>
+
 
                     <div>
 
@@ -6698,7 +7006,9 @@ function editMonitoringProject(contractId) {
                         <input
                             type="text"
                             id="editMonitoringAdvertisement"
-                            value="${escapeHTML(project.advertisement_batch || "")}"
+                            value="${escapeHTML(
+                                project.advertisement_batch || ""
+                            )}"
                             style="
                                 width:100%;
                                 box-sizing:border-box;
@@ -6710,6 +7020,7 @@ function editMonitoringProject(contractId) {
                         >
 
                     </div>
+
 
                     <div>
 
@@ -6729,15 +7040,29 @@ function editMonitoringProject(contractId) {
                                 background:#fff;
                             "
                         >
-                            <option value="Not Yet Started">NOT YET STARTED</option>
-                            <option value="Ongoing">ONGOING</option>
-                            <option value="For Completion">FOR COMPLETION</option>
-                            <option value="Completed">COMPLETED</option>
+
+                            <option value="Not Yet Started">
+                                NOT YET STARTED
+                            </option>
+
+                            <option value="Ongoing">
+                                ONGOING
+                            </option>
+
+                            <option value="For Completion">
+                                FOR COMPLETION
+                            </option>
+
+                            <option value="Completed">
+                                COMPLETED
+                            </option>
+
                         </select>
 
                     </div>
 
                 </div>
+
 
                 <div style="
                     margin-top:20px;
@@ -6751,10 +7076,17 @@ function editMonitoringProject(contractId) {
                     <button
                         type="button"
                         class="button secondary"
-                        onclick="document.getElementById('monitoringEditModal')?.remove()"
+                        onclick="
+                            document
+                            .getElementById(
+                                'monitoringEditModal'
+                            )
+                            ?.remove()
+                        "
                     >
                         CANCEL
                     </button>
+
 
                     <button
                         type="submit"
@@ -6766,77 +7098,127 @@ function editMonitoringProject(contractId) {
                 </div>
 
             </form>
+
         </div>
     `;
 
+
     document.body.appendChild(modal);
 
+
     const statusSelect =
-        document.getElementById("editMonitoringStatus");
+        document.getElementById(
+            "editMonitoringStatus"
+        );
+
 
     if (statusSelect) {
+
         statusSelect.value =
             project.overall_status ||
             "Not Yet Started";
+
     }
 
+
     const form =
-        document.getElementById("monitoringEditForm");
+        document.getElementById(
+            "monitoringEditForm"
+        );
 
-    if (form) {
 
-        form.addEventListener("submit", function(event) {
+    if (!form) return;
+
+
+    form.addEventListener(
+        "submit",
+        function(event) {
 
             event.preventDefault();
 
+
             project.municipality =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringMunicipality"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.project_title =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringProjectTitle"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.program2 =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringProgram"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.plan =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringPlan"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.program =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringProgramName"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.sub_program =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringSubProgram"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.advertisement_batch =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringAdvertisement"
-                ).value.trim();
+                )
+                .value
+                .trim();
+
 
             project.overall_status =
-                document.getElementById(
+                document
+                .getElementById(
                     "editMonitoringStatus"
-                ).value;
+                )
+                .value;
+
 
             modal.remove();
 
+
             renderMonitoringProjects();
+
 
             alert(
                 "Project updated on this website."
             );
-        });
 
-    }
+        }
+    );
+
 }
