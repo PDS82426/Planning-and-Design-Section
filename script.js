@@ -5862,21 +5862,53 @@ function getAssignedMonitoringProjects() {
         return [];
     }
 
+    /*
+     * Allow the logged-in profile to contain
+     * additional name information.
+     *
+     * Example:
+     * "cHRISTINE LAT" → "christine"
+     */
+
+    const userFirstName =
+        userName
+            .split(/\s+/)[0]
+            .trim();
+
+
     return monitoringData.filter(project => {
 
         const program =
-            normalizeMonitoringName(project.program2);
+            normalizeMonitoringName(
+                project.program2
+            );
 
         const plan =
-            normalizeMonitoringName(project.plan);
+            normalizeMonitoringName(
+                project.plan
+            );
+
+
+        const programFirstName =
+            program
+                .split(/\s+/)[0]
+                .trim();
+
+        const planFirstName =
+            plan
+                .split(/\s+/)[0]
+                .trim();
+
 
         return (
             program === userName ||
-            plan === userName
+            plan === userName ||
+            programFirstName === userFirstName ||
+            planFirstName === userFirstName
         );
+
     });
 }
-
 
 /* =========================================================
    RENDER MONITORING TABLE
