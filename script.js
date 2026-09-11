@@ -6216,18 +6216,226 @@ function viewMonitoringProject(contractId) {
         return;
     }
 
-    alert(
-        "Contract ID: " +
-        (project.contract_id || "") +
-        "\n\n" +
-        "Program Personnel: " +
-        (project.program2 || "—") +
-        "\n" +
-        "Plan Personnel: " +
-        (project.plan || "—")
-    );
-}
+    const existing =
+        document.getElementById("monitoringDetailModal");
 
+    if (existing) {
+        existing.remove();
+    }
+
+    const modal = document.createElement("div");
+
+    modal.id = "monitoringDetailModal";
+
+    modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.55);
+        z-index:9999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            width:min(900px,96vw);
+            max-height:90vh;
+            overflow:auto;
+            background:#fff;
+            border-radius:5px;
+            box-shadow:0 20px 60px rgba(0,0,0,.30);
+        ">
+
+            <div style="
+                background:#063b61;
+                color:#fff;
+                padding:18px 20px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+            ">
+
+                <div>
+                    <div style="
+                        font-size:9px;
+                        letter-spacing:1px;
+                        opacity:.75;
+                    ">
+                        PDS / PROJECT CONTROL
+                    </div>
+
+                    <div style="
+                        font-size:18px;
+                        font-weight:700;
+                        margin-top:4px;
+                    ">
+                        PROJECT DETAILS
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    onclick="document.getElementById('monitoringDetailModal')?.remove()"
+                    style="
+                        border:0;
+                        background:transparent;
+                        color:#fff;
+                        font-size:22px;
+                        cursor:pointer;
+                    "
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <div style="padding:20px;">
+
+                <div style="
+                    display:grid;
+                    grid-template-columns:repeat(2,minmax(0,1fr));
+                    gap:15px;
+                ">
+
+                    <div>
+                        <div class="stat-label">
+                            CONTRACT ID
+                        </div>
+                        <strong>
+                            ${escapeHTML(project.contract_id || "—")}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            MUNICIPALITY
+                        </div>
+                        <strong>
+                            ${escapeHTML(project.municipality || "—")}
+                        </strong>
+                    </div>
+
+                    <div style="grid-column:1/-1;">
+                        <div class="stat-label">
+                            PROJECT TITLE
+                        </div>
+
+                        <div style="
+                            margin-top:5px;
+                            padding:12px;
+                            background:#f5f8fa;
+                            border:1px solid #d5e0e7;
+                            font-weight:600;
+                        ">
+                            ${escapeHTML(
+                                project.project_title ||
+                                "Project title not yet encoded"
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            PROGRAM PERSONNEL
+                        </div>
+
+                        <strong>
+                            ${escapeHTML(project.program2 || "—")}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            PLAN PERSONNEL
+                        </div>
+
+                        <strong>
+                            ${escapeHTML(project.plan || "—")}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            PROGRAM
+                        </div>
+
+                        <span>
+                            ${escapeHTML(project.program || "—")}
+                        </span>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            SUB-PROGRAM
+                        </div>
+
+                        <span>
+                            ${escapeHTML(project.sub_program || "—")}
+                        </span>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            ADVERTISEMENT BATCH
+                        </div>
+
+                        <span>
+                            ${escapeHTML(
+                                project.advertisement_batch || "—"
+                            )}
+                        </span>
+                    </div>
+
+                    <div>
+                        <div class="stat-label">
+                            STATUS
+                        </div>
+
+                        <span>
+                            ${escapeHTML(
+                                project.overall_status ||
+                                "Not Yet Started"
+                            )}
+                        </span>
+                    </div>
+
+                </div>
+
+                <div style="
+                    margin-top:20px;
+                    padding-top:15px;
+                    border-top:1px solid #d5e0e7;
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:8px;
+                ">
+
+                    <button
+                        type="button"
+                        class="button secondary"
+                        onclick="document.getElementById('monitoringDetailModal')?.remove()"
+                    >
+                        CLOSE
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button primary"
+                        onclick="editMonitoringProject('${escapeJS(project.contract_id || "")}')"
+                    >
+                        EDIT PROJECT
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
 function editMonitoringProject(contractId) {
 
     const project =
