@@ -6450,11 +6450,393 @@ function editMonitoringProject(contractId) {
         return;
     }
 
-    alert(
-        "EDIT FUNCTION\n\n" +
-        "Contract ID: " +
-        (project.contract_id || "") +
-        "\n\n" +
-        "The project editor will be added in the next step."
-    );
+    document.getElementById("monitoringDetailModal")?.remove();
+
+    const existing =
+        document.getElementById("monitoringEditModal");
+
+    if (existing) {
+        existing.remove();
+    }
+
+    const modal = document.createElement("div");
+
+    modal.id = "monitoringEditModal";
+
+    modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.55);
+        z-index:9999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            width:min(900px,96vw);
+            max-height:90vh;
+            overflow:auto;
+            background:#fff;
+            border-radius:5px;
+            box-shadow:0 20px 60px rgba(0,0,0,.30);
+        ">
+
+            <div style="
+                background:#063b61;
+                color:#fff;
+                padding:18px 20px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+            ">
+
+                <div>
+                    <div style="
+                        font-size:9px;
+                        letter-spacing:1px;
+                        opacity:.75;
+                    ">
+                        PDS / PROJECT CONTROL
+                    </div>
+
+                    <div style="
+                        font-size:18px;
+                        font-weight:700;
+                        margin-top:4px;
+                    ">
+                        EDIT PROJECT
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    onclick="document.getElementById('monitoringEditModal')?.remove()"
+                    style="
+                        border:0;
+                        background:transparent;
+                        color:#fff;
+                        font-size:22px;
+                        cursor:pointer;
+                    "
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <form
+                id="monitoringEditForm"
+                style="padding:20px;"
+            >
+
+                <div style="
+                    display:grid;
+                    grid-template-columns:repeat(2,minmax(0,1fr));
+                    gap:15px;
+                ">
+
+                    <div>
+                        <label class="stat-label">
+                            CONTRACT ID
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringContractId"
+                            value="${escapeHTML(project.contract_id || "")}"
+                            readonly
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                background:#f1f4f6;
+                                border-radius:3px;
+                            "
+                        >
+                    </div>
+
+                    <div>
+                        <label class="stat-label">
+                            MUNICIPALITY
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringMunicipality"
+                            value="${escapeHTML(project.municipality || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+                    </div>
+
+                    <div style="grid-column:1/-1;">
+
+                        <label class="stat-label">
+                            PROJECT TITLE
+                        </label>
+
+                        <textarea
+                            id="editMonitoringProjectTitle"
+                            rows="3"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                padding:10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                                resize:vertical;
+                            "
+                        >${escapeHTML(project.project_title || "")}</textarea>
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            PROGRAM PERSONNEL
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringProgram"
+                            value="${escapeHTML(project.program2 || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            PLAN PERSONNEL
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringPlan"
+                            value="${escapeHTML(project.plan || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            PROGRAM
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringProgramName"
+                            value="${escapeHTML(project.program || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            SUB-PROGRAM
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringSubProgram"
+                            value="${escapeHTML(project.sub_program || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            ADVERTISEMENT BATCH
+                        </label>
+
+                        <input
+                            type="text"
+                            id="editMonitoringAdvertisement"
+                            value="${escapeHTML(project.advertisement_batch || "")}"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                            "
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="stat-label">
+                            STATUS
+                        </label>
+
+                        <select
+                            id="editMonitoringStatus"
+                            style="
+                                width:100%;
+                                box-sizing:border-box;
+                                height:38px;
+                                padding:0 10px;
+                                border:1px solid #c7d5de;
+                                border-radius:3px;
+                                background:#fff;
+                            "
+                        >
+                            <option value="Not Yet Started">NOT YET STARTED</option>
+                            <option value="Ongoing">ONGOING</option>
+                            <option value="For Completion">FOR COMPLETION</option>
+                            <option value="Completed">COMPLETED</option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div style="
+                    margin-top:20px;
+                    padding-top:15px;
+                    border-top:1px solid #d5e0e7;
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:8px;
+                ">
+
+                    <button
+                        type="button"
+                        class="button secondary"
+                        onclick="document.getElementById('monitoringEditModal')?.remove()"
+                    >
+                        CANCEL
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="button primary"
+                    >
+                        SAVE CHANGES
+                    </button>
+
+                </div>
+
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const statusSelect =
+        document.getElementById("editMonitoringStatus");
+
+    if (statusSelect) {
+        statusSelect.value =
+            project.overall_status ||
+            "Not Yet Started";
+    }
+
+    const form =
+        document.getElementById("monitoringEditForm");
+
+    if (form) {
+
+        form.addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+            project.municipality =
+                document.getElementById(
+                    "editMonitoringMunicipality"
+                ).value.trim();
+
+            project.project_title =
+                document.getElementById(
+                    "editMonitoringProjectTitle"
+                ).value.trim();
+
+            project.program2 =
+                document.getElementById(
+                    "editMonitoringProgram"
+                ).value.trim();
+
+            project.plan =
+                document.getElementById(
+                    "editMonitoringPlan"
+                ).value.trim();
+
+            project.program =
+                document.getElementById(
+                    "editMonitoringProgramName"
+                ).value.trim();
+
+            project.sub_program =
+                document.getElementById(
+                    "editMonitoringSubProgram"
+                ).value.trim();
+
+            project.advertisement_batch =
+                document.getElementById(
+                    "editMonitoringAdvertisement"
+                ).value.trim();
+
+            project.overall_status =
+                document.getElementById(
+                    "editMonitoringStatus"
+                ).value;
+
+            modal.remove();
+
+            renderMonitoringProjects();
+
+            alert(
+                "Project updated on this website."
+            );
+        });
+
+    }
 }
