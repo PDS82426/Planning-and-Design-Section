@@ -1,3 +1,5 @@
+console.log("PDS HUB SCRIPT LOADED");
+alert("PDS SCRIPT LOADED");
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE CORRECTED SCRIPT
