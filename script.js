@@ -1,8 +1,14 @@
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
-   COMPLETE SCRIPT
-   AUTH + SESSION + DASHBOARD + PROJECTS + DOCUMENTS
-   DEPARTMENT ORDERS + PDS AI + PROJECT MONITORING
+   COMPLETE CORRECTED SCRIPT
+
+   AUTH + SESSION
+   DASHBOARD
+   PROJECTS
+   DOCUMENTS
+   DEPARTMENT ORDERS
+   PROJECT MONITORING
+   PDS AI
 ========================================================= */
 
 
@@ -39,6 +45,7 @@ const MONITORING_TABLE =
 
 let db = null;
 
+
 function initializeSupabase() {
 
     if (!window.supabase) {
@@ -73,19 +80,18 @@ function initializeSupabase() {
                 SUPABASE_ANON_KEY,
                 {
                     auth: {
-
                         persistSession: true,
-
                         autoRefreshToken: true,
-
                         detectSessionInUrl: true,
-
                         storageKey:
                             "pds-supabase-auth"
-
                     }
                 }
             );
+
+        console.log(
+            "Supabase initialized successfully."
+        );
 
         return true;
 
@@ -111,7 +117,6 @@ let currentProfile = null;
 let pdsAIHistory = [];
 
 let cachedDocuments = [];
-
 let cachedMonitoring = [];
 
 let navigationReady = false;
@@ -119,6 +124,7 @@ let authFormsReady = false;
 let documentSearchReady = false;
 let aiReady = false;
 let monitoringReady = false;
+
 let initialized = false;
 
 
@@ -212,12 +218,14 @@ function showLogin() {
 
         app.style.display =
             "none";
+
     }
 
     if (authScreen) {
 
         authScreen.style.display =
             "flex";
+
     }
 
 }
@@ -235,12 +243,14 @@ function hideLogin() {
 
         authScreen.style.display =
             "none";
+
     }
 
     if (app) {
 
         app.style.display =
             "flex";
+
     }
 
 }
@@ -260,7 +270,9 @@ function authMessage(
 
     if (!element) {
 
-        console.error(message);
+        console.error(
+            message
+        );
 
         return;
     }
@@ -273,10 +285,6 @@ function authMessage(
 
 }
 
-
-/* =========================================================
-   CLEAR AUTH MESSAGE
-========================================================= */
 
 function clearAuthMessage() {
 
@@ -297,12 +305,155 @@ function clearAuthMessage() {
 
 
 /* =========================================================
+   AUTH TAB SWITCHING
+========================================================= */
+
+function showLoginTab() {
+
+    const loginForm =
+        $("loginForm");
+
+    const registerForm =
+        $("registerForm");
+
+    const tabLogin =
+        $("tabLogin");
+
+    const tabRegister =
+        $("tabRegister");
+
+    const title =
+        $("authTitle");
+
+    const subtitle =
+        $("authSubtitle");
+
+    if (loginForm) {
+
+        loginForm.style.display =
+            "";
+
+    }
+
+    if (registerForm) {
+
+        registerForm.style.display =
+            "none";
+
+    }
+
+    if (tabLogin) {
+
+        tabLogin.classList.add(
+            "active"
+        );
+
+    }
+
+    if (tabRegister) {
+
+        tabRegister.classList.remove(
+            "active"
+        );
+
+    }
+
+    if (title) {
+
+        title.textContent =
+            "Welcome back";
+
+    }
+
+    if (subtitle) {
+
+        subtitle.textContent =
+            "Sign in to access the PDS workspace.";
+
+    }
+
+    clearAuthMessage();
+
+}
+
+
+function showRegisterTab() {
+
+    const loginForm =
+        $("loginForm");
+
+    const registerForm =
+        $("registerForm");
+
+    const tabLogin =
+        $("tabLogin");
+
+    const tabRegister =
+        $("tabRegister");
+
+    const title =
+        $("authTitle");
+
+    const subtitle =
+        $("authSubtitle");
+
+    if (loginForm) {
+
+        loginForm.style.display =
+            "none";
+
+    }
+
+    if (registerForm) {
+
+        registerForm.style.display =
+            "";
+
+    }
+
+    if (tabLogin) {
+
+        tabLogin.classList.remove(
+            "active"
+        );
+
+    }
+
+    if (tabRegister) {
+
+        tabRegister.classList.add(
+            "active"
+        );
+
+    }
+
+    if (title) {
+
+        title.textContent =
+            "Create your account";
+
+    }
+
+    if (subtitle) {
+
+        subtitle.textContent =
+            "Register for access to the PDS workspace.";
+
+    }
+
+    clearAuthMessage();
+
+}
+
+
+/* =========================================================
    CREATE PROFILE
 ========================================================= */
 
 async function createProfile(
     user,
-    fullName = ""
+    fullName = "",
+    position = ""
 ) {
 
     if (!user || !db) {
@@ -311,7 +462,8 @@ async function createProfile(
 
     const profile = {
 
-        id: user.id,
+        id:
+            user.id,
 
         email:
             user.email || "",
@@ -324,9 +476,25 @@ async function createProfile(
 
     };
 
-    const {
-        error
-    } =
+    /*
+     * Position is included when available.
+     * If the profiles table does not have
+     * this column, retry without it.
+     */
+
+    if (
+        position ||
+        user.user_metadata?.position
+    ) {
+
+        profile.position =
+            position ||
+            user.user_metadata?.position ||
+            "";
+
+    }
+
+    let result =
         await db
             .from("profiles")
             .upsert(
@@ -336,17 +504,58 @@ async function createProfile(
                 }
             );
 
-    if (error) {
+    /*
+     * Compatibility fallback:
+     * If "position" does not exist in the
+     * profiles table, save the basic profile.
+     */
+
+    if (
+        result.error &&
+        String(
+            result.error.message || ""
+        )
+            .toLowerCase()
+            .includes("position")
+    ) {
+
+        const basicProfile = {
+
+            id:
+                user.id,
+
+            email:
+                user.email || "",
+
+            full_name:
+                profile.full_name
+
+        };
+
+        result =
+            await db
+                .from("profiles")
+                .upsert(
+                    basicProfile,
+                    {
+                        onConflict: "id"
+                    }
+                );
+
+    }
+
+    if (result.error) {
 
         console.warn(
             "Profile creation warning:",
-            error
+            result.error
         );
 
         return;
     }
 
     currentProfile =
+        result.data?.[0] ||
         profile;
 
 }
@@ -371,6 +580,7 @@ async function loginUser(
         return {
             success: false
         };
+
     }
 
     try {
@@ -404,6 +614,7 @@ async function loginUser(
             );
 
             throw error;
+
         }
 
         if (
@@ -414,6 +625,7 @@ async function loginUser(
             throw new Error(
                 "No user account was returned by Supabase."
             );
+
         }
 
         currentUser =
@@ -441,14 +653,14 @@ async function loginUser(
 
         ]);
 
-        authMessage(
-            "",
-            "success"
-        );
+        clearAuthMessage();
 
         return {
+
             success: true,
+
             data
+
         };
 
     } catch (error) {
@@ -462,16 +674,35 @@ async function loginUser(
             error?.message ||
             "Unable to sign in.";
 
+        const lowerMessage =
+            message.toLowerCase();
+
         if (
-            message
-                .toLowerCase()
-                .includes(
-                    "invalid api key"
-                )
+            lowerMessage.includes(
+                "invalid api key"
+            )
         ) {
 
             message =
                 "Invalid Supabase API key. Open Supabase → Project Settings → API and replace the Publishable key in script.js.";
+
+        } else if (
+            lowerMessage.includes(
+                "invalid login credentials"
+            )
+        ) {
+
+            message =
+                "Invalid email or password.";
+
+        } else if (
+            lowerMessage.includes(
+                "email not confirmed"
+            )
+        ) {
+
+            message =
+                "Your email address has not been confirmed yet. Please check your email.";
 
         }
 
@@ -481,8 +712,229 @@ async function loginUser(
         );
 
         return {
+
             success: false,
+
             error
+
+        };
+
+    }
+
+}
+
+
+/* =========================================================
+   REGISTER USER
+========================================================= */
+
+async function registerUser(
+    name,
+    position,
+    email,
+    password
+) {
+
+    if (!db) {
+
+        authMessage(
+            "Supabase is not initialized.",
+            "error"
+        );
+
+        return {
+            success: false
+        };
+
+    }
+
+    try {
+
+        clearAuthMessage();
+
+        authMessage(
+            "Creating account...",
+            "loading"
+        );
+
+        const {
+            data,
+            error
+        } =
+            await db.auth.signUp({
+
+                email:
+                    email.trim(),
+
+                password:
+                    password,
+
+                options: {
+
+                    data: {
+
+                        full_name:
+                            name.trim(),
+
+                        position:
+                            position.trim()
+
+                    }
+
+                }
+
+            });
+
+        if (error) {
+
+            console.error(
+                "Supabase registration error:",
+                error
+            );
+
+            throw error;
+
+        }
+
+        if (!data) {
+
+            throw new Error(
+                "Supabase did not return a registration response."
+            );
+
+        }
+
+        /*
+         * If email confirmation is disabled,
+         * Supabase normally returns a session.
+         */
+
+        if (
+            data.user &&
+            data.session
+        ) {
+
+            currentUser =
+                data.user;
+
+            await createProfile(
+                data.user,
+                name,
+                position
+            );
+
+            hideLogin();
+
+            showPage(
+                "dashboard"
+            );
+
+            updateUserInterface();
+
+            await Promise.allSettled([
+
+                loadProjects(),
+
+                loadDocuments(),
+
+                loadDepartmentOrders(),
+
+                loadMonitoring()
+
+            ]);
+
+            authMessage(
+                "Account created successfully.",
+                "success"
+            );
+
+        } else {
+
+            /*
+             * Email confirmation is probably enabled.
+             */
+
+            authMessage(
+                "Account created successfully. Please check your email to confirm your account, then sign in.",
+                "success"
+            );
+
+            const loginEmail =
+                $("loginEmail");
+
+            if (loginEmail) {
+
+                loginEmail.value =
+                    email.trim();
+
+            }
+
+            showLoginTab();
+
+        }
+
+        return {
+
+            success: true,
+
+            data
+
+        };
+
+    } catch (error) {
+
+        console.error(
+            "Registration error:",
+            error
+        );
+
+        let message =
+            error?.message ||
+            "Unable to create account.";
+
+        const lowerMessage =
+            message.toLowerCase();
+
+        if (
+            lowerMessage.includes(
+                "user already registered"
+            )
+        ) {
+
+            message =
+                "An account with this email already exists.";
+
+        } else if (
+            lowerMessage.includes(
+                "password should be at least"
+            )
+        ) {
+
+            message =
+                "Password is too short. Please use a stronger password.";
+
+        } else if (
+            lowerMessage.includes(
+                "invalid api key"
+            )
+        ) {
+
+            message =
+                "Invalid Supabase API key. Check the Publishable key in script.js.";
+
+        }
+
+        authMessage(
+            message,
+            "error"
+        );
+
+        return {
+
+            success: false,
+
+            error
+
         };
 
     }
@@ -498,9 +950,16 @@ async function signOut() {
 
     if (!db) {
 
+        currentUser =
+            null;
+
+        currentProfile =
+            null;
+
         showLogin();
 
         return;
+
     }
 
     try {
@@ -516,15 +975,23 @@ async function signOut() {
 
     } finally {
 
-        currentUser = null;
+        currentUser =
+            null;
 
-        currentProfile = null;
+        currentProfile =
+            null;
 
-        pdsAIHistory = [];
+        pdsAIHistory =
+            [];
 
-        cachedMonitoring = [];
+        cachedMonitoring =
+            [];
+
+        cachedDocuments =
+            [];
 
         showLogin();
+
     }
 
 }
@@ -542,6 +1009,7 @@ async function loadUserProfile() {
     ) {
 
         return;
+
     }
 
     try {
@@ -566,7 +1034,35 @@ async function loadUserProfile() {
                 error
             );
 
+            /*
+             * Still create a local profile
+             * from Auth metadata.
+             */
+
+            currentProfile = {
+
+                id:
+                    currentUser.id,
+
+                email:
+                    currentUser.email || "",
+
+                full_name:
+                    currentUser.user_metadata
+                        ?.full_name ||
+                    currentUser.email
+                        ?.split("@")[0] ||
+                    "PDS User",
+
+                position:
+                    currentUser.user_metadata
+                        ?.position ||
+                    ""
+
+            };
+
             return;
+
         }
 
         if (data) {
@@ -595,7 +1091,7 @@ async function loadUserProfile() {
 
 
 /* =========================================================
-   SESSION RESTORATION
+   RESTORE SESSION
 ========================================================= */
 
 async function restoreSession() {
@@ -604,14 +1100,11 @@ async function restoreSession() {
 
         showLogin();
 
-        return false;
+        return;
+
     }
 
     try {
-
-        console.log(
-            "PDS: Checking existing session..."
-        );
 
         const {
             data,
@@ -621,14 +1114,11 @@ async function restoreSession() {
 
         if (error) {
 
-            console.error(
-                "Session error:",
+            console.warn(
+                "Session retrieval warning:",
                 error
             );
 
-            showLogin();
-
-            return false;
         }
 
         const session =
@@ -639,26 +1129,20 @@ async function restoreSession() {
             !session.user
         ) {
 
-            console.log(
-                "PDS: No active session."
-            );
+            currentUser =
+                null;
 
-            currentUser = null;
-
-            currentProfile = null;
+            currentProfile =
+                null;
 
             showLogin();
 
-            return false;
+            return;
+
         }
 
         currentUser =
             session.user;
-
-        console.log(
-            "PDS: Session restored:",
-            currentUser.email
-        );
 
         hideLogin();
 
@@ -682,14 +1166,16 @@ async function restoreSession() {
 
         ]);
 
-        return true;
-
     } catch (error) {
 
         console.error(
             "Session restoration error:",
             error
         );
+
+        /*
+         * One final session check.
+         */
 
         try {
 
@@ -711,53 +1197,69 @@ async function restoreSession() {
                     "dashboard"
                 );
 
-                await loadMonitoring();
+                await loadUserProfile();
 
-                return true;
+                updateUserInterface();
+
+                return;
+
             }
 
         } catch (secondError) {
 
             console.error(
-                "Final session check failed:",
+                "Second session check failed:",
                 secondError
             );
+
         }
+
+        currentUser =
+            null;
+
+        currentProfile =
+            null;
 
         showLogin();
 
-        return false;
     }
 
 }
 
 
 /* =========================================================
-   USER INTERFACE
+   UPDATE USER INTERFACE
 ========================================================= */
 
 function updateUserInterface() {
 
-    const user =
-        currentUser;
+    if (!currentUser) {
+        return;
+    }
 
     const profile =
-        currentProfile;
+        currentProfile || {};
 
     const name =
-        profile?.full_name ||
-        user?.user_metadata?.full_name ||
-        user?.email?.split("@")[0] ||
+        profile.full_name ||
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split("@")[0] ||
         "PDS User";
 
     const email =
-        profile?.email ||
-        user?.email ||
+        currentUser.email ||
+        profile.email ||
         "";
 
     const role =
-        profile?.role ||
+        profile.role ||
+        currentUser.user_metadata?.role ||
         "Member";
+
+    const position =
+        profile.position ||
+        currentUser.user_metadata?.position ||
+        "";
 
     const profileName =
         $("profileName");
@@ -791,24 +1293,6 @@ function updateUserInterface() {
 
     }
 
-    if (topAvatar) {
-
-        topAvatar.textContent =
-            name
-                .charAt(0)
-                .toUpperCase();
-
-    }
-
-    if (sidebarAvatar) {
-
-        sidebarAvatar.textContent =
-            name
-                .charAt(0)
-                .toUpperCase();
-
-    }
-
     if (sidebarUserName) {
 
         sidebarUserName.textContent =
@@ -819,7 +1303,29 @@ function updateUserInterface() {
     if (sidebarUserRole) {
 
         sidebarUserRole.textContent =
+            position ||
             role;
+
+    }
+
+    const initial =
+        name
+            .trim()
+            .charAt(0)
+            .toUpperCase() ||
+        "P";
+
+    if (topAvatar) {
+
+        topAvatar.textContent =
+            initial;
+
+    }
+
+    if (sidebarAvatar) {
+
+        sidebarAvatar.textContent =
+            initial;
 
     }
 
@@ -827,129 +1333,74 @@ function updateUserInterface() {
 
 
 /* =========================================================
-   NAVIGATION NORMALIZER
+   NORMALIZE PAGE ID
 ========================================================= */
 
 function normalizePageId(
     pageId
 ) {
 
-    if (!pageId) {
-
-        return "dashboard";
-    }
-
-    const normalized =
-        String(pageId)
-            .trim()
-            .toLowerCase();
-
     const aliases = {
-
-        overview:
-            "dashboard",
 
         dashboard:
             "dashboard",
 
-        project:
-            "projects",
+        home:
+            "dashboard",
 
         projects:
-            "projects",
-
-        myprojects:
             "projects",
 
         monitoring:
             "monitoring",
 
-        projectmonitoring:
-            "monitoring",
-
         "project-monitoring":
             "monitoring",
-
-        "project monitoring":
-            "monitoring",
-
-        document:
-            "documents",
 
         documents:
             "documents",
 
-        content:
-            "documents",
+        standards:
+            "standards",
+
+        guidelines:
+            "standards",
 
         orders:
-            "department-orders",
-
-        departmentorders:
             "department-orders",
 
         "department-orders":
             "department-orders",
 
-        standards:
-            "standards-guidelines",
-
-        guidelines:
-            "standards-guidelines",
-
-        "standards-guidelines":
-            "standards-guidelines",
-
         forms:
-            "forms-templates",
-
-        templates:
-            "forms-templates",
-
-        "forms-templates":
-            "forms-templates",
+            "forms",
 
         news:
-            "announcements",
+            "news",
 
-        announcement:
-            "announcements",
+        "news-announcements":
+            "news",
 
-        announcements:
-            "announcements",
-
-        ai:
-            "pds-ai-assistant",
-
-        pdsai:
+        "pds-ai":
             "pds-ai-assistant",
 
         "pds-ai-assistant":
             "pds-ai-assistant",
 
         about:
-            "aboutpds",
-
-        aboutpds:
-            "aboutpds",
+            "about",
 
         contact:
-            "contact-us",
-
-        "contact-us":
-            "contact-us",
+            "contact",
 
         profile:
-            "profile",
-
-        userprofile:
             "profile"
 
     };
 
     return (
-        aliases[normalized] ||
-        normalized
+        aliases[pageId] ||
+        pageId
     );
 
 }
@@ -961,12 +1412,10 @@ function normalizePageId(
 
 function getPDSPages() {
 
-    return Array.from(
-        document.querySelectorAll(
-            "#app .page-section, " +
-            "#app [data-page-section], " +
-            "#app section[data-section]"
-        )
+    return document.querySelectorAll(
+        "#app .page-section, " +
+        "#app [data-page-section], " +
+        "#app section[data-section]"
     );
 
 }
@@ -980,7 +1429,7 @@ function showPage(
     pageId
 ) {
 
-    pageId =
+    const normalized =
         normalizePageId(
             pageId
         );
@@ -988,138 +1437,115 @@ function showPage(
     const pages =
         getPDSPages();
 
-    let targetPage =
-        null;
-
     pages.forEach(
         page => {
 
-            const id =
-                page.id ||
+            const pageValue =
+                page.dataset.pageSection ||
                 page.dataset.section ||
-                page.dataset.pageSection;
+                page.id;
 
-            if (
-                id === pageId
-            ) {
+            const pageNormalized =
+                normalizePageId(
+                    pageValue
+                );
 
-                targetPage =
-                    page;
-
-            }
-
-            page.classList.remove(
-                "active"
-            );
+            const active =
+                pageNormalized ===
+                normalized;
 
             page.style.display =
-                "none";
+                active
+                    ? ""
+                    : "none";
+
+            page.classList.toggle(
+                "active",
+                active
+            );
 
         }
     );
 
-    if (!targetPage) {
-
-        targetPage =
-            document.getElementById(
-                pageId
-            );
-
-    }
-
-    if (!targetPage) {
-
-        targetPage =
-            document.getElementById(
-                "dashboard"
-            );
-
-    }
-
-    if (targetPage) {
-
-        targetPage.classList.add(
-            "active"
+    const navItems =
+        document.querySelectorAll(
+            "#sidebarNav [data-section]"
         );
 
-        targetPage.style.display =
-            "block";
+    navItems.forEach(
+        item => {
 
-    }
-
-    document
-        .querySelectorAll(
-            "#sidebarNav [data-section]"
-        )
-        .forEach(
-            item => {
-
-                const itemPage =
-                    normalizePageId(
-                        item.dataset.section
-                    );
-
-                item.classList.toggle(
-                    "active",
-                    itemPage === pageId
+            const itemPage =
+                normalizePageId(
+                    item.dataset.section
                 );
 
-            }
-        );
+            item.classList.toggle(
+                "active",
+                itemPage ===
+                normalized
+            );
 
-    const titles = {
+        }
+    );
 
-        dashboard:
-            "Dashboard",
-
-        projects:
-            "Projects",
-
-        monitoring:
-            "Project Monitoring",
-
-        documents:
-            "Document Library",
-
-        "standards-guidelines":
-            "Standards & Guidelines",
-
-        "department-orders":
-            "Department Orders",
-
-        "forms-templates":
-            "Forms & Templates",
-
-        announcements:
-            "Announcements",
-
-        "pds-ai-assistant":
-            "PDS AI Assistant",
-
-        aboutpds:
-            "About PDS",
-
-        "contact-us":
-            "Contact Us",
-
-        profile:
-            "My Profile"
-
-    };
-
-    const pageTitle =
+    const title =
         $("pageTitle");
 
-    if (pageTitle) {
+    if (title) {
 
-        pageTitle.textContent =
-            titles[pageId] ||
-            "Planning & Design Section";
+        const titles = {
+
+            dashboard:
+                "Dashboard",
+
+            projects:
+                "Projects",
+
+            monitoring:
+                "Project Monitoring",
+
+            documents:
+                "Documents",
+
+            standards:
+                "Standards & Guidelines",
+
+            "department-orders":
+                "Department Orders",
+
+            forms:
+                "Forms & Templates",
+
+            news:
+                "News & Announcements",
+
+            "pds-ai-assistant":
+                "PDS AI Assistant",
+
+            about:
+                "About PDS",
+
+            contact:
+                "Contact Us",
+
+            profile:
+                "Profile"
+
+        };
+
+        title.textContent =
+            titles[normalized] ||
+            normalized;
 
     }
 
+    /*
+     * Load page-specific content.
+     */
+
     if (
-        pageId ===
+        normalized ===
         "projects"
     ) {
 
@@ -1128,7 +1554,7 @@ function showPage(
     }
 
     if (
-        pageId ===
+        normalized ===
         "monitoring"
     ) {
 
@@ -1137,7 +1563,7 @@ function showPage(
     }
 
     if (
-        pageId ===
+        normalized ===
         "documents"
     ) {
 
@@ -1146,13 +1572,11 @@ function showPage(
     }
 
     if (
-        pageId ===
+        normalized ===
         "department-orders"
     ) {
 
-        renderDepartmentOrders(
-            departmentOrders
-        );
+        loadDepartmentOrders();
 
     }
 
@@ -1160,7 +1584,7 @@ function showPage(
 
 
 /* =========================================================
-   NAVIGATION SETUP
+   NAVIGATION
 ========================================================= */
 
 function setupNavigation() {
@@ -1172,23 +1596,54 @@ function setupNavigation() {
     navigationReady =
         true;
 
-    document.addEventListener(
+    const nav =
+        $("sidebarNav");
+
+    if (!nav) {
+
+        console.warn(
+            "PDS: sidebarNav not found."
+        );
+
+        return;
+
+    }
+
+    nav.addEventListener(
         "click",
         event => {
 
-            const navItem =
+            const button =
                 event.target.closest(
-                    "#sidebarNav [data-section]"
+                    "[data-section]"
                 );
 
-            if (!navItem) {
+            if (!button) {
                 return;
             }
 
             event.preventDefault();
 
+            const section =
+                button.dataset.section;
+
+            if (!section) {
+                return;
+            }
+
+            if (
+                section ===
+                "signout"
+            ) {
+
+                signOut();
+
+                return;
+
+            }
+
             showPage(
-                navItem.dataset.section
+                section
             );
 
         }
@@ -1198,7 +1653,7 @@ function setupNavigation() {
 
 
 /* =========================================================
-   QUICK ACTIONS
+   SECTION TARGETS
 ========================================================= */
 
 function setupSectionTargets() {
@@ -1207,19 +1662,19 @@ function setupSectionTargets() {
         "click",
         event => {
 
-            const target =
+            const element =
                 event.target.closest(
                     "[data-section-target]"
                 );
 
-            if (!target) {
+            if (!element) {
                 return;
             }
 
             event.preventDefault();
 
             showPage(
-                target.dataset.sectionTarget
+                element.dataset.sectionTarget
             );
 
         }
@@ -1234,19 +1689,28 @@ function setupSectionTargets() {
 
 function setupGlobalSearch() {
 
-    const search =
+    const input =
         $("globalSearch");
 
-    if (!search) {
+    if (!input) {
         return;
     }
 
-    search.addEventListener(
-        "input",
+    input.addEventListener(
+        "keydown",
         event => {
 
+            if (
+                event.key !==
+                "Enter"
+            ) {
+
+                return;
+
+            }
+
             const query =
-                event.target.value
+                input.value
                     .trim()
                     .toLowerCase();
 
@@ -1254,16 +1718,17 @@ function setupGlobalSearch() {
                 return;
             }
 
-            if (
-                cachedMonitoring.length &&
-                cachedMonitoring.some(
+            const monitoringMatch =
+                cachedMonitoring.find(
                     item =>
                         monitoringSearchText(
                             item
+                        ).includes(
+                            query
                         )
-                            .includes(query)
-                )
-            ) {
+                );
+
+            if (monitoringMatch) {
 
                 showPage(
                     "monitoring"
@@ -1286,17 +1751,40 @@ function setupGlobalSearch() {
                 }
 
                 return;
+
             }
 
-            const projectMatch =
-                document
-                    .querySelectorAll(
-                        ".project-card"
-                    );
+            const projectCards =
+                document.querySelectorAll(
+                    ".project-card"
+                );
 
-            if (
-                projectMatch.length
-            ) {
+            let found =
+                false;
+
+            projectCards.forEach(
+                card => {
+
+                    const visible =
+                        card.textContent
+                            .toLowerCase()
+                            .includes(
+                                query
+                            );
+
+                    card.style.display =
+                        visible
+                            ? ""
+                            : "none";
+
+                    if (visible) {
+                        found = true;
+                    }
+
+                }
+            );
+
+            if (found) {
 
                 showPage(
                     "projects"
@@ -1311,7 +1799,7 @@ function setupGlobalSearch() {
 
 
 /* =========================================================
-   REFRESH
+   REFRESH ALL
 ========================================================= */
 
 async function refreshAll() {
@@ -1337,18 +1825,9 @@ async function refreshAll() {
 
 async function loadProjects() {
 
-    const list =
-        $("projectList");
-
-    if (!list || !db) {
+    if (!db) {
         return;
     }
-
-    list.innerHTML = `
-        <div class="empty-state">
-            Loading projects...
-        </div>
-    `;
 
     try {
 
@@ -1362,7 +1841,8 @@ async function loadProjects() {
                 .order(
                     "created_at",
                     {
-                        ascending: false
+                        ascending:
+                            false
                     }
                 );
 
@@ -1370,24 +1850,23 @@ async function loadProjects() {
             throw error;
         }
 
-        renderProjects(
-            data || []
-        );
+        const projects =
+            data || [];
 
         updateProjectStats(
-            data || []
+            projects
+        );
+
+        renderProjects(
+            projects
         );
 
     } catch (error) {
 
         console.error(
-            "Projects error:",
+            "Project loading error:",
             error
         );
-
-        renderProjects([]);
-
-        updateProjectStats([]);
 
     }
 
@@ -1408,25 +1887,26 @@ function updateProjectStats(
     const ongoing =
         projects.filter(
             project =>
-                String(
-                    project.status || ""
+                normalizeStatus(
+                    project.status
+                ).includes(
+                    "ongoing"
+                ) ||
+                normalizeStatus(
+                    project.status
+                ).includes(
+                    "in progress"
                 )
-                    .toLowerCase()
-                    .includes(
-                        "ongoing"
-                    )
         ).length;
 
     const completed =
         projects.filter(
             project =>
-                String(
-                    project.status || ""
+                normalizeStatus(
+                    project.status
+                ).includes(
+                    "completed"
                 )
-                    .toLowerCase()
-                    .includes(
-                        "completed"
-                    )
         ).length;
 
     const totalProjects =
@@ -1470,80 +1950,96 @@ function renderProjects(
     projects
 ) {
 
-    const list =
-        $("projectList");
+    const container =
+        $("projectsList");
 
-    if (!list) {
+    if (!container) {
         return;
     }
 
     if (!projects.length) {
 
-        list.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
                 <strong>No projects found</strong>
-                <span>Project records will appear here.</span>
+                <span>
+                    Project records will appear here when available.
+                </span>
             </div>
         `;
 
         return;
     }
 
-    list.innerHTML =
+    container.innerHTML =
         projects
             .map(
                 project => {
 
                     const id =
                         escapeJS(
-                            project.id || ""
+                            project.id
                         );
 
                     const title =
                         escapeHTML(
-                            project.title ||
-                            project.project_title ||
                             project.name ||
+                            project.title ||
                             "Untitled Project"
-                        );
-
-                    const status =
-                        escapeHTML(
-                            project.status ||
-                            "Active"
                         );
 
                     const location =
                         escapeHTML(
                             project.location ||
-                            project.project_location ||
-                            "—"
+                            "Location not specified"
                         );
 
+                    const status =
+                        escapeHTML(
+                            project.status ||
+                            "Not specified"
+                        );
+
+                    const progress =
+                        parsePercent(
+                            project.progress
+                        ) ??
+                        0;
+
                     return `
+
                         <article
                             class="project-card"
-                            data-project-id="${escapeHTML(project.id || "")}"
+                            data-project-id="${escapeHTML(project.id)}"
                             onclick="openProject('${id}')"
                         >
 
-                            <div class="project-card-top">
+                            <div>
 
-                                <span class="project-status">
-                                    ${status}
-                                </span>
+                                <div class="project-card-title">
+                                    ${title}
+                                </div>
+
+                                <div class="project-card-location">
+                                    ${location}
+                                </div>
 
                             </div>
 
-                            <h3>
-                                ${title}
-                            </h3>
+                            <div class="project-card-meta">
 
-                            <p>
-                                ${location}
-                            </p>
+                                <span>
+                                    ${status}
+                                </span>
+
+                                <strong>
+                                    ${progress.toFixed(0)}%
+                                </strong>
+
+                            </div>
 
                         </article>
+
                     `;
 
                 }
@@ -1561,11 +2057,7 @@ async function openProject(
     projectId
 ) {
 
-    if (
-        !projectId ||
-        !db
-    ) {
-
+    if (!db) {
         return;
     }
 
@@ -1588,90 +2080,107 @@ async function openProject(
             throw error;
         }
 
+        if (!data) {
+
+            alert(
+                "Project not found."
+            );
+
+            return;
+
+        }
+
         const modal =
             $("projectModal");
 
         const content =
             $("projectModalContent");
 
-        if (
-            !modal ||
-            !content
-        ) {
-
+        if (!modal || !content) {
             return;
         }
 
-        if (!data) {
+        content.innerHTML = `
 
-            content.innerHTML = `
-                <div class="empty-state">
-                    Project not found.
+            <div class="project-modal-header">
+
+                <div class="eyebrow">
+                    PROJECT RECORD
                 </div>
-            `;
 
-        } else {
+                <h2>
+                    ${escapeHTML(
+                        data.name ||
+                        data.title ||
+                        "Untitled Project"
+                    )}
+                </h2>
 
-            content.innerHTML = `
-                <div class="project-detail">
+            </div>
 
-                    <div class="detail-label">
-                        PROJECT
-                    </div>
+            <div class="project-modal-grid">
 
-                    <h2>
+                <div>
+                    <strong>PROJECT CODE</strong>
+                    <span>
                         ${escapeHTML(
-                            data.title ||
-                            data.project_title ||
-                            data.name ||
-                            "Untitled Project"
+                            data.project_code ||
+                            "—"
                         )}
-                    </h2>
-
-                    <div class="detail-grid">
-
-                        <div>
-                            <span>STATUS</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.status || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>LOCATION</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.location || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>CONTRACTOR</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.contractor || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>ABC</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.abc || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                    </div>
-
+                    </span>
                 </div>
-            `;
 
-        }
+                <div>
+                    <strong>LOCATION</strong>
+                    <span>
+                        ${escapeHTML(
+                            data.location ||
+                            "—"
+                        )}
+                    </span>
+                </div>
+
+                <div>
+                    <strong>STATUS</strong>
+                    <span>
+                        ${escapeHTML(
+                            data.status ||
+                            "—"
+                        )}
+                    </span>
+                </div>
+
+                <div>
+                    <strong>PROGRESS</strong>
+                    <span>
+                        ${formatPercent(
+                            data.progress
+                        )}
+                    </span>
+                </div>
+
+                <div>
+                    <strong>TARGET DATE</strong>
+                    <span>
+                        ${formatDate(
+                            data.target_date
+                        )}
+                    </span>
+                </div>
+
+                <div>
+                    <strong>NOTES</strong>
+                    <span>
+                        ${escapeHTML(
+                            data.notes ||
+                            "—"
+                        )}
+                    </span>
+                </div>
+
+            </div>
+
+        `;
 
         modal.style.display =
             "flex";
@@ -1679,9 +2188,77 @@ async function openProject(
     } catch (error) {
 
         console.error(
-            "Project open error:",
+            "Project loading error:",
             error
         );
+
+        alert(
+            error.message ||
+            "Unable to load project."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PROJECT MODAL
+========================================================= */
+
+function setupProjectModal() {
+
+    const modal =
+        $("projectModal");
+
+    if (!modal) {
+        return;
+    }
+
+    const closeButtons =
+        modal.querySelectorAll(
+            "[data-close], .modal-close, #closeProjectModal"
+        );
+
+    closeButtons.forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                closeProjectModal
+            );
+
+        }
+    );
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                closeProjectModal();
+
+            }
+
+        }
+    );
+
+}
+
+
+function closeProjectModal() {
+
+    const modal =
+        $("projectModal");
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
 
     }
 
@@ -1693,9 +2270,6 @@ async function openProject(
 ========================================================= */
 
 async function loadDocuments() {
-
-    const list =
-        $("libraryList");
 
     if (!db) {
         return;
@@ -1713,7 +2287,8 @@ async function loadDocuments() {
                 .order(
                     "created_at",
                     {
-                        ascending: false
+                        ascending:
+                            false
                     }
                 );
 
@@ -1724,47 +2299,46 @@ async function loadDocuments() {
         cachedDocuments =
             data || [];
 
-        renderDocuments(
-            cachedDocuments
-        );
-
-        const totalDocuments =
+        const total =
             $("totalDocuments");
 
-        if (totalDocuments) {
+        if (total) {
 
-            totalDocuments.textContent =
+            total.textContent =
                 cachedDocuments.length;
 
         }
 
+        renderDocuments(
+            cachedDocuments
+        );
+
     } catch (error) {
 
         console.error(
-            "Documents error:",
+            "Document loading error:",
             error
         );
 
         cachedDocuments =
             [];
 
-        if (list) {
+        const container =
+            $("documentsList");
 
-            list.innerHTML = `
+        if (container) {
+
+            container.innerHTML = `
                 <div class="empty-state">
-                    No documents available.
+                    <strong>Unable to load documents</strong>
+                    <span>
+                        ${escapeHTML(
+                            error.message ||
+                            "Please check the documents table and permissions."
+                        )}
+                    </span>
                 </div>
             `;
-
-        }
-
-        const totalDocuments =
-            $("totalDocuments");
-
-        if (totalDocuments) {
-
-            totalDocuments.textContent =
-                "0";
 
         }
 
@@ -1781,64 +2355,86 @@ function renderDocuments(
     documents
 ) {
 
-    const list =
-        $("libraryList");
+    const container =
+        $("documentsList");
 
-    if (!list) {
+    if (!container) {
         return;
     }
 
     if (!documents.length) {
 
-        list.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
                 <strong>No documents found</strong>
-                <span>Upload a document to begin.</span>
+                <span>
+                    Upload technical documents to make them available here.
+                </span>
             </div>
         `;
 
         return;
+
     }
 
-    list.innerHTML =
+    container.innerHTML =
         documents
             .map(
-                document => {
+                document => `
 
-                    return `
-                        <article
-                            class="document-card"
-                            onclick="openDocument('${escapeJS(document.id || "")}')"
-                        >
+                    <article
+                        class="document-card"
+                        data-document-id="${escapeHTML(document.id)}"
+                    >
 
-                            <div class="document-icon">
-                                DOC
+                        <div class="document-card-icon">
+                            DOC
+                        </div>
+
+                        <div class="document-card-content">
+
+                            <div class="document-card-title">
+                                ${escapeHTML(
+                                    document.title ||
+                                    document.file_name ||
+                                    "Untitled Document"
+                                )}
                             </div>
 
-                            <div class="document-info">
+                            <div class="document-card-meta">
 
-                                <h3>
-                                    ${escapeHTML(
-                                        document.title ||
-                                        document.name ||
-                                        "Untitled Document"
-                                    )}
-                                </h3>
-
-                                <p>
-                                    ${escapeHTML(
-                                        document.file_name ||
-                                        document.name ||
-                                        "Document"
-                                    )}
-                                </p>
+                                ${escapeHTML(
+                                    document.file_name ||
+                                    ""
+                                )}
 
                             </div>
 
-                        </article>
-                    `;
+                        </div>
 
-                }
+                        <div class="document-card-actions">
+
+                            <button
+                                type="button"
+                                class="button secondary"
+                                onclick="openDocument('${escapeJS(document.id)}')"
+                            >
+                                OPEN
+                            </button>
+
+                            <button
+                                type="button"
+                                class="button secondary"
+                                onclick="deleteDocument('${escapeJS(document.id)}')"
+                            >
+                                DELETE
+                            </button>
+
+                        </div>
+
+                    </article>
+
+                `
             )
             .join("");
 
@@ -1855,22 +2451,22 @@ function setupDocumentSearch() {
         return;
     }
 
-    const search =
-        $("documentSearch");
-
-    if (!search) {
-        return;
-    }
-
     documentSearchReady =
         true;
 
-    search.addEventListener(
+    const input =
+        $("documentSearch");
+
+    if (!input) {
+        return;
+    }
+
+    input.addEventListener(
         "input",
-        event => {
+        () => {
 
             const query =
-                event.target.value
+                input.value
                     .trim()
                     .toLowerCase();
 
@@ -1878,24 +2474,29 @@ function setupDocumentSearch() {
                 cachedDocuments.filter(
                     document => {
 
-                        const text = [
+                        return [
 
                             document.title,
 
-                            document.name,
-
                             document.file_name,
 
-                            document.description
+                            document.project_name,
+
+                            document.category,
+
+                            document.mime_type
 
                         ]
-                            .filter(Boolean)
+                            .filter(
+                                value =>
+                                    value !== null &&
+                                    value !== undefined
+                            )
                             .join(" ")
-                            .toLowerCase();
-
-                        return text.includes(
-                            query
-                        );
+                            .toLowerCase()
+                            .includes(
+                                query
+                            );
 
                     }
                 );
@@ -1913,6 +2514,46 @@ function setupDocumentSearch() {
 /* =========================================================
    DOCUMENT MODAL
 ========================================================= */
+
+function setupDocumentModal() {
+
+    const modal =
+        $("documentModal");
+
+    if (!modal) {
+        return;
+    }
+
+    const close =
+        $("closeDocumentModal");
+
+    if (close) {
+
+        close.addEventListener(
+            "click",
+            closeDocumentModal
+        );
+
+    }
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                closeDocumentModal();
+
+            }
+
+        }
+    );
+
+}
+
 
 function openDocumentModal() {
 
@@ -1945,61 +2586,72 @@ function closeDocumentModal() {
 
 
 /* =========================================================
-   DOCUMENT MODAL SETUP
+   DOCUMENT FORM
 ========================================================= */
 
-function setupDocumentModal() {
+function setupDocumentForm() {
 
-    const close =
-        $("closeDocumentModal");
+    const form =
+        $("documentForm");
 
-    const cancel =
-        $("cancelDocument");
-
-    if (close) {
-
-        close.addEventListener(
-            "click",
-            closeDocumentModal
-        );
-
-    }
-
-    if (cancel) {
-
-        cancel.addEventListener(
-            "click",
-            closeDocumentModal
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DOCUMENT UPLOAD BUTTON
-========================================================= */
-
-function setupDocumentUpload() {
-
-    const button =
-        $("uploadDocumentButton");
-
-    if (!button) {
+    if (!form) {
         return;
     }
 
-    button.addEventListener(
-        "click",
-        openDocumentModal
+    form.addEventListener(
+        "submit",
+        event => {
+
+            event.preventDefault();
+
+            /*
+             * Actual upload is handled by
+             * setupDocumentUpload().
+             */
+
+        }
     );
 
 }
 
 
 /* =========================================================
-   DOCUMENT UPLOAD
+   DOCUMENT UPLOAD SETUP
+========================================================= */
+
+function setupDocumentUpload() {
+
+    const input =
+        $("documentFile");
+
+    if (!input) {
+        return;
+    }
+
+    input.addEventListener(
+        "change",
+        event => {
+
+            if (
+                event.target.files &&
+                event.target.files.length
+            ) {
+
+                console.log(
+                    "Document selected:",
+                    event.target.files[0].name
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   UPLOAD DOCUMENT
 ========================================================= */
 
 async function uploadDocument(
@@ -2022,28 +2674,14 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
-    const titleInput =
-        $("documentTitle");
-
-    const fileInput =
+    const input =
         $("documentFile");
 
-    const title =
-        titleInput?.value.trim();
-
     const file =
-        fileInput?.files?.[0];
-
-    if (!title) {
-
-        alert(
-            "Please enter a document title."
-        );
-
-        return;
-    }
+        input?.files?.[0];
 
     if (!file) {
 
@@ -2052,15 +2690,13 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
     try {
 
-        const fileName =
-            `${Date.now()}_${file.name}`;
-
-        const filePath =
-            `${currentUser.id}/${fileName}`;
+        const path =
+            `${currentUser.id}/${Date.now()}_${file.name}`;
 
         const {
             error: uploadError
@@ -2068,10 +2704,11 @@ async function uploadDocument(
             await db.storage
                 .from("documents")
                 .upload(
-                    filePath,
+                    path,
                     file,
                     {
-                        upsert: false
+                        upsert:
+                            false
                     }
                 );
 
@@ -2079,9 +2716,22 @@ async function uploadDocument(
             throw uploadError;
         }
 
+        const titleInput =
+            $("documentTitle");
+
+        const categoryInput =
+            $("documentCategory");
+
+        const title =
+            titleInput?.value?.trim() ||
+            file.name;
+
+        const category =
+            categoryInput?.value?.trim() ||
+            "";
+
         const {
-            data,
-            error
+            error: insertError
         } =
             await db
                 .from("documents")
@@ -2094,7 +2744,7 @@ async function uploadDocument(
                         file.name,
 
                     file_path:
-                        filePath,
+                        path,
 
                     file_size:
                         file.size,
@@ -2102,43 +2752,45 @@ async function uploadDocument(
                     mime_type:
                         file.type,
 
+                    project_name:
+                        category,
+
                     uploaded_by:
                         currentUser.id
 
-                })
-                .select()
-                .single();
+                });
 
-        if (error) {
-            throw error;
+        if (insertError) {
+
+            /*
+             * If DB insert fails, remove
+             * the uploaded file so that
+             * orphaned Storage files are
+             * avoided.
+             */
+
+            await db.storage
+                .from("documents")
+                .remove([
+                    path
+                ]);
+
+            throw insertError;
+
         }
 
-        console.log(
-            "Document uploaded:",
-            data
+        alert(
+            "Document uploaded successfully."
         );
 
-        closeDocumentModal();
+        if (input) {
 
-        if (titleInput) {
-
-            titleInput.value =
-                "";
-
-        }
-
-        if (fileInput) {
-
-            fileInput.value =
+            input.value =
                 "";
 
         }
 
         await loadDocuments();
-
-        alert(
-            "Document uploaded successfully."
-        );
 
     } catch (error) {
 
@@ -2149,31 +2801,10 @@ async function uploadDocument(
 
         alert(
             error.message ||
-            "Document upload failed."
+            "Unable to upload document. Check Storage and INSERT policies."
         );
 
     }
-
-}
-
-
-/* =========================================================
-   DOCUMENT FORM
-========================================================= */
-
-function setupDocumentForm() {
-
-    const form =
-        $("documentForm");
-
-    if (!form) {
-        return;
-    }
-
-    form.addEventListener(
-        "submit",
-        uploadDocument
-    );
 
 }
 
@@ -2186,11 +2817,7 @@ async function openDocument(
     documentId
 ) {
 
-    if (
-        !db ||
-        !documentId
-    ) {
-
+    if (!db) {
         return;
     }
 
@@ -2213,22 +2840,17 @@ async function openDocument(
             throw error;
         }
 
-        if (!data) {
+        if (
+            !data ||
+            !data.file_path
+        ) {
 
             alert(
-                "Document not found."
+                "Document file path not found."
             );
 
             return;
-        }
 
-        if (!data.file_path) {
-
-            alert(
-                "No file is attached to this document."
-            );
-
-            return;
         }
 
         const {
@@ -2247,16 +2869,20 @@ async function openDocument(
         }
 
         if (
-            signedData?.signedUrl
+            !signedData?.signedUrl
         ) {
 
-            window.open(
-                signedData.signedUrl,
-                "_blank",
-                "noopener,noreferrer"
+            throw new Error(
+                "Unable to create document access URL."
             );
 
         }
+
+        window.open(
+            signedData.signedUrl,
+            "_blank",
+            "noopener,noreferrer"
+        );
 
     } catch (error) {
 
@@ -2285,18 +2911,19 @@ async function deleteDocument(
 
     if (
         !db ||
-        !documentId
+        !currentUser
     ) {
 
         return;
+
     }
 
-    if (
-        !confirm(
+    const confirmed =
+        window.confirm(
             "Delete this document?"
-        )
-    ) {
+        );
 
+    if (!confirmed) {
         return;
     }
 
@@ -2309,7 +2936,7 @@ async function deleteDocument(
             await db
                 .from("documents")
                 .select(
-                    "file_path"
+                    "id,file_path,uploaded_by"
                 )
                 .eq(
                     "id",
@@ -2321,11 +2948,34 @@ async function deleteDocument(
             throw error;
         }
 
-        if (data?.file_path) {
+        if (!data) {
+
+            alert(
+                "Document not found."
+            );
+
+            return;
+
+        }
+
+        if (
+            data.uploaded_by &&
+            data.uploaded_by !==
+                currentUser.id
+        ) {
+
+            alert(
+                "You can only delete documents that you uploaded."
+            );
+
+            return;
+
+        }
+
+        if (data.file_path) {
 
             const {
-                error:
-                    storageError
+                error: storageError
             } =
                 await db.storage
                     .from("documents")
@@ -2336,7 +2986,7 @@ async function deleteDocument(
             if (storageError) {
 
                 console.warn(
-                    "Storage delete warning:",
+                    "Storage deletion warning:",
                     storageError
                 );
 
@@ -2345,8 +2995,7 @@ async function deleteDocument(
         }
 
         const {
-            error:
-                deleteError
+            error: deleteError
         } =
             await db
                 .from("documents")
@@ -2392,12 +3041,16 @@ async function loadDepartmentOrders() {
 }
 
 
+/* =========================================================
+   RENDER DEPARTMENT ORDERS
+========================================================= */
+
 function renderDepartmentOrders(
     orders
 ) {
 
     const container =
-        $("departmentOrdersGrid");
+        $("departmentOrdersList");
 
     if (!container) {
         return;
@@ -2407,38 +3060,48 @@ function renderDepartmentOrders(
 
         container.innerHTML = `
             <div class="empty-state">
-                No Department Orders found.
+                <strong>No Department Orders found</strong>
             </div>
         `;
 
         return;
+
     }
 
     container.innerHTML =
         orders
             .map(
-                order => {
+                order => `
 
-                    return `
-                        <article class="order-card">
+                    <article class="document-card">
 
-                            <div class="order-number">
+                        <div class="document-card-icon">
+                            DO
+                        </div>
+
+                        <div class="document-card-content">
+
+                            <div class="document-card-title">
                                 ${escapeHTML(
                                     order.number
                                 )}
-                            </div>
-
-                            <div class="order-year">
-                                SERIES ${escapeHTML(
-                                    order.year
-                                )}
-                            </div>
-
-                            <h3>
+                                —
                                 ${escapeHTML(
                                     order.title
                                 )}
-                            </h3>
+                            </div>
+
+                            <div class="document-card-meta">
+
+                                ${escapeHTML(
+                                    order.year
+                                )}
+                                ·
+                                ${escapeHTML(
+                                    order.category
+                                )}
+
+                            </div>
 
                             <p>
                                 ${escapeHTML(
@@ -2446,16 +3109,11 @@ function renderDepartmentOrders(
                                 )}
                             </p>
 
-                            <span class="order-category">
-                                ${escapeHTML(
-                                    order.category
-                                )}
-                            </span>
+                        </div>
 
-                        </article>
-                    `;
+                    </article>
 
-                }
+                `
             )
             .join("");
 
@@ -2463,7 +3121,7 @@ function renderDepartmentOrders(
 
 
 /* =========================================================
-   DEPARTMENT ORDER SEARCH
+   DEPARTMENT ORDER FILTERS
 ========================================================= */
 
 function setupDepartmentOrderFilters() {
@@ -2471,41 +3129,69 @@ function setupDepartmentOrderFilters() {
     const search =
         $("departmentOrderSearch");
 
-    if (!search) {
-        return;
-    }
+    const year =
+        $("departmentOrderYear");
 
-    search.addEventListener(
-        "input",
+    const category =
+        $("departmentOrderCategory");
+
+    const apply =
         () => {
 
             const query =
-                search.value
-                    .trim()
-                    .toLowerCase();
+                search?.value
+                    ?.trim()
+                    .toLowerCase() ||
+                "";
+
+            const selectedYear =
+                year?.value ||
+                "";
+
+            const selectedCategory =
+                category?.value ||
+                "";
 
             const filtered =
                 departmentOrders.filter(
                     order => {
 
-                        const text = [
+                        const text =
+                            [
+                                order.number,
+                                order.year,
+                                order.title,
+                                order.description,
+                                order.category
+                            ]
+                                .join(" ")
+                                .toLowerCase();
 
-                            order.number,
+                        return (
 
-                            order.year,
+                            (
+                                !query ||
+                                text.includes(
+                                    query
+                                )
+                            )
 
-                            order.title,
+                            &&
 
-                            order.description,
+                            (
+                                !selectedYear ||
+                                order.year ===
+                                    selectedYear
+                            )
 
-                            order.category
+                            &&
 
-                        ]
-                            .join(" ")
-                            .toLowerCase();
+                            (
+                                !selectedCategory ||
+                                order.category ===
+                                    selectedCategory
+                            )
 
-                        return text.includes(
-                            query
                         );
 
                     }
@@ -2515,67 +3201,40 @@ function setupDepartmentOrderFilters() {
                 filtered
             );
 
-        }
-    );
+        };
 
-}
+    if (search) {
 
-
-/* =========================================================
-   PROJECT MODAL
-========================================================= */
-
-function setupProjectModal() {
-
-    const modal =
-        $("projectModal");
-
-    const close =
-        $("closeProjectModal");
-
-    if (!modal) {
-        return;
-    }
-
-    if (close) {
-
-        close.addEventListener(
-            "click",
-            () => {
-
-                modal.style.display =
-                    "none";
-
-            }
+        search.addEventListener(
+            "input",
+            apply
         );
 
     }
 
-    modal.addEventListener(
-        "click",
-        event => {
+    if (year) {
 
-            if (
-                event.target ===
-                modal
-            ) {
+        year.addEventListener(
+            "change",
+            apply
+        );
 
-                modal.style.display =
-                    "none";
+    }
 
-            }
+    if (category) {
 
-        }
+        category.addEventListener(
+            "change",
+            apply
+        );
+
+    }
+
+    renderDepartmentOrders(
+        departmentOrders
     );
 
 }
-
-
-/* =========================================================
-   =========================================================
-   PROJECT MONITORING
-   =========================================================
-========================================================= */
 
 
 /* =========================================================
@@ -2619,19 +3278,22 @@ function monitoringSearchText(
         item.remarks2
 
     ]
+
         .filter(
             value =>
                 value !== null &&
                 value !== undefined
         )
+
         .join(" ")
+
         .toLowerCase();
 
 }
 
 
 /* =========================================================
-   PERCENTAGE PARSER
+   PARSE PERCENT
 ========================================================= */
 
 function parsePercent(
@@ -2645,6 +3307,7 @@ function parsePercent(
     ) {
 
         return null;
+
     }
 
     const cleaned =
@@ -2665,10 +3328,13 @@ function parsePercent(
         );
 
     if (
-        Number.isNaN(number)
+        Number.isNaN(
+            number
+        )
     ) {
 
         return null;
+
     }
 
     return Math.max(
@@ -2683,7 +3349,7 @@ function parsePercent(
 
 
 /* =========================================================
-   FORMAT PERCENTAGE
+   FORMAT PERCENT
 ========================================================= */
 
 function formatPercent(
@@ -2733,7 +3399,7 @@ function normalizeStatus(
 
 
 /* =========================================================
-   STATUS CLASS
+   MONITORING STATUS CLASS
 ========================================================= */
 
 function monitoringStatusClass(
@@ -2781,6 +3447,9 @@ function monitoringStatusClass(
     if (
         status.includes(
             "not started"
+        ) ||
+        status.includes(
+            "not yet started"
         )
     ) {
 
@@ -2802,9 +3471,7 @@ function calculateDaysSinceUpdate(
 ) {
 
     if (!dateValue) {
-
         return "";
-
     }
 
     const updated =
@@ -2855,7 +3522,7 @@ function calculateDaysSinceUpdate(
 
 
 /* =========================================================
-   MONITORING OVERALL PROGRESS
+   MONITORING ROW PROGRESS
 ========================================================= */
 
 function monitoringRowProgress(
@@ -2906,7 +3573,7 @@ function monitoringRowProgress(
 
 
 /* =========================================================
-   LOAD MONITORING
+   MONITORING LOAD
 ========================================================= */
 
 async function loadMonitoring() {
@@ -2942,34 +3609,26 @@ async function loadMonitoring() {
                 .order(
                     "contract_id",
                     {
-                        ascending: true
+                        ascending:
+                            true
                     }
                 );
 
         if (error) {
 
-            /*
-             * Do not break the rest
-             * of the website if the
-             * monitoring table does
-             * not yet exist.
-             */
+            const message =
+                String(
+                    error.message || ""
+                )
+                    .toLowerCase();
 
             if (
-                String(
-                    error.message || ""
+                message.includes(
+                    "could not find the table"
+                ) ||
+                message.includes(
+                    "relation"
                 )
-                    .toLowerCase()
-                    .includes(
-                        "could not find the table"
-                    ) ||
-                String(
-                    error.message || ""
-                )
-                    .toLowerCase()
-                    .includes(
-                        "relation"
-                    )
             ) {
 
                 console.warn(
@@ -2980,26 +3639,35 @@ async function loadMonitoring() {
                 cachedMonitoring =
                     [];
 
-                updateMonitoringStats([]);
+                updateMonitoringStats(
+                    []
+                );
 
                 if (container) {
 
                     container.innerHTML = `
                         <div class="empty-state">
-                            <strong>Monitoring table not yet connected</strong>
+
+                            <strong>
+                                Monitoring table not yet connected
+                            </strong>
+
                             <span>
                                 The Project Monitoring interface is ready.
-                                Create the Supabase "monitoring" table to load and edit the monitoring records.
+                                Create the Supabase "monitoring" table to load and edit monitoring records.
                             </span>
+
                         </div>
                     `;
 
                 }
 
                 return;
+
             }
 
             throw error;
+
         }
 
         cachedMonitoring =
@@ -3025,19 +3693,26 @@ async function loadMonitoring() {
         cachedMonitoring =
             [];
 
-        updateMonitoringStats([]);
+        updateMonitoringStats(
+            []
+        );
 
         if (container) {
 
             container.innerHTML = `
                 <div class="empty-state">
-                    <strong>Unable to load monitoring data</strong>
+
+                    <strong>
+                        Unable to load monitoring data
+                    </strong>
+
                     <span>
                         ${escapeHTML(
                             error.message ||
                             "Please check the Supabase monitoring table and permissions."
                         )}
                     </span>
+
                 </div>
             `;
 
@@ -3082,8 +3757,6 @@ function updateMonitoringStats(
                 );
 
             if (
-                status ===
-                "completed" ||
                 status.includes(
                     "completed"
                 )
@@ -3113,6 +3786,9 @@ function updateMonitoringStats(
             } else if (
                 status.includes(
                     "not started"
+                ) ||
+                status.includes(
+                    "not yet started"
                 )
             ) {
 
@@ -3215,7 +3891,7 @@ function updateMonitoringStats(
 
 
 /* =========================================================
-   FILTER MONITORING
+   MONITORING FILTER
 ========================================================= */
 
 function filterMonitoring(
@@ -3297,7 +3973,7 @@ function filterMonitoring(
 
 
 /* =========================================================
-   RENDER MONITORING
+   MONITORING RENDER
 ========================================================= */
 
 function renderMonitoring(
@@ -3319,8 +3995,15 @@ function renderMonitoring(
 
             container.innerHTML = `
                 <div class="empty-state">
-                    <strong>No matching monitoring records</strong>
-                    <span>Try changing the search or status filter.</span>
+
+                    <strong>
+                        No matching monitoring records
+                    </strong>
+
+                    <span>
+                        Try changing the search or status filter.
+                    </span>
+
                 </div>
             `;
 
@@ -3328,103 +4011,297 @@ function renderMonitoring(
 
             container.innerHTML = `
                 <div class="empty-state">
-                    <strong>No monitoring records</strong>
-                    <span>Monitoring records will appear here after the Supabase monitoring table is populated.</span>
+
+                    <strong>
+                        No monitoring records
+                    </strong>
+
+                    <span>
+                        Monitoring records will appear here after the Supabase monitoring table is populated.
+                    </span>
+
                 </div>
             `;
 
         }
 
         return;
+
     }
 
     container.innerHTML = `
 
-        <table
-            style="
-                width:100%;
-                min-width:1200px;
-                border-collapse:collapse;
-                background:#fff;
-                font-size:10px;
-            "
-        >
+        <div style="overflow-x:auto;">
 
-            <thead>
+            <table
+                style="
+                    width:100%;
+                    min-width:1200px;
+                    border-collapse:collapse;
+                    background:#fff;
+                    font-size:10px;
+                "
+            >
 
-                <tr
-                    style="
-                        background:#063b61;
-                        color:#fff;
-                    "
-                >
+                <thead>
 
-                    <th style="padding:10px;text-align:left;white-space:nowrap;">
-                        CONTRACT ID
-                    </th>
+                    <tr
+                        style="
+                            background:#063b61;
+                            color:#fff;
+                        "
+                    >
 
-                    <th style="padding:10px;text-align:left;min-width:280px;">
-                        PROJECT TITLE
-                    </th>
+                        <th style="padding:10px;text-align:left;white-space:nowrap;">
+                            CONTRACT ID
+                        </th>
 
-                    <th style="padding:10px;text-align:left;">
-                        MUNICIPALITY
-                    </th>
+                        <th style="padding:10px;text-align:left;min-width:280px;">
+                            PROJECT TITLE
+                        </th>
 
-                    <th style="padding:10px;text-align:left;">
-                        PROGRAM
-                    </th>
+                        <th style="padding:10px;text-align:left;">
+                            MUNICIPALITY
+                        </th>
 
-                    <th style="padding:10px;text-align:left;">
-                        PLAN
-                    </th>
+                        <th style="padding:10px;text-align:left;">
+                            PROGRAM
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        PROGRAM %
-                    </th>
+                        <th style="padding:10px;text-align:left;">
+                            PLAN
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        PLAN %
-                    </th>
+                        <th style="padding:10px;text-align:center;">
+                            PROGRAM %
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        OVERALL STATUS
-                    </th>
+                        <th style="padding:10px;text-align:center;">
+                            PLAN %
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        LAST UPDATED
-                    </th>
+                        <th style="padding:10px;text-align:center;">
+                            OVERALL STATUS
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        DAYS
-                    </th>
+                        <th style="padding:10px;text-align:center;">
+                            LAST UPDATED
+                        </th>
 
-                    <th style="padding:10px;text-align:center;">
-                        ACTION
-                    </th>
+                        <th style="padding:10px;text-align:center;">
+                            DAYS
+                        </th>
 
-                </tr>
+                        <th style="padding:10px;text-align:center;">
+                            ACTION
+                        </th>
 
-            </thead>
+                    </tr>
 
-            <tbody>
+                </thead>
 
-                ${
-                    records
-                        .map(
-                            item =>
-                                renderMonitoringRow(
-                                    item
-                                )
-                        )
-                        .join("")
-                }
+                <tbody>
 
-            </tbody>
+                    ${
+                        records
+                            .map(
+                                item =>
+                                    renderMonitoringRow(
+                                        item
+                                    )
+                            )
+                            .join("")
+                    }
 
-        </table>
+                </tbody>
+
+            </table>
+
+        </div>
 
     `;
+
+}
+
+
+/* =========================================================
+   NORMALIZE NAME
+   Used for monitoring assignment control
+========================================================= */
+
+function normalizeMonitoringName(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .toLowerCase()
+        .replace(
+            /[^a-z0-9]+/g,
+            ""
+        );
+
+}
+
+
+/* =========================================================
+   GET CURRENT USER NAME
+========================================================= */
+
+function getCurrentMonitoringName() {
+
+    if (!currentUser) {
+        return "";
+    }
+
+    return (
+        currentProfile?.full_name ||
+        currentUser.user_metadata
+            ?.full_name ||
+        currentUser.email
+            ?.split("@")[0] ||
+        ""
+    )
+        .trim();
+
+}
+
+
+/* =========================================================
+   CHECK MONITORING ASSIGNMENT
+========================================================= */
+
+function isAssignedMonitoringUser(
+    record
+) {
+
+    if (
+        !record ||
+        !currentUser
+    ) {
+
+        return false;
+
+    }
+
+    const currentName =
+        normalizeMonitoringName(
+            getCurrentMonitoringName()
+        );
+
+    if (!currentName) {
+        return false;
+    }
+
+    const programPerson =
+        normalizeMonitoringName(
+            record.program2
+        );
+
+    const planPerson =
+        normalizeMonitoringName(
+            record.plan
+        );
+
+    /*
+     * Exact normalized name match.
+     */
+
+    if (
+        programPerson &&
+        programPerson ===
+            currentName
+    ) {
+
+        return true;
+
+    }
+
+    if (
+        planPerson &&
+        planPerson ===
+            currentName
+    ) {
+
+        return true;
+
+    }
+
+    /*
+     * Also allow a full assigned name
+     * to contain the user's full name.
+     *
+     * Example:
+     * "Engr. Juan Dela Cruz"
+     * vs
+     * "Juan Dela Cruz"
+     */
+
+    if (
+        programPerson &&
+        (
+            programPerson.includes(
+                currentName
+            ) ||
+            currentName.includes(
+                programPerson
+            )
+        )
+    ) {
+
+        return true;
+
+    }
+
+    if (
+        planPerson &&
+        (
+            planPerson.includes(
+                currentName
+            ) ||
+            currentName.includes(
+                planPerson
+            )
+        )
+    ) {
+
+        return true;
+
+    }
+
+    return false;
+
+}
+
+
+/* =========================================================
+   CAN EDIT MONITORING RECORD
+========================================================= */
+
+function canEditMonitoringRecord(
+    record
+) {
+
+    if (
+        !currentUser ||
+        !record
+    ) {
+
+        return false;
+
+    }
+
+    /*
+     * Only assigned personnel can edit.
+     *
+     * program2 = Program assigned personnel
+     * plan     = Plan assigned personnel
+     */
+
+    return isAssignedMonitoringUser(
+        record
+    );
 
 }
 
@@ -3508,6 +4385,88 @@ function renderMonitoringRow(
                 "—"
             );
 
+    const assigned =
+        canEditMonitoringRecord(
+            item
+        );
+
+    const normalizedOverall =
+        normalizeStatus(
+            overallStatus
+        );
+
+    const completed =
+        normalizedOverall.includes(
+            "completed"
+        );
+
+    /*
+     * Completed projects are VIEW only.
+     * Non-completed projects show EDIT only
+     * to assigned personnel.
+     */
+
+    let actionButton = "";
+
+    if (completed) {
+
+        actionButton = `
+
+            <button
+                type="button"
+                class="button secondary monitoring-view-button"
+                data-monitoring-id="${escapeHTML(id)}"
+                style="
+                    height:32px;
+                    padding:0 10px;
+                    font-size:9px;
+                "
+            >
+                VIEW
+            </button>
+
+        `;
+
+    } else if (assigned) {
+
+        actionButton = `
+
+            <button
+                type="button"
+                class="button secondary monitoring-edit-button"
+                data-monitoring-id="${escapeHTML(id)}"
+                style="
+                    height:32px;
+                    padding:0 10px;
+                    font-size:9px;
+                "
+            >
+                EDIT
+            </button>
+
+        `;
+
+    } else {
+
+        actionButton = `
+
+            <button
+                type="button"
+                class="button secondary monitoring-view-button"
+                data-monitoring-id="${escapeHTML(id)}"
+                style="
+                    height:32px;
+                    padding:0 10px;
+                    font-size:9px;
+                "
+            >
+                VIEW
+            </button>
+
+        `;
+
+    }
+
     return `
 
         <tr
@@ -3516,37 +4475,85 @@ function renderMonitoringRow(
             "
         >
 
-            <td style="padding:10px;font-weight:700;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    font-weight:700;
+                    white-space:nowrap;
+                "
+            >
                 ${contractId}
             </td>
 
             <td style="padding:10px;">
-                <div style="font-weight:700;color:#063b61;">
+
+                <div
+                    style="
+                        font-weight:700;
+                        color:#063b61;
+                    "
+                >
                     ${title}
                 </div>
+
             </td>
 
-            <td style="padding:10px;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    white-space:nowrap;
+                "
+            >
                 ${municipality}
             </td>
 
-            <td style="padding:10px;font-weight:600;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    font-weight:600;
+                    white-space:nowrap;
+                "
+            >
                 ${programPerson}
             </td>
 
-            <td style="padding:10px;font-weight:600;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    font-weight:600;
+                    white-space:nowrap;
+                "
+            >
                 ${planPerson}
             </td>
 
-            <td style="padding:10px;text-align:center;font-weight:700;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                    font-weight:700;
+                "
+            >
                 ${programPercent}
             </td>
 
-            <td style="padding:10px;text-align:center;font-weight:700;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                    font-weight:700;
+                "
+            >
                 ${planPercent}
             </td>
 
-            <td style="padding:10px;text-align:center;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                    white-space:nowrap;
+                "
+            >
 
                 <span
                     class="monitoring-status-badge ${statusClass}"
@@ -3566,28 +4573,34 @@ function renderMonitoringRow(
 
             </td>
 
-            <td style="padding:10px;text-align:center;white-space:nowrap;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                    white-space:nowrap;
+                "
+            >
                 ${lastUpdated}
             </td>
 
-            <td style="padding:10px;text-align:center;font-weight:700;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                    font-weight:700;
+                "
+            >
                 ${escapeHTML(days)}
             </td>
 
-            <td style="padding:10px;text-align:center;">
+            <td
+                style="
+                    padding:10px;
+                    text-align:center;
+                "
+            >
 
-                <button
-                    type="button"
-                    class="button secondary monitoring-edit-button"
-                    data-monitoring-id="${escapeHTML(id)}"
-                    style="
-                        height:32px;
-                        padding:0 10px;
-                        font-size:9px;
-                    "
-                >
-                    EDIT
-                </button>
+                ${actionButton}
 
             </td>
 
@@ -3607,7 +4620,9 @@ function formatDate(
 ) {
 
     if (!value) {
+
         return "—";
+
     }
 
     const date =
@@ -3630,6 +4645,7 @@ function formatDate(
     return date.toLocaleDateString(
         "en-PH",
         {
+
             year:
                 "numeric",
 
@@ -3638,6 +4654,7 @@ function formatDate(
 
             day:
                 "2-digit"
+
         }
     );
 
@@ -3831,7 +4848,7 @@ function ensureMonitoringModal() {
 
 
 /* =========================================================
-   MONITORING FIELD HELPERS
+   MONITORING SELECT
 ========================================================= */
 
 function monitoringSelect(
@@ -3911,6 +4928,10 @@ function monitoringSelect(
 }
 
 
+/* =========================================================
+   MONITORING INPUT
+========================================================= */
+
 function monitoringInput(
     id,
     label,
@@ -3956,6 +4977,10 @@ function monitoringInput(
 }
 
 
+/* =========================================================
+   MONITORING TEXTAREA
+========================================================= */
+
 function monitoringTextarea(
     id,
     label,
@@ -4000,6 +5025,255 @@ function monitoringTextarea(
 
 
 /* =========================================================
+   OPEN MONITORING VIEWER
+========================================================= */
+
+function openMonitoringViewer(
+    recordId
+) {
+
+    ensureMonitoringModal();
+
+    const record =
+        cachedMonitoring.find(
+            item =>
+                String(item.id) ===
+                String(recordId)
+        );
+
+    if (!record) {
+
+        alert(
+            "Monitoring record not found."
+        );
+
+        return;
+
+    }
+
+    const modal =
+        $("monitoringEditModal");
+
+    const title =
+        $("monitoringEditTitle");
+
+    const content =
+        $("monitoringEditContent");
+
+    const saveButton =
+        $("saveMonitoringButton");
+
+    if (
+        !modal ||
+        !content
+    ) {
+
+        return;
+
+    }
+
+    if (title) {
+
+        title.textContent =
+            `View Monitoring — ${
+                record.contract_id ||
+                "Project Record"
+            }`;
+
+    }
+
+    if (saveButton) {
+
+        saveButton.style.display =
+            "none";
+
+    }
+
+    content.innerHTML = `
+
+        <div
+            style="
+                margin-bottom:20px;
+                padding:12px 15px;
+                background:#f3f7f9;
+                border-left:4px solid #063b61;
+            "
+        >
+
+            <div
+                style="
+                    font-size:9px;
+                    color:#647782;
+                    font-weight:700;
+                    text-transform:uppercase;
+                "
+            >
+                PROJECT
+            </div>
+
+            <div
+                style="
+                    margin-top:3px;
+                    font-size:15px;
+                    font-weight:800;
+                    color:#063b61;
+                "
+            >
+                ${escapeHTML(
+                    record.project_title ||
+                    record.project_title_as_per_gaa ||
+                    record.title ||
+                    "Untitled Project"
+                )}
+            </div>
+
+            <div
+                style="
+                    margin-top:4px;
+                    font-size:10px;
+                    color:#647782;
+                "
+            >
+                CONTRACT ID:
+                <strong>
+                    ${escapeHTML(
+                        record.contract_id ||
+                        "—"
+                    )}
+                </strong>
+
+                &nbsp;&nbsp;
+
+                MUNICIPALITY:
+                <strong>
+                    ${escapeHTML(
+                        record.municipality ||
+                        "—"
+                    )}
+                </strong>
+
+            </div>
+
+        </div>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                gap:12px;
+            "
+        >
+
+            ${monitoringInput(
+                "viewProgram",
+                "Program",
+                record.program
+            )}
+
+            ${monitoringInput(
+                "viewPlan",
+                "Plan",
+                record.plan
+            )}
+
+            ${monitoringInput(
+                "viewProgramPercent",
+                "Program %",
+                formatPercent(
+                    record.program_percent
+                )
+            )}
+
+            ${monitoringInput(
+                "viewPlanPercent",
+                "Plan %",
+                formatPercent(
+                    record.plan_percent
+                )
+            )}
+
+            ${monitoringInput(
+                "viewProgramStatus",
+                "Program Status",
+                record.program_status
+            )}
+
+            ${monitoringInput(
+                "viewPlanStatus",
+                "Plan Status",
+                record.plan_status
+            )}
+
+            ${monitoringInput(
+                "viewOverallStatus",
+                "Overall Status",
+                record.overall_status
+            )}
+
+            ${monitoringInput(
+                "viewLastUpdated",
+                "Last Updated",
+                formatDate(
+                    record.last_updated
+                )
+            )}
+
+        </div>
+
+        <div
+            style="
+                margin-top:18px;
+            "
+        >
+
+            ${monitoringTextarea(
+                "viewProgramRemarks",
+                "Program Remarks",
+                record.remarks
+            )}
+
+        </div>
+
+        <div
+            style="
+                margin-top:12px;
+            "
+        >
+
+            ${monitoringTextarea(
+                "viewPlanRemarks",
+                "Plan Remarks",
+                record.remarks2
+            )}
+
+        </div>
+
+    `;
+
+    /*
+     * Make viewer fields read-only.
+     */
+
+    content
+        .querySelectorAll(
+            "input, textarea, select"
+        )
+        .forEach(
+            element => {
+
+                element.disabled =
+                    true;
+
+            }
+        );
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
    OPEN MONITORING EDITOR
 ========================================================= */
 
@@ -4023,6 +5297,25 @@ function openMonitoringEditor(
         );
 
         return;
+
+    }
+
+    /*
+     * SECURITY / ACCESS CHECK
+     */
+
+    if (
+        !canEditMonitoringRecord(
+            record
+        )
+    ) {
+
+        alert(
+            "Editing is restricted to the personnel assigned to this monitoring record."
+        );
+
+        return;
+
     }
 
     const modal =
@@ -4037,12 +5330,23 @@ function openMonitoringEditor(
     const content =
         $("monitoringEditContent");
 
+    const saveButton =
+        $("saveMonitoringButton");
+
     if (
         !modal ||
         !content
     ) {
 
         return;
+
+    }
+
+    if (saveButton) {
+
+        saveButton.style.display =
+            "";
+
     }
 
     if (recordIdInput) {
@@ -4114,7 +5418,9 @@ function openMonitoringEditor(
                         "—"
                     )}
                 </strong>
+
                 &nbsp;&nbsp;
+
                 MUNICIPALITY:
                 <strong>
                     ${escapeHTML(
@@ -4122,6 +5428,7 @@ function openMonitoringEditor(
                         "—"
                     )}
                 </strong>
+
             </div>
 
         </div>
@@ -4140,14 +5447,11 @@ function openMonitoringEditor(
             PROJECT INFORMATION
         </div>
 
+
         <div
             style="
                 display:grid;
-                grid-template-columns:
-                    repeat(
-                        auto-fit,
-                        minmax(220px,1fr)
-                    );
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
                 gap:12px;
             "
         >
@@ -4205,14 +5509,11 @@ function openMonitoringEditor(
             PROGRAM MONITORING
         </div>
 
+
         <div
             style="
                 display:grid;
-                grid-template-columns:
-                    repeat(
-                        auto-fit,
-                        minmax(220px,1fr)
-                    );
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
                 gap:12px;
             "
         >
@@ -4282,6 +5583,7 @@ function openMonitoringEditor(
 
         </div>
 
+
         <div
             style="
                 margin-top:12px;
@@ -4311,14 +5613,11 @@ function openMonitoringEditor(
             PLAN MONITORING
         </div>
 
+
         <div
             style="
                 display:grid;
-                grid-template-columns:
-                    repeat(
-                        auto-fit,
-                        minmax(220px,1fr)
-                    );
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
                 gap:12px;
             "
         >
@@ -4388,6 +5687,7 @@ function openMonitoringEditor(
 
         </div>
 
+
         <div
             style="
                 margin-top:12px;
@@ -4417,14 +5717,11 @@ function openMonitoringEditor(
             OVERALL MONITORING
         </div>
 
+
         <div
             style="
                 display:grid;
-                grid-template-columns:
-                    repeat(
-                        auto-fit,
-                        minmax(220px,1fr)
-                    );
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
                 gap:12px;
             "
         >
@@ -4437,9 +5734,10 @@ function openMonitoringEditor(
 
         </div>
 
+
         <div
             style="
-                margin-top:12px;
+                margin-top:25px;
                 padding:10px 12px;
                 background:#f7fafb;
                 border:1px solid #d7e1e7;
@@ -4447,8 +5745,11 @@ function openMonitoringEditor(
                 color:#687984;
             "
         >
+
             Saving this record will automatically update
-            <strong>LAST UPDATED</strong> to the current date.
+            <strong>LAST UPDATED</strong>
+            to the current date.
+
         </div>
 
     `;
@@ -4483,6 +5784,7 @@ async function saveMonitoringRecord(
         );
 
         return;
+
     }
 
     const recordId =
@@ -4496,6 +5798,48 @@ async function saveMonitoringRecord(
         );
 
         return;
+
+    }
+
+    /*
+     * IMPORTANT:
+     * Re-read the current record from cache
+     * before saving. This prevents a user
+     * from bypassing the EDIT restriction
+     * through the browser interface.
+     */
+
+    const record =
+        cachedMonitoring.find(
+            item =>
+                String(item.id) ===
+                String(recordId)
+        );
+
+    if (!record) {
+
+        alert(
+            "Monitoring record not found."
+        );
+
+        return;
+
+    }
+
+    if (
+        !canEditMonitoringRecord(
+            record
+        )
+    ) {
+
+        alert(
+            "You are not authorized to edit this monitoring record."
+        );
+
+        closeMonitoringEditor();
+
+        return;
+
     }
 
     const saveButton =
@@ -4878,24 +6222,45 @@ function setupMonitoring() {
 
     }
 
+    /*
+     * Delegated monitoring buttons.
+     */
+
     document.addEventListener(
         "click",
         event => {
 
-            const button =
+            const editButton =
                 event.target.closest(
                     ".monitoring-edit-button"
                 );
 
-            if (!button) {
+            const viewButton =
+                event.target.closest(
+                    ".monitoring-view-button"
+                );
+
+            if (editButton) {
+
+                event.preventDefault();
+
+                openMonitoringEditor(
+                    editButton.dataset.monitoringId
+                );
+
                 return;
+
             }
 
-            event.preventDefault();
+            if (viewButton) {
 
-            openMonitoringEditor(
-                button.dataset.monitoringId
-            );
+                event.preventDefault();
+
+                openMonitoringViewer(
+                    viewButton.dataset.monitoringId
+                );
+
+            }
 
         }
     );
@@ -4978,11 +6343,21 @@ function closeMonitoringEditor() {
 
     }
 
+    const saveButton =
+        $("saveMonitoringButton");
+
+    if (saveButton) {
+
+        saveButton.style.display =
+            "";
+
+    }
+
 }
 
 
 /* =========================================================
-   PDS AI
+   PDS AI SETUP
 ========================================================= */
 
 function setupPDSAI() {
@@ -5175,8 +6550,13 @@ async function askPDSAI() {
     const send =
         $("pdsAiSend");
 
-    if (!input || !db) {
+    if (
+        !input ||
+        !db
+    ) {
+
         return;
+
     }
 
     const message =
@@ -5190,6 +6570,10 @@ async function askPDSAI() {
         message,
         "user"
     );
+
+    /*
+     * Automatically clear input.
+     */
 
     input.value =
         "";
@@ -5215,6 +6599,7 @@ async function askPDSAI() {
             await db.functions.invoke(
                 "PDS-AI",
                 {
+
                     body: {
 
                         message:
@@ -5224,6 +6609,7 @@ async function askPDSAI() {
                             pdsAIHistory
 
                     }
+
                 }
             );
 
@@ -5382,18 +6768,24 @@ function setupRefreshButton() {
                 "is-loading"
             );
 
-            await refreshAll();
+            try {
 
-            setTimeout(
-                () => {
+                await refreshAll();
 
-                    button.classList.remove(
-                        "is-loading"
-                    );
+            } finally {
 
-                },
-                300
-            );
+                setTimeout(
+                    () => {
+
+                        button.classList.remove(
+                            "is-loading"
+                        );
+
+                    },
+                    300
+                );
+
+            }
 
         }
     );
@@ -5411,82 +6803,274 @@ function setupAuthForms() {
         return;
     }
 
-    authFormsReady =
-        true;
-
     const loginForm =
         $("loginForm");
 
-    if (!loginForm) {
+    const registerForm =
+        $("registerForm");
+
+    const tabLogin =
+        $("tabLogin");
+
+    const tabRegister =
+        $("tabRegister");
+
+    /*
+     * Do not mark the setup ready until
+     * the forms actually exist.
+     */
+
+    if (
+        !loginForm &&
+        !registerForm
+    ) {
 
         console.warn(
-            "PDS: loginForm not found."
+            "PDS: Authentication forms not found."
         );
 
         return;
+
     }
 
-    loginForm.addEventListener(
-        "submit",
-        async event => {
+    authFormsReady =
+        true;
 
-            event.preventDefault();
 
-            const email =
-                $("loginEmail")
-                    ?.value
-                    .trim();
+    /* -----------------------------------------------------
+       LOGIN TAB
+    ----------------------------------------------------- */
 
-            const password =
-                $("loginPassword")
-                    ?.value ||
-                "";
+    if (tabLogin) {
 
-            if (
-                !email ||
-                !password
-            ) {
+        tabLogin.addEventListener(
+            "click",
+            event => {
 
-                authMessage(
-                    "Please enter your email and password.",
-                    "error"
+                event.preventDefault();
+
+                showLoginTab();
+
+            }
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       REGISTER TAB
+    ----------------------------------------------------- */
+
+    if (tabRegister) {
+
+        tabRegister.addEventListener(
+            "click",
+            event => {
+
+                event.preventDefault();
+
+                showRegisterTab();
+
+            }
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       LOGIN FORM
+    ----------------------------------------------------- */
+
+    if (loginForm) {
+
+        loginForm.addEventListener(
+            "submit",
+            async event => {
+
+                event.preventDefault();
+
+                const email =
+                    $("loginEmail")
+                        ?.value
+                        ?.trim() ||
+                    "";
+
+                const password =
+                    $("loginPassword")
+                        ?.value ||
+                    "";
+
+                if (
+                    !email ||
+                    !password
+                ) {
+
+                    authMessage(
+                        "Please enter your email and password.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+                const button =
+                    loginForm.querySelector(
+                        'button[type="submit"]'
+                    );
+
+                if (button) {
+
+                    button.disabled =
+                        true;
+
+                    button.textContent =
+                        "SIGNING IN...";
+
+                }
+
+                await loginUser(
+                    email,
+                    password
                 );
 
-                return;
-            }
+                if (button) {
 
-            const button =
-                loginForm.querySelector(
-                    'button[type="submit"]'
+                    button.disabled =
+                        false;
+
+                    button.textContent =
+                        "SIGN IN";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       REGISTER FORM
+    ----------------------------------------------------- */
+
+    if (registerForm) {
+
+        registerForm.addEventListener(
+            "submit",
+            async event => {
+
+                event.preventDefault();
+
+                const name =
+                    $("registerName")
+                        ?.value
+                        ?.trim() ||
+                    "";
+
+                const position =
+                    $("registerPosition")
+                        ?.value
+                        ?.trim() ||
+                    "";
+
+                const email =
+                    $("registerEmail")
+                        ?.value
+                        ?.trim() ||
+                    "";
+
+                const password =
+                    $("registerPassword")
+                        ?.value ||
+                    "";
+
+                const confirm =
+                    $("registerConfirm")
+                        ?.value ||
+                    "";
+
+                if (
+                    !name ||
+                    !position ||
+                    !email ||
+                    !password ||
+                    !confirm
+                ) {
+
+                    authMessage(
+                        "Please complete all registration fields.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+                if (
+                    password !==
+                    confirm
+                ) {
+
+                    authMessage(
+                        "Passwords do not match.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+                if (
+                    password.length <
+                    6
+                ) {
+
+                    authMessage(
+                        "Password must be at least 6 characters.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+                const button =
+                    registerForm.querySelector(
+                        'button[type="submit"]'
+                    );
+
+                if (button) {
+
+                    button.disabled =
+                        true;
+
+                    button.textContent =
+                        "CREATING ACCOUNT...";
+
+                }
+
+                await registerUser(
+                    name,
+                    position,
+                    email,
+                    password
                 );
 
-            if (button) {
+                if (button) {
 
-                button.disabled =
-                    true;
+                    button.disabled =
+                        false;
 
-                button.textContent =
-                    "SIGNING IN...";
+                    button.textContent =
+                        "CREATE ACCOUNT";
 
-            }
-
-            await loginUser(
-                email,
-                password
-            );
-
-            if (button) {
-
-                button.disabled =
-                    false;
-
-                button.textContent =
-                    "SIGN IN";
+                }
 
             }
+        );
 
-        }
-    );
+    }
 
 }
 
@@ -5558,9 +7142,13 @@ function setupAuthStateListener() {
                 cachedMonitoring =
                     [];
 
+                cachedDocuments =
+                    [];
+
                 showLogin();
 
                 return;
+
             }
 
             if (
@@ -5575,9 +7163,7 @@ function setupAuthStateListener() {
 
                 if (
                     event ===
-                    "SIGNED_IN" ||
-                    event ===
-                    "INITIAL_SESSION"
+                    "SIGNED_IN"
                 ) {
 
                     showPage(
@@ -5707,25 +7293,17 @@ async function initializePDS() {
         "PDS — Initializing..."
     );
 
-    const authScreen =
-        $("authScreen");
+    /*
+     * IMPORTANT:
+     * Show the login screen first.
+     *
+     * The old version hid both the login
+     * and app before initialization. If
+     * any JavaScript failed afterward,
+     * the user could get a blank screen.
+     */
 
-    const app =
-        $("app");
-
-    if (authScreen) {
-
-        authScreen.style.display =
-            "none";
-
-    }
-
-    if (app) {
-
-        app.style.display =
-            "none";
-
-    }
+    showLogin();
 
     const supabaseReady =
         initializeSupabase();
@@ -5739,50 +7317,78 @@ async function initializePDS() {
         showLogin();
 
         authMessage(
-            "Supabase configuration error. Check your Publishable API key in script.js.",
+            "Supabase configuration error. Check the Publishable API key in script.js.",
             "error"
         );
 
         return;
+
     }
 
-    setupNavigation();
+    try {
 
-    setupSectionTargets();
+        setupNavigation();
 
-    setupGlobalSearch();
+        setupSectionTargets();
 
-    setupAuthForms();
+        setupGlobalSearch();
 
-    setupSignOut();
+        setupAuthForms();
 
-    setupProjectModal();
+        setupSignOut();
 
-    setupDocumentModal();
+        setupProjectModal();
 
-    setupDocumentForm();
+        setupDocumentModal();
 
-    setupDocumentUpload();
+        setupDocumentForm();
 
-    setupDocumentSearch();
+        setupDocumentUpload();
 
-    setupDepartmentOrderFilters();
+        setupDocumentSearch();
 
-    setupMonitoring();
+        setupDepartmentOrderFilters();
 
-    setupPDSAI();
+        setupMonitoring();
 
-    setupNotifications();
+        setupPDSAI();
 
-    setupRefreshButton();
+        setupNotifications();
 
-    setupAuthStateListener();
+        setupRefreshButton();
 
-    await restoreSession();
+        setupAuthStateListener();
 
-    console.log(
-        "PDS — Ready."
-    );
+        /*
+         * Session restoration is intentionally
+         * done AFTER all event handlers are ready.
+         */
+
+        await restoreSession();
+
+        console.log(
+            "PDS — Ready."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "PDS initialization error:",
+            error
+        );
+
+        /*
+         * Never leave the user with a blank page.
+         */
+
+        showLogin();
+
+        authMessage(
+            "PDS could not finish loading. Please refresh the page and try again.",
+            "error"
+        );
+
+    }
 
 }
 
@@ -5806,1451 +7412,12 @@ if (
     initializePDS();
 
 }
-/* =========================================================
-   GITHUB PROJECT MONITORING
-========================================================= */
-
-function normalizeMonitoringName(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
-}
-
-/* =========================================================
-   PDS PROJECT MONITORING
-   GITHUB + ONEDRIVE ONLY
-========================================================= */
-
-function normalizeMonitoringName(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
-}
 
 
 /* =========================================================
-   CURRENT USER NAME
-   Uses the existing PDS login profile only.
-   No monitoring_name field required.
+   DEBUG MESSAGE
 ========================================================= */
 
-function getCurrentMonitoringName() {
-
-    return normalizeMonitoringName(
-        currentProfile?.full_name ||
-        currentUser?.user_metadata?.full_name ||
-        ""
-    );
-}
-
-
-/* =========================================================
-   ASSIGNED PROJECTS
-========================================================= */
-
-function getAssignedMonitoringProjects() {
-
-    if (!Array.isArray(monitoringData)) {
-        return [];
-    }
-
-    const userName = getCurrentMonitoringName();
-
-    if (!userName) {
-        return [];
-    }
-
-    /*
-     * Allow the logged-in profile to contain
-     * additional name information.
-     *
-     * Example:
-     * "cHRISTINE LAT" → "christine"
-     */
-
-    const userFirstName =
-        userName
-            .split(/\s+/)[0]
-            .trim();
-
-
-    return monitoringData.filter(project => {
-
-        const program =
-            normalizeMonitoringName(
-                project.program2
-            );
-
-        const plan =
-            normalizeMonitoringName(
-                project.plan
-            );
-
-
-        const programFirstName =
-            program
-                .split(/\s+/)[0]
-                .trim();
-
-        const planFirstName =
-            plan
-                .split(/\s+/)[0]
-                .trim();
-
-
-        return (
-            program === userName ||
-            plan === userName ||
-            programFirstName === userFirstName ||
-            planFirstName === userFirstName
-        );
-
-    });
-}
-
-/* =========================================================
-   RENDER MONITORING TABLE
-========================================================= */
-
-function renderMonitoringProjects() {
-
-    const container =
-        document.getElementById("monitoringList");
-
-    if (!container) return;
-
-    const assignedProjects =
-        getAssignedMonitoringProjects();
-
-    const searchInput =
-        document.getElementById("monitoringSearch");
-
-    const statusFilter =
-        document.getElementById("monitoringStatusFilter");
-
-    const search =
-        normalizeMonitoringName(
-            searchInput?.value || ""
-        );
-
-    const status =
-        normalizeMonitoringName(
-            statusFilter?.value || ""
-        );
-
-    const filtered =
-        assignedProjects.filter(project => {
-
-            const searchable = [
-                project.contract_id,
-                project.project_title,
-                project.municipality,
-                project.program2,
-                project.plan,
-                project.program,
-                project.sub_program
-            ]
-                .join(" ")
-                .toLowerCase();
-
-            if (
-                search &&
-                !searchable.includes(search)
-            ) {
-                return false;
-            }
-
-            if (status) {
-
-                const projectStatus =
-                    normalizeMonitoringName(
-                        project.overall_status ||
-                        "Not Yet Started"
-                    );
-
-                if (projectStatus !== status) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-
-
-    /* =====================================================
-       NO PROJECTS
-    ===================================================== */
-
-    if (!filtered.length) {
-
-        container.innerHTML = `
-            <div style="
-                padding:40px;
-                text-align:center;
-                color:var(--muted);
-                border:1px solid #d5e0e7;
-                background:#f8fafb;
-            ">
-
-                <div style="
-                    font-size:22px;
-                    margin-bottom:8px;
-                ">⌕</div>
-
-                <strong style="
-                    color:var(--navy);
-                    font-size:11px;
-                ">
-                    NO ASSIGNED PROJECTS FOUND
-                </strong>
-
-                <div style="
-                    margin-top:6px;
-                    font-size:9px;
-                ">
-                    Projects assigned through PROGRAM2 or PLAN
-                    will appear here.
-                </div>
-
-            </div>
-        `;
-
-        updateMonitoringStats([]);
-
-        return;
-    }
-
-
-    /* =====================================================
-       TABLE
-    ===================================================== */
-
-    container.innerHTML = `
-        <table style="
-            width:100%;
-            border-collapse:collapse;
-            font-size:9px;
-            min-width:900px;
-        ">
-
-            <thead>
-
-                <tr style="
-                    background:#063b61;
-                    color:#fff;
-                    text-align:left;
-                ">
-
-                    <th style="padding:10px;">
-                        CONTRACT ID
-                    </th>
-
-                    <th style="padding:10px;">
-                        PROJECT
-                    </th>
-
-                    <th style="padding:10px;">
-                        MUNICIPALITY
-                    </th>
-
-                    <th style="padding:10px;">
-                        PROGRAM
-                    </th>
-
-                    <th style="padding:10px;">
-                        PLAN
-                    </th>
-
-                    <th style="padding:10px;">
-                        STATUS
-                    </th>
-
-                    <th style="padding:10px;">
-                        ACTION
-                    </th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                ${filtered.map(project => {
-
-                    const projectStatus =
-                        project.overall_status ||
-                        "Not Yet Started";
-
-                    return `
-
-                        <tr style="
-                            border-bottom:1px solid #d9e2e8;
-                            background:#fff;
-                        ">
-
-                            <td style="
-                                padding:10px;
-                                font-weight:700;
-                                color:#063b61;
-                            ">
-                                ${escapeHTML(
-                                    project.contract_id || ""
-                                )}
-                            </td>
-
-                            <td style="padding:10px;">
-                                ${escapeHTML(
-                                    project.project_title ||
-                                    "Project details not yet encoded"
-                                )}
-                            </td>
-
-                            <td style="padding:10px;">
-                                ${escapeHTML(
-                                    project.municipality || "—"
-                                )}
-                            </td>
-
-                            <td style="padding:10px;">
-                                ${escapeHTML(
-                                    project.program2 || "—"
-                                )}
-                            </td>
-
-                            <td style="padding:10px;">
-                                ${escapeHTML(
-                                    project.plan || "—"
-                                )}
-                            </td>
-
-                            <td style="padding:10px;">
-
-                                <span style="
-                                    display:inline-block;
-                                    padding:5px 8px;
-                                    border:1px solid #d5e0e7;
-                                    background:#f5f8fa;
-                                    font-weight:700;
-                                ">
-                                    ${escapeHTML(
-                                        projectStatus
-                                    )}
-                                </span>
-
-                            </td>
-
-                            <td style="
-                                padding:10px;
-                                white-space:nowrap;
-                            ">
-
-                                <button
-                                    type="button"
-                                    class="button secondary"
-                                    onclick="viewMonitoringProject('${escapeJS(
-                                        project.contract_id || ""
-                                    )}')"
-                                >
-                                    VIEW
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="button primary"
-                                    onclick="editMonitoringProject('${escapeJS(
-                                        project.contract_id || ""
-                                    )}')"
-                                >
-                                    EDIT
-                                </button>
-
-                            </td>
-
-                        </tr>
-                    `;
-
-                }).join("")}
-
-            </tbody>
-
-        </table>
-    `;
-
-    updateMonitoringStats(filtered);
-}
-
-
-/* =========================================================
-   MONITORING STATISTICS
-========================================================= */
-
-function updateMonitoringStats(projects) {
-
-    const total =
-        document.getElementById(
-            "monitoringTotalProjects"
-        );
-
-    const notStarted =
-        document.getElementById(
-            "monitoringNotStarted"
-        );
-
-    const ongoing =
-        document.getElementById(
-            "monitoringOngoing"
-        );
-
-    const forCompletion =
-        document.getElementById(
-            "monitoringForCompletion"
-        );
-
-    const completed =
-        document.getElementById(
-            "monitoringCompleted"
-        );
-
-    const overall =
-        document.getElementById(
-            "monitoringOverallProgress"
-        );
-
-
-    if (!Array.isArray(projects)) {
-        projects = [];
-    }
-
-
-    if (total) {
-        total.textContent = projects.length;
-    }
-
-
-    let notStartedCount = 0;
-    let ongoingCount = 0;
-    let completionCount = 0;
-    let completedCount = 0;
-
-
-    projects.forEach(project => {
-
-        const status =
-            normalizeMonitoringName(
-                project.overall_status ||
-                "Not Yet Started"
-            );
-
-
-        if (
-            status === "not started" ||
-            status === "not yet started"
-        ) {
-            notStartedCount++;
-        }
-
-        else if (
-            status === "ongoing" ||
-            status === "on-going"
-        ) {
-            ongoingCount++;
-        }
-
-        else if (
-            status === "for completion"
-        ) {
-            completionCount++;
-        }
-
-        else if (
-            status === "completed"
-        ) {
-            completedCount++;
-        }
-
-    });
-
-
-    if (notStarted) {
-        notStarted.textContent =
-            notStartedCount;
-    }
-
-    if (ongoing) {
-        ongoing.textContent =
-            ongoingCount;
-    }
-
-    if (forCompletion) {
-        forCompletion.textContent =
-            completionCount;
-    }
-
-    if (completed) {
-        completed.textContent =
-            completedCount;
-    }
-
-
-    /*
-     * Progress percentage is not currently
-     * available in monitoring-data.js.
-     *
-     * Do not invent a value.
-     */
-
-    if (overall) {
-        overall.textContent = "—";
-    }
-}
-
-
-/* =========================================================
-   LOAD MONITORING
-========================================================= */
-
-function loadMonitoring() {
-
-    try {
-
-        if (!Array.isArray(monitoringData)) {
-
-            console.warn(
-                "monitoringData is not available."
-            );
-
-            return;
-        }
-
-        renderMonitoringProjects();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Monitoring load error:",
-            error
-        );
-
-    }
-}
-
-
-/* =========================================================
-   SETUP MONITORING
-========================================================= */
-
-function setupMonitoring() {
-
-    const search =
-        document.getElementById(
-            "monitoringSearch"
-        );
-
-    const status =
-        document.getElementById(
-            "monitoringStatusFilter"
-        );
-
-    const refresh =
-        document.getElementById(
-            "refreshMonitoringButton"
-        );
-
-
-    if (search) {
-
-        search.addEventListener(
-            "input",
-            renderMonitoringProjects
-        );
-
-    }
-
-
-    if (status) {
-
-        status.addEventListener(
-            "change",
-            renderMonitoringProjects
-        );
-
-    }
-
-
-    if (refresh) {
-
-        refresh.addEventListener(
-            "click",
-            loadMonitoring
-        );
-
-    }
-
-
-    loadMonitoring();
-}
-
-
-/* =========================================================
-   VIEW PROJECT
-========================================================= */
-
-function viewMonitoringProject(contractId) {
-
-    const project =
-        monitoringData.find(
-            item =>
-                String(item.contract_id) ===
-                String(contractId)
-        );
-
-
-    if (!project) {
-
-        alert(
-            "Project record not found."
-        );
-
-        return;
-    }
-
-
-    document
-        .getElementById(
-            "monitoringDetailModal"
-        )
-        ?.remove();
-
-
-    const modal =
-        document.createElement("div");
-
-
-    modal.id =
-        "monitoringDetailModal";
-
-
-    modal.style.cssText = `
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.55);
-        z-index:9999;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding:20px;
-    `;
-
-
-    modal.innerHTML = `
-
-        <div style="
-            width:min(900px,96vw);
-            max-height:90vh;
-            overflow:auto;
-            background:#fff;
-            border-radius:5px;
-            box-shadow:0 20px 60px rgba(0,0,0,.30);
-        ">
-
-            <div style="
-                background:#063b61;
-                color:#fff;
-                padding:18px 20px;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-            ">
-
-                <div>
-
-                    <div style="
-                        font-size:9px;
-                        letter-spacing:1px;
-                        opacity:.75;
-                    ">
-                        PDS / PROJECT CONTROL
-                    </div>
-
-                    <div style="
-                        font-size:18px;
-                        font-weight:700;
-                        margin-top:4px;
-                    ">
-                        PROJECT DETAILS
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    onclick="
-                        document
-                        .getElementById(
-                            'monitoringDetailModal'
-                        )
-                        ?.remove()
-                    "
-                    style="
-                        border:0;
-                        background:transparent;
-                        color:#fff;
-                        font-size:22px;
-                        cursor:pointer;
-                    "
-                >
-                    ×
-                </button>
-
-            </div>
-
-
-            <div style="padding:20px;">
-
-                <div style="
-                    display:grid;
-                    grid-template-columns:
-                        repeat(2,minmax(0,1fr));
-                    gap:15px;
-                ">
-
-                    <div>
-
-                        <div class="stat-label">
-                            CONTRACT ID
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(
-                                project.contract_id || "—"
-                            )}
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            MUNICIPALITY
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(
-                                project.municipality || "—"
-                            )}
-                        </strong>
-
-                    </div>
-
-
-                    <div style="
-                        grid-column:1/-1;
-                    ">
-
-                        <div class="stat-label">
-                            PROJECT TITLE
-                        </div>
-
-                        <div style="
-                            margin-top:5px;
-                            padding:12px;
-                            background:#f5f8fa;
-                            border:1px solid #d5e0e7;
-                            font-weight:600;
-                        ">
-                            ${escapeHTML(
-                                project.project_title ||
-                                "Project title not yet encoded"
-                            )}
-                        </div>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            PROGRAM PERSONNEL
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(
-                                project.program2 || "—"
-                            )}
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            PLAN PERSONNEL
-                        </div>
-
-                        <strong>
-                            ${escapeHTML(
-                                project.plan || "—"
-                            )}
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            PROGRAM
-                        </div>
-
-                        <span>
-                            ${escapeHTML(
-                                project.program || "—"
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            SUB-PROGRAM
-                        </div>
-
-                        <span>
-                            ${escapeHTML(
-                                project.sub_program || "—"
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            ADVERTISEMENT BATCH
-                        </div>
-
-                        <span>
-                            ${escapeHTML(
-                                project.advertisement_batch ||
-                                "—"
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div>
-
-                        <div class="stat-label">
-                            STATUS
-                        </div>
-
-                        <span>
-                            ${escapeHTML(
-                                project.overall_status ||
-                                "Not Yet Started"
-                            )}
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div style="
-                    margin-top:20px;
-                    padding-top:15px;
-                    border-top:1px solid #d5e0e7;
-                    display:flex;
-                    justify-content:flex-end;
-                    gap:8px;
-                ">
-
-                    <button
-                        type="button"
-                        class="button secondary"
-                        onclick="
-                            document
-                            .getElementById(
-                                'monitoringDetailModal'
-                            )
-                            ?.remove()
-                        "
-                    >
-                        CLOSE
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="button primary"
-                        onclick="
-                            editMonitoringProject(
-                                '${escapeJS(
-                                    project.contract_id || ""
-                                )}'
-                            )
-                        "
-                    >
-                        EDIT PROJECT
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-    `;
-
-
-    document.body.appendChild(modal);
-}
-
-
-/* =========================================================
-   EDIT PROJECT
-========================================================= */
-
-function editMonitoringProject(contractId) {
-
-    const project =
-        monitoringData.find(
-            item =>
-                String(item.contract_id) ===
-                String(contractId)
-        );
-
-
-    if (!project) {
-
-        alert(
-            "Project record not found."
-        );
-
-        return;
-    }
-
-
-    document
-        .getElementById(
-            "monitoringDetailModal"
-        )
-        ?.remove();
-
-
-    document
-        .getElementById(
-            "monitoringEditModal"
-        )
-        ?.remove();
-
-
-    const modal =
-        document.createElement("div");
-
-
-    modal.id =
-        "monitoringEditModal";
-
-
-    modal.style.cssText = `
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.55);
-        z-index:9999;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding:20px;
-    `;
-
-
-    modal.innerHTML = `
-
-        <div style="
-            width:min(900px,96vw);
-            max-height:90vh;
-            overflow:auto;
-            background:#fff;
-            border-radius:5px;
-            box-shadow:0 20px 60px rgba(0,0,0,.30);
-        ">
-
-            <div style="
-                background:#063b61;
-                color:#fff;
-                padding:18px 20px;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-            ">
-
-                <div>
-
-                    <div style="
-                        font-size:9px;
-                        letter-spacing:1px;
-                        opacity:.75;
-                    ">
-                        PDS / PROJECT CONTROL
-                    </div>
-
-                    <div style="
-                        font-size:18px;
-                        font-weight:700;
-                        margin-top:4px;
-                    ">
-                        EDIT PROJECT
-                    </div>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    onclick="
-                        document
-                        .getElementById(
-                            'monitoringEditModal'
-                        )
-                        ?.remove()
-                    "
-                    style="
-                        border:0;
-                        background:transparent;
-                        color:#fff;
-                        font-size:22px;
-                        cursor:pointer;
-                    "
-                >
-                    ×
-                </button>
-
-            </div>
-
-
-            <form
-                id="monitoringEditForm"
-                style="padding:20px;"
-            >
-
-                <div style="
-                    display:grid;
-                    grid-template-columns:
-                        repeat(2,minmax(0,1fr));
-                    gap:15px;
-                ">
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            CONTRACT ID
-                        </label>
-
-                        <input
-                            type="text"
-                            value="${escapeHTML(
-                                project.contract_id || ""
-                            )}"
-                            readonly
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                background:#f1f4f6;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            MUNICIPALITY
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringMunicipality"
-                            value="${escapeHTML(
-                                project.municipality || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div style="
-                        grid-column:1/-1;
-                    ">
-
-                        <label class="stat-label">
-                            PROJECT TITLE
-                        </label>
-
-                        <textarea
-                            id="editMonitoringProjectTitle"
-                            rows="3"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                padding:10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                                resize:vertical;
-                            "
-                        >${escapeHTML(
-                            project.project_title || ""
-                        )}</textarea>
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            PROGRAM PERSONNEL
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringProgram"
-                            value="${escapeHTML(
-                                project.program2 || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            PLAN PERSONNEL
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringPlan"
-                            value="${escapeHTML(
-                                project.plan || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            PROGRAM
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringProgramName"
-                            value="${escapeHTML(
-                                project.program || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            SUB-PROGRAM
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringSubProgram"
-                            value="${escapeHTML(
-                                project.sub_program || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            ADVERTISEMENT BATCH
-                        </label>
-
-                        <input
-                            type="text"
-                            id="editMonitoringAdvertisement"
-                            value="${escapeHTML(
-                                project.advertisement_batch || ""
-                            )}"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                            "
-                        >
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="stat-label">
-                            STATUS
-                        </label>
-
-                        <select
-                            id="editMonitoringStatus"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                height:38px;
-                                padding:0 10px;
-                                border:1px solid #c7d5de;
-                                border-radius:3px;
-                                background:#fff;
-                            "
-                        >
-
-                            <option value="Not Yet Started">
-                                NOT YET STARTED
-                            </option>
-
-                            <option value="Ongoing">
-                                ONGOING
-                            </option>
-
-                            <option value="For Completion">
-                                FOR COMPLETION
-                            </option>
-
-                            <option value="Completed">
-                                COMPLETED
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-
-                <div style="
-                    margin-top:20px;
-                    padding-top:15px;
-                    border-top:1px solid #d5e0e7;
-                    display:flex;
-                    justify-content:flex-end;
-                    gap:8px;
-                ">
-
-                    <button
-                        type="button"
-                        class="button secondary"
-                        onclick="
-                            document
-                            .getElementById(
-                                'monitoringEditModal'
-                            )
-                            ?.remove()
-                        "
-                    >
-                        CANCEL
-                    </button>
-
-
-                    <button
-                        type="submit"
-                        class="button primary"
-                    >
-                        SAVE CHANGES
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-    `;
-
-
-    document.body.appendChild(modal);
-
-
-    const statusSelect =
-        document.getElementById(
-            "editMonitoringStatus"
-        );
-
-
-    if (statusSelect) {
-
-        statusSelect.value =
-            project.overall_status ||
-            "Not Yet Started";
-
-    }
-
-
-    const form =
-        document.getElementById(
-            "monitoringEditForm"
-        );
-
-
-    if (!form) return;
-
-
-    form.addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            project.municipality =
-                document
-                .getElementById(
-                    "editMonitoringMunicipality"
-                )
-                .value
-                .trim();
-
-
-            project.project_title =
-                document
-                .getElementById(
-                    "editMonitoringProjectTitle"
-                )
-                .value
-                .trim();
-
-
-            project.program2 =
-                document
-                .getElementById(
-                    "editMonitoringProgram"
-                )
-                .value
-                .trim();
-
-
-            project.plan =
-                document
-                .getElementById(
-                    "editMonitoringPlan"
-                )
-                .value
-                .trim();
-
-
-            project.program =
-                document
-                .getElementById(
-                    "editMonitoringProgramName"
-                )
-                .value
-                .trim();
-
-
-            project.sub_program =
-                document
-                .getElementById(
-                    "editMonitoringSubProgram"
-                )
-                .value
-                .trim();
-
-
-            project.advertisement_batch =
-                document
-                .getElementById(
-                    "editMonitoringAdvertisement"
-                )
-                .value
-                .trim();
-
-
-            project.overall_status =
-                document
-                .getElementById(
-                    "editMonitoringStatus"
-                )
-                .value;
-
-
-            modal.remove();
-
-
-            renderMonitoringProjects();
-
-
-            alert(
-                "Project updated on this website."
-            );
-
-        }
-    );
-
-}
+console.log(
+    "PDS HUB SCRIPT LOADED — corrected script.js"
+);
