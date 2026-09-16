@@ -940,7 +940,11 @@ function normalizePageId(
 
         myprojects:
             "projects",
+monitoring:
+    "monitoring",
 
+projectmonitoring:
+    "monitoring",
         document:
             "documents",
 
@@ -1155,16 +1159,19 @@ function showPage(
      * Page title
      */
 
-    const titles = {
+const titles = {
 
-        dashboard:
-            "Dashboard",
+    dashboard:
+        "Dashboard",
 
-        projects:
-            "Projects",
+    projects:
+        "Projects",
 
-        documents:
-            "Document Library",
+    monitoring:
+        "Project Monitoring",
+
+    documents:
+        "Document Library",
 
         "standards-guidelines":
             "Standards & Guidelines",
@@ -1218,7 +1225,14 @@ function showPage(
         loadProjects();
 
     }
+if (
+    pageId ===
+    "monitoring"
+) {
 
+    loadProjectMonitoring();
+
+}
 
     if (
         pageId ===
@@ -3631,6 +3645,7 @@ async function initializePDS() {
     setupSectionTargets();
 
     setupGlobalSearch();
+   setupProjectMonitoringFilters();
 
     setupAuthForms();
 
@@ -3670,7 +3685,1027 @@ async function initializePDS() {
 
 }
 
+/* =========================================================
+   PROJECT MONITORING
+   USER-SPECIFIC MONITORING
+========================================================= */
 
+let cachedMonitoringProjects = [];
+
+
+/* =========================================================
+   LOAD PROJECT MONITORING
+========================================================= */
+
+async function loadProjectMonitoring() {
+
+    const list =
+        $("monitoringList");
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = `
+        <div class="empty-state">
+            Loading project monitoring...
+        </div>
+    `;
+
+
+    /*
+     * A user must be logged in.
+     */
+
+    if (!currentUser) {
+
+        renderProjectMonitoring([]);
+
+        return;
+    }
+
+
+    try {
+
+        /*
+         * TEMPORARY SOURCE
+         *
+         * For this first step we use the
+         * existing Supabase projects table.
+         *
+         * OneDrive will be connected later.
+         */
+
+        if (!db) {
+
+            renderProjectMonitoring([]);
+
+            return;
+        }
+
+
+        const {
+            data,
+            error
+        } =
+            await db
+                .from("projects")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        cachedMonitoringProjects =
+            data || [];
+
+
+        /*
+         * Render projects for the
+         * currently logged-in user.
+         */
+
+        applyMonitoringFilters();
+
+
+    } catch (error) {
+
+        console.error(
+            "Project Monitoring error:",
+            error
+        );
+
+
+        cachedMonitoringProjects =
+            [];
+
+
+        renderProjectMonitoring([]);
+
+    }
+
+}
+
+
+/* =========================================================
+   APPLY MONITORING FILTERS
+========================================================= */
+
+function applyMonitoringFilters() {
+
+    const search =
+        $("monitoringSearch");
+
+    const statusFilter =
+        $("monitoringStatusFilter");
+
+    const myProjectsFilter =
+        $("myProjectsFilter");
+
+
+    const query =
+        search?.value
+            ?.trim()
+            ?.toLowerCase() ||
+        "";
+
+
+    const selectedStatus =
+        statusFilter?.value ||
+        "all";
+
+
+    const myProjectsOnly =
+        myProjectsFilter?.checked ||
+        false;
+
+
+    let projects =
+        [...cachedMonitoringProjects];
+
+
+    /*
+     * SEARCH
+     */
+
+    if (query) {
+
+        projects =
+            projects.filter(
+                project => {
+
+                    const text = [
+
+                        project.project_code,
+
+                        project.project_no,
+
+                        project.title,
+
+                        project.project_title,
+
+                        project.name,
+
+                        project.location,
+
+                        project.status
+
+                    ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .toLowerCase();
+
+
+                    return text.includes(
+                        query
+                    );
+
+                }
+            );
+
+    }
+
+
+    /*
+     * STATUS
+     */
+
+    if (
+        selectedStatus &&
+        selectedStatus !== "all"
+    ) {
+
+        projects =
+            projects.filter(
+                project => {
+
+                    const status =
+                        String(
+                            project.status ||
+                            ""
+                        )
+                            .trim()
+                            .toUpperCase();
+
+
+                    return status ===
+                        selectedStatus
+                            .toUpperCase();
+
+                }
+            );
+
+    }
+
+
+    /*
+     * MY PROJECTS
+     *
+     * We support several possible
+     * assignment fields so that
+     * existing project records
+     * do not break.
+     */
+
+    if (myProjectsOnly) {
+
+        projects =
+            projects.filter(
+                project =>
+                    isProjectAssignedToCurrentUser(
+                        project
+                    )
+            );
+
+    }
+
+
+    renderProjectMonitoring(
+        projects
+    );
+
+}
+
+
+/* =========================================================
+   CHECK PROJECT ASSIGNMENT
+========================================================= */
+
+function isProjectAssignedToCurrentUser(
+    project
+) {
+
+    if (!currentUser) {
+        return false;
+    }
+
+
+    const userId =
+        String(
+            currentUser.id ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const userEmail =
+        String(
+            currentUser.email ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    /*
+     * Possible assignment fields.
+     *
+     * These allow us to support the
+     * eventual OneDrive structure.
+     */
+
+    const assignedUserId =
+        String(
+            project.assigned_user_id ||
+            project.owner_id ||
+            project.user_id ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const assignedEmail =
+        String(
+            project.assigned_email ||
+            project.user_email ||
+            project.assigned_to_email ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const assignedTo =
+        String(
+            project.assigned_to ||
+            project.assigned_user ||
+            project.project_engineer ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    /*
+     * Match by Supabase user ID.
+     */
+
+    if (
+        userId &&
+        assignedUserId &&
+        userId === assignedUserId
+    ) {
+
+        return true;
+
+    }
+
+
+    /*
+     * Match by email.
+     */
+
+    if (
+        userEmail &&
+        assignedEmail &&
+        userEmail === assignedEmail
+    ) {
+
+        return true;
+
+    }
+
+
+    /*
+     * Match a simple assigned-to
+     * email field.
+     */
+
+    if (
+        userEmail &&
+        assignedTo &&
+        assignedTo === userEmail
+    ) {
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+   CHECK PROJECT EDIT PERMISSION
+========================================================= */
+
+function canEditMonitoringProject(
+    project
+) {
+
+    if (!currentUser) {
+        return false;
+    }
+
+
+    /*
+     * Project must first belong
+     * to the current user.
+     */
+
+    if (
+        !isProjectAssignedToCurrentUser(
+            project
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    /*
+     * Explicit edit fields.
+     */
+
+    if (
+        project.can_edit === false ||
+        project.editable === false
+    ) {
+
+        return false;
+
+    }
+
+
+    /*
+     * Completed projects are
+     * VIEW ONLY by default.
+     */
+
+    const status =
+        String(
+            project.status ||
+            ""
+        )
+            .trim()
+            .toUpperCase();
+
+
+    if (
+        status ===
+        "COMPLETED"
+    ) {
+
+        return false;
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   RENDER PROJECT MONITORING
+========================================================= */
+
+function renderProjectMonitoring(
+    projects
+) {
+
+    const list =
+        $("monitoringList");
+
+    const empty =
+        $("monitoringEmpty");
+
+
+    if (!list) {
+        return;
+    }
+
+
+    if (!projects.length) {
+
+        list.innerHTML = "";
+
+
+        if (empty) {
+
+            empty.style.display =
+                "flex";
+
+        }
+
+        return;
+
+    }
+
+
+    if (empty) {
+
+        empty.style.display =
+            "none";
+
+    }
+
+
+    list.innerHTML =
+        projects
+            .map(
+                project => {
+
+                    const projectId =
+                        escapeJS(
+                            project.id ||
+                            ""
+                        );
+
+
+                    const projectNo =
+                        escapeHTML(
+                            project.project_code ||
+                            project.project_no ||
+                            project.control_no ||
+                            "—"
+                        );
+
+
+                    const title =
+                        escapeHTML(
+                            project.title ||
+                            project.project_title ||
+                            project.name ||
+                            "Untitled Project"
+                        );
+
+
+                    const location =
+                        escapeHTML(
+                            project.location ||
+                            project.project_location ||
+                            ""
+                        );
+
+
+                    const status =
+                        String(
+                            project.status ||
+                            "ON-GOING"
+                        )
+                            .trim()
+                            .toUpperCase();
+
+
+                    let progress =
+                        Number(
+                            project.progress ??
+                            project.physical_progress ??
+                            0
+                        );
+
+
+                    if (
+                        Number.isNaN(
+                            progress
+                        )
+                    ) {
+
+                        progress = 0;
+
+                    }
+
+
+                    progress =
+                        Math.max(
+                            0,
+                            Math.min(
+                                100,
+                                progress
+                            )
+                        );
+
+
+                    const editable =
+                        canEditMonitoringProject(
+                            project
+                        );
+
+
+                    const statusClass =
+                        getMonitoringStatusClass(
+                            status
+                        );
+
+
+                    const completedClass =
+                        progress >= 100
+                            ? "completed"
+                            : "";
+
+
+                    return `
+                        <div
+                            class="monitoring-row"
+                            data-project-id="${escapeHTML(
+                                project.id || ""
+                            )}"
+                        >
+
+                            <div class="monitoring-project-no">
+                                ${projectNo}
+                            </div>
+
+
+                            <div class="monitoring-project-name">
+
+                                <strong>
+                                    ${title}
+                                </strong>
+
+                                ${
+                                    location
+                                        ? `
+                                            <span>
+                                                ${location}
+                                            </span>
+                                          `
+                                        : ""
+                                }
+
+                            </div>
+
+
+                            <div class="monitoring-progress">
+
+                                <div class="progress-value">
+                                    ${progress}%
+                                </div>
+
+                                <div class="progress-track">
+
+                                    <div
+                                        class="progress-fill ${completedClass}"
+                                        style="width:${progress}%"
+                                    ></div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div>
+
+                                <span
+                                    class="monitoring-status ${statusClass}"
+                                >
+                                    ${escapeHTML(status)}
+                                </span>
+
+                            </div>
+
+
+                            <div class="monitoring-actions">
+
+                                <button
+                                    type="button"
+                                    class="monitoring-view"
+                                    onclick="viewMonitoringProject('${projectId}')"
+                                >
+                                    VIEW
+                                </button>
+
+                                ${
+                                    editable
+                                        ? `
+                                            <button
+                                                type="button"
+                                                class="monitoring-edit"
+                                                onclick="editMonitoringProject('${projectId}')"
+                                            >
+                                                EDIT
+                                            </button>
+                                          `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   MONITORING STATUS CLASS
+========================================================= */
+
+function getMonitoringStatusClass(
+    status
+) {
+
+    const normalized =
+        String(
+            status || ""
+        )
+            .trim()
+            .toUpperCase();
+
+
+    if (
+        normalized.includes(
+            "COMPLETED"
+        )
+    ) {
+
+        return "completed";
+
+    }
+
+
+    if (
+        normalized.includes(
+            "HOLD"
+        )
+    ) {
+
+        return "hold";
+
+    }
+
+
+    if (
+        normalized.includes(
+            "BIDDING"
+        )
+    ) {
+
+        return "bidding";
+
+    }
+
+
+    return "ongoing";
+
+}
+
+
+/* =========================================================
+   VIEW MONITORING PROJECT
+========================================================= */
+
+function viewMonitoringProject(
+    projectId
+) {
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(item.id) ===
+                String(projectId)
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Reuse the existing project modal.
+     */
+
+    const modal =
+        $("projectModal");
+
+    const content =
+        $("projectModalContent");
+
+
+    if (
+        !modal ||
+        !content
+    ) {
+
+        return;
+
+    }
+
+
+    const title =
+        project.title ||
+        project.project_title ||
+        project.name ||
+        "Untitled Project";
+
+
+    const projectNo =
+        project.project_code ||
+        project.project_no ||
+        project.control_no ||
+        "—";
+
+
+    const status =
+        project.status ||
+        "—";
+
+
+    const progress =
+        project.progress ??
+        project.physical_progress ??
+        0;
+
+
+    const location =
+        project.location ||
+        project.project_location ||
+        "—";
+
+
+    const contractor =
+        project.contractor ||
+        "—";
+
+
+    content.innerHTML = `
+
+        <div class="project-detail">
+
+            <div class="detail-label">
+                PROJECT MONITORING
+            </div>
+
+
+            <h2>
+                ${escapeHTML(title)}
+            </h2>
+
+
+            <div class="detail-grid">
+
+                <div>
+                    <span>PROJECT NO.</span>
+                    <strong>
+                        ${escapeHTML(projectNo)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>STATUS</span>
+                    <strong>
+                        ${escapeHTML(status)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PROGRESS</span>
+                    <strong>
+                        ${escapeHTML(progress)}%
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>LOCATION</span>
+                    <strong>
+                        ${escapeHTML(location)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>CONTRACTOR</span>
+                    <strong>
+                        ${escapeHTML(contractor)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>ASSIGNED USER</span>
+                    <strong>
+                        ${escapeHTML(
+                            project.assigned_email ||
+                            project.assigned_to ||
+                            "—"
+                        )}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div style="margin-top:20px;">
+
+                <div class="detail-label">
+                    MONITORING REMARKS
+                </div>
+
+                <p>
+                    ${escapeHTML(
+                        project.monitoring_remarks ||
+                        project.remarks ||
+                        project.notes ||
+                        "No monitoring remarks available."
+                    )}
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
+   EDIT MONITORING PROJECT
+========================================================= */
+
+function editMonitoringProject(
+    projectId
+) {
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(item.id) ===
+                String(projectId)
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !canEditMonitoringProject(
+            project
+        )
+    ) {
+
+        alert(
+            "You are not authorized to edit this project."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * STEP 3 ONLY
+     *
+     * We are not writing changes
+     * to OneDrive or Supabase yet.
+     *
+     * The next step will create
+     * the actual monitoring editor.
+     */
+
+    alert(
+        "Project editing will be enabled in the next step."
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING FILTER SETUP
+========================================================= */
+
+function setupProjectMonitoringFilters() {
+
+    const search =
+        $("monitoringSearch");
+
+    const status =
+        $("monitoringStatusFilter");
+
+    const myProjects =
+        $("myProjectsFilter");
+
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (status) {
+
+        status.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (myProjects) {
+
+        myProjects.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+}
 /* =========================================================
    START
 ========================================================= */
