@@ -518,36 +518,59 @@ async function loginUser(
 ========================================================= */
 
 async function signOut() {
-
-    if (!db) {
-
-        showLogin();
-
-        return;
-    }
-
     try {
+        console.log("Signing out...");
 
-        await db.auth.signOut();
+        // Sign out from Supabase
+        const { error } = await supabaseClient.auth.signOut();
 
-    } catch (error) {
+        if (error) {
+            console.error("Supabase sign out error:", error);
+            alert("Unable to sign out. Please try again.");
+            return;
+        }
 
-        console.error(
-            "Sign out error:",
-            error
-        );
-
-    } finally {
-
+        // Clear local application state
         currentUser = null;
-
         currentProfile = null;
-
+        cachedDocuments = [];
         pdsAIHistory = [];
 
-        showLogin();
-    }
+        // Clear local/session storage used by the application
+        try {
+            localStorage.removeItem("pds-supabase-auth");
+            sessionStorage.clear();
+        } catch (storageError) {
+            console.warn("Storage cleanup warning:", storageError);
+        }
 
+        // Return to login screen
+        const authScreen = document.getElementById("authScreen");
+        const app = document.getElementById("app");
+
+        if (app) {
+            app.classList.add("hidden");
+            app.style.display = "none";
+        }
+
+        if (authScreen) {
+            authScreen.classList.remove("hidden");
+            authScreen.style.display = "flex";
+        }
+
+        // Reset login fields
+        const email = document.getElementById("loginEmail");
+        const password = document.getElementById("loginPassword");
+
+        if (email) email.value = "";
+        if (password) password.value = "";
+
+        console.log("Successfully signed out.");
+
+    } catch (error) {
+        console.error("Sign out failed:", error);
+        alert("An error occurred while signing out.");
+    }
 }
 
 
