@@ -1288,4 +1288,352 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     }
 
 }
+/* =========================================================
+   PROJECT MONITORING
+========================================================= */
+
+.monitoring-toolbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:20px 0;
+}
+
+.monitoring-search{
+    position:relative;
+    flex:1;
+    min-width:240px;
+}
+
+.monitoring-search span{
+    position:absolute;
+    left:13px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#8793a1;
+    font-size:16px;
+}
+
+.monitoring-search input{
+    width:100%;
+    height:42px;
+    box-sizing:border-box;
+    padding:0 14px 0 38px;
+    border:1px solid #d4dce5;
+    border-radius:6px;
+    background:#fff;
+    outline:none;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+}
+
+.monitoring-search input:focus{
+    border-color:#2f5fd6;
+    box-shadow:0 0 0 3px rgba(47,95,214,.08);
+}
+
+.monitoring-toolbar select{
+    height:42px;
+    min-width:150px;
+    padding:0 12px;
+    border:1px solid #d4dce5;
+    border-radius:6px;
+    background:#fff;
+    color:#344054;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    outline:none;
+}
+
+.monitoring-check{
+    height:42px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 14px;
+    border:1px solid #d4dce5;
+    border-radius:6px;
+    background:#fff;
+    color:#344054;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    cursor:pointer;
+}
+
+.monitoring-check input{
+    accent-color:#0f2c56;
+}
+
+
+/* =========================================================
+   MONITORING TABLE
+========================================================= */
+
+.monitoring-panel{
+    width:100%;
+    overflow:hidden;
+    border:1px solid #dce2e8;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(15,44,86,.04);
+}
+
+.monitoring-table-header,
+.monitoring-row{
+    display:grid;
+    grid-template-columns:
+        1fr
+        2.8fr
+        1.6fr
+        1.2fr
+        1.3fr;
+    gap:18px;
+    align-items:center;
+}
+
+.monitoring-table-header{
+    min-height:48px;
+    padding:0 20px;
+    background:#0f2c56;
+    color:#fff;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:1px;
+}
+
+.monitoring-row{
+    min-height:88px;
+    padding:14px 20px;
+    border-bottom:1px solid #edf0f3;
+}
+
+.monitoring-row:last-child{
+    border-bottom:0;
+}
+
+.monitoring-project-no{
+    color:#0f2c56;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+}
+
+.monitoring-project-name{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+
+.monitoring-project-name strong{
+    color:#253242;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.4;
+}
+
+.monitoring-project-name span{
+    color:#8a95a3;
+    font-family:'Inter',sans-serif;
+    font-size:10px;
+}
+
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+.monitoring-progress{
+    min-width:100px;
+}
+
+.progress-value{
+    margin-bottom:7px;
+    color:#0f2c56;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+}
+
+.progress-track{
+    width:100%;
+    height:6px;
+    overflow:hidden;
+    border-radius:10px;
+    background:#e8edf2;
+}
+
+.progress-fill{
+    height:100%;
+    border-radius:10px;
+    background:#2f5fd6;
+}
+
+.progress-fill.completed{
+    background:#1a9d6d;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.monitoring-status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:80px;
+    padding:6px 9px;
+    border-radius:20px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:.5px;
+}
+
+.monitoring-status.ongoing{
+    background:#eaf2ff;
+    color:#2f5fd6;
+}
+
+.monitoring-status.completed{
+    background:#eaf7f0;
+    color:#168354;
+}
+
+.monitoring-status.bidding{
+    background:#fff5e8;
+    color:#b56b16;
+}
+
+.monitoring-status.hold{
+    background:#f1f2f4;
+    color:#68717d;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.monitoring-actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.monitoring-actions button{
+    height:31px;
+    padding:0 10px;
+    border-radius:5px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:.5px;
+    cursor:pointer;
+}
+
+.monitoring-view{
+    border:1px solid #cbd5df;
+    background:#fff;
+    color:#344054;
+}
+
+.monitoring-view:hover{
+    border-color:#0f2c56;
+    color:#0f2c56;
+}
+
+.monitoring-edit{
+    border:1px solid #0f2c56;
+    background:#0f2c56;
+    color:#fff;
+}
+
+.monitoring-edit:hover{
+    background:#092344;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.monitoring-empty{
+    min-height:150px;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:6px;
+    text-align:center;
+}
+
+.monitoring-empty strong{
+    color:#344054;
+    font-size:12px;
+}
+
+.monitoring-empty span{
+    color:#8a95a3;
+    font-size:10px;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:850px){
+
+    .monitoring-table-header{
+        display:none;
+    }
+
+    .monitoring-row{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:15px;
+        padding:18px;
+    }
+
+    .monitoring-row > div::before{
+        display:block;
+        margin-bottom:5px;
+        color:#98a2af;
+        font-family:'IBM Plex Mono',monospace;
+        font-size:7px;
+        letter-spacing:.7px;
+        content:attr(data-label);
+    }
+
+    .monitoring-project-name{
+        grid-column:1 / -1;
+    }
+
+    .monitoring-actions{
+        justify-content:flex-start;
+    }
+
+}
+
+@media(max-width:520px){
+
+    .monitoring-toolbar{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .monitoring-search{
+        width:100%;
+    }
+
+    .monitoring-toolbar select,
+    .monitoring-check{
+        width:100%;
+        box-sizing:border-box;
+    }
+
+}
 ```
