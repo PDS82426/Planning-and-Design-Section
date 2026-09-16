@@ -523,120 +523,89 @@ async function signOut() {
 
     try {
 
+        if (!db) {
+            console.warn("PDS: Supabase client is not initialized.");
+            showLogin();
+            return;
+        }
+
         /*
-         * IMPORTANT:
-         * The Supabase client in this project is called "db".
-         * Do NOT use "supabaseClient".
+         * Sign out from the current browser session.
+         * The AUTH STATE listener will handle the UI.
          */
+        const { error } = await db.auth.signOut({
+            scope: "local"
+        });
 
-        if (db) {
+        if (error) {
+            console.error(
+                "PDS SIGN OUT ERROR:",
+                error
+            );
 
-            const { error } = await db.auth.signOut({
-                scope: "local"
-            });
+            /*
+             * Even if Supabase reports an error,
+             * force the local application back to login.
+             */
+            currentUser = null;
+            currentProfile = null;
+            cachedDocuments = [];
+            pdsAIHistory = [];
 
-            if (error) {
+            try {
+                localStorage.removeItem(
+                    "pds-supabase-auth"
+                );
+            } catch (storageError) {
                 console.warn(
-                    "Supabase sign out warning:",
-                    error
+                    "Unable to clear auth storage:",
+                    storageError
                 );
             }
+
+            showLogin();
+
+            return;
         }
+
+        console.log(
+            "PDS: Supabase sign out successful."
+        );
+
+        /*
+         * Do not manually manipulate the UI here.
+         *
+         * Supabase will fire SIGNED_OUT and
+         * setupAuthStateListener() will call showLogin().
+         */
 
     } catch (error) {
 
-        /*
-         * Even if Supabase returns an error,
-         * continue clearing the local browser session.
-         */
-        console.warn(
-            "Supabase sign out request failed:",
+        console.error(
+            "PDS SIGN OUT EXCEPTION:",
             error
         );
 
-    } finally {
-
         /*
-         * Clear PDS application state
+         * Safety fallback.
          */
         currentUser = null;
         currentProfile = null;
         cachedDocuments = [];
         pdsAIHistory = [];
 
-        /*
-         * Clear the exact storage key used
-         * when creating the Supabase client.
-         */
         try {
-
             localStorage.removeItem(
                 "pds-supabase-auth"
             );
-
-            sessionStorage.clear();
-
         } catch (storageError) {
-
             console.warn(
-                "Storage cleanup warning:",
+                "Auth storage cleanup warning:",
                 storageError
             );
         }
 
-        /*
-         * Hide the application
-         */
-        const app =
-            document.getElementById("app");
-
-        if (app) {
-            app.classList.add("hidden");
-            app.style.display = "none";
-        }
-
-        /*
-         * Show the Sign In screen
-         */
-        const authScreen =
-            document.getElementById("authScreen");
-
-        if (authScreen) {
-            authScreen.classList.remove("hidden");
-            authScreen.style.display = "flex";
-        }
-
-        /*
-         * Clear login fields
-         */
-        const email =
-            document.getElementById("loginEmail");
-
-        const password =
-            document.getElementById("loginPassword");
-
-        if (email) {
-            email.value = "";
-        }
-
-        if (password) {
-            password.value = "";
-        }
-
-        /*
-         * Clear login message
-         */
-        const loginMessage =
-            document.getElementById("loginMessage");
-
-        if (loginMessage) {
-            loginMessage.textContent = "";
-            loginMessage.className = "auth-message";
-        }
-
-        console.log(
-            "PDS: Successfully signed out."
-        );
+        showLogin();
     }
 }
 
@@ -3326,29 +3295,75 @@ function setupAuthForms() {
 
 function setupSignOut() {
 
-    document.addEventListener(
-        "click",
-        event => {
-
-            const button =
-                event.target.closest(
-                    '#logoutButton, [data-action="signout"], #signOutButton'
-                );
-
-            if (!button) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            signOut();
-
-        }
+    const buttons = document.querySelectorAll(
+        "#logoutButton, #signOutButton, [data-action='signout']"
     );
 
-}
+    if (!buttons.length) {
 
+        console.warn(
+            "PDS: Sign Out button was not found."
+        );
+
+        return;
+    }
+
+    buttons.forEach(button => {
+
+        if (button.dataset.signoutReady === "true") {
+            return;
+        }
+
+        button.dataset.signoutReady = "true";
+
+        button.addEventListener(
+            "click",
+            async event => {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                console.log(
+                    "PDS: Sign Out button clicked."
+                );
+
+                await signOut();
+
+            }
+        );
+
+        /*
+         * Keyboard accessibility
+         */
+        button.addEventListener(
+            "keydown",
+            async event => {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    console.log(
+                        "PDS: Sign Out keyboard action."
+                    );
+
+                    await signOut();
+
+                }
+
+            }
+        );
+
+    });
+
+    console.log(
+        `PDS: ${buttons.length} Sign Out button(s) ready.`
+    );
+}
 
 /* =========================================================
    AUTH STATE CHANGE
