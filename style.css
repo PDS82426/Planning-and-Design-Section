@@ -1664,4 +1664,49 @@ body.auth-active #app {
 body.app-active #authScreen {
     display: none !important;
 }
+/* =========================================================
+   AUTH SCREEN — FIXED / NO SCROLL
+========================================================= */
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body.auth-active {
+    overflow: hidden !important;
+    width: 100%;
+    height: 100vh;
+}
+
+body.auth-active #authScreen {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 99999;
+}
+
+body.auth-active #app {
+    display: none !important;
+}
+
+
+/* =========================================================
+   MAIN APPLICATION
+========================================================= */
+
+body.app-active {
+    overflow: hidden;
+}
+
+body.app-active #authScreen {
+    display: none !important;
+}
+
+body.app-active #app {
+    display: flex !important;
+}
 ```
