@@ -208,6 +208,9 @@ function showLogin() {
     const authScreen = document.getElementById("authScreen");
     const app = document.getElementById("app");
 
+    document.body.classList.add("auth-active");
+    document.body.classList.remove("app-active");
+
     if (authScreen) {
         authScreen.style.display = "flex";
         authScreen.classList.remove("hidden");
@@ -219,15 +222,15 @@ function showLogin() {
         app.classList.remove("active");
         app.setAttribute("aria-hidden", "true");
     }
-
-    // Make sure the page is at the top
-    window.scrollTo(0, 0);
 }
 
 
 function hideLogin() {
     const authScreen = document.getElementById("authScreen");
     const app = document.getElementById("app");
+
+    document.body.classList.remove("auth-active");
+    document.body.classList.add("app-active");
 
     if (authScreen) {
         authScreen.style.display = "none";
@@ -240,8 +243,6 @@ function hideLogin() {
         app.classList.add("active");
         app.setAttribute("aria-hidden", "false");
     }
-
-    window.scrollTo(0, 0);
 }
 
 /* =========================================================
