@@ -518,61 +518,127 @@ async function loginUser(
 ========================================================= */
 
 async function signOut() {
+
+    console.log("PDS: Signing out...");
+
     try {
-        console.log("Signing out...");
 
-        // Sign out from Supabase
-        const { error } = await supabaseClient.auth.signOut();
+        /*
+         * IMPORTANT:
+         * The Supabase client in this project is called "db".
+         * Do NOT use "supabaseClient".
+         */
 
-        if (error) {
-            console.error("Supabase sign out error:", error);
-            alert("Unable to sign out. Please try again.");
-            return;
+        if (db) {
+
+            const { error } = await db.auth.signOut({
+                scope: "local"
+            });
+
+            if (error) {
+                console.warn(
+                    "Supabase sign out warning:",
+                    error
+                );
+            }
         }
 
-        // Clear local application state
+    } catch (error) {
+
+        /*
+         * Even if Supabase returns an error,
+         * continue clearing the local browser session.
+         */
+        console.warn(
+            "Supabase sign out request failed:",
+            error
+        );
+
+    } finally {
+
+        /*
+         * Clear PDS application state
+         */
         currentUser = null;
         currentProfile = null;
         cachedDocuments = [];
         pdsAIHistory = [];
 
-        // Clear local/session storage used by the application
+        /*
+         * Clear the exact storage key used
+         * when creating the Supabase client.
+         */
         try {
-            localStorage.removeItem("pds-supabase-auth");
+
+            localStorage.removeItem(
+                "pds-supabase-auth"
+            );
+
             sessionStorage.clear();
+
         } catch (storageError) {
-            console.warn("Storage cleanup warning:", storageError);
+
+            console.warn(
+                "Storage cleanup warning:",
+                storageError
+            );
         }
 
-        // Return to login screen
-        const authScreen = document.getElementById("authScreen");
-        const app = document.getElementById("app");
+        /*
+         * Hide the application
+         */
+        const app =
+            document.getElementById("app");
 
         if (app) {
             app.classList.add("hidden");
             app.style.display = "none";
         }
 
+        /*
+         * Show the Sign In screen
+         */
+        const authScreen =
+            document.getElementById("authScreen");
+
         if (authScreen) {
             authScreen.classList.remove("hidden");
             authScreen.style.display = "flex";
         }
 
-        // Reset login fields
-        const email = document.getElementById("loginEmail");
-        const password = document.getElementById("loginPassword");
+        /*
+         * Clear login fields
+         */
+        const email =
+            document.getElementById("loginEmail");
 
-        if (email) email.value = "";
-        if (password) password.value = "";
+        const password =
+            document.getElementById("loginPassword");
 
-        console.log("Successfully signed out.");
+        if (email) {
+            email.value = "";
+        }
 
-    } catch (error) {
-        console.error("Sign out failed:", error);
-        alert("An error occurred while signing out.");
+        if (password) {
+            password.value = "";
+        }
+
+        /*
+         * Clear login message
+         */
+        const loginMessage =
+            document.getElementById("loginMessage");
+
+        if (loginMessage) {
+            loginMessage.textContent = "";
+            loginMessage.className = "auth-message";
+        }
+
+        console.log(
+            "PDS: Successfully signed out."
+        );
     }
 }
-
 
 /* =========================================================
    LOAD USER PROFILE
