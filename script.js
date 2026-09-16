@@ -205,58 +205,44 @@ function $(id) {
 ========================================================= */
 
 function showLogin() {
-
-    const authScreen =
-        $("authScreen");
-
-    const app =
-        $("app");
-
-
-    if (app) {
-
-        app.style.display =
-            "none";
-
-    }
-
+    const authScreen = document.getElementById("authScreen");
+    const app = document.getElementById("app");
 
     if (authScreen) {
-
-        authScreen.style.display =
-            "flex";
-
+        authScreen.style.display = "flex";
+        authScreen.classList.remove("hidden");
+        authScreen.setAttribute("aria-hidden", "false");
     }
 
+    if (app) {
+        app.style.display = "none";
+        app.classList.remove("active");
+        app.setAttribute("aria-hidden", "true");
+    }
+
+    // Make sure the page is at the top
+    window.scrollTo(0, 0);
 }
 
 
 function hideLogin() {
-
-    const authScreen =
-        $("authScreen");
-
-    const app =
-        $("app");
-
+    const authScreen = document.getElementById("authScreen");
+    const app = document.getElementById("app");
 
     if (authScreen) {
-
-        authScreen.style.display =
-            "none";
-
+        authScreen.style.display = "none";
+        authScreen.classList.add("hidden");
+        authScreen.setAttribute("aria-hidden", "true");
     }
-
 
     if (app) {
-
-        app.style.display =
-            "flex";
-
+        app.style.display = "flex";
+        app.classList.add("active");
+        app.setAttribute("aria-hidden", "false");
     }
 
+    window.scrollTo(0, 0);
 }
-
 
 /* =========================================================
    AUTH MESSAGE
