@@ -332,7 +332,10 @@
                 <span>◫</span>
                 <span>Projects</span>
             </div>
-
+<div class="nav-item" data-section="monitoring" role="button" tabindex="0">
+    <span>◉</span>
+    <span>Project Monitoring</span>
+</div>
             <div class="nav-item" data-section="documents" role="button" tabindex="0">
                 <span>▤</span>
                 <span>Documents</span>
@@ -822,7 +825,385 @@
 
             </section>
 
+<!-- =================================================
+     03 — PROJECT MONITORING
+================================================== -->
 
+<section
+    id="monitoring"
+    class="page-section"
+    data-page-section="monitoring"
+    data-section="monitoring"
+>
+
+    <div class="page">
+
+        <div class="page-title">
+
+            <div>
+
+                <div class="date-label">
+                    PDS / PROJECT MONITORING
+                </div>
+
+                <h1>
+                    Project Monitoring
+                </h1>
+
+                <p>
+                    Project implementation monitoring and status tracking
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- MONITORING TOOLBAR -->
+
+        <div class="monitoring-toolbar">
+
+            <div class="monitoring-search">
+
+                <span>⌕</span>
+
+                <input
+                    type="search"
+                    id="monitoringSearch"
+                    placeholder="Search Project..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <select id="monitoringStatusFilter">
+
+                <option value="all">
+                    All Status
+                </option>
+
+                <option value="ON-GOING">
+                    ON-GOING
+                </option>
+
+                <option value="COMPLETED">
+                    COMPLETED
+                </option>
+
+                <option value="FOR BIDDING">
+                    FOR BIDDING
+                </option>
+
+                <option value="ON HOLD">
+                    ON HOLD
+                </option>
+
+            </select>
+
+
+            <label class="monitoring-check">
+
+                <input
+                    type="checkbox"
+                    id="myProjectsFilter"
+                >
+
+                <span>
+                    My Projects
+                </span>
+
+            </label>
+
+        </div>
+
+
+        <!-- MONITORING TABLE -->
+
+        <div class="monitoring-panel">
+
+            <div class="monitoring-table-header">
+
+                <div>PROJECT NO.</div>
+
+                <div>PROJECT</div>
+
+                <div>PROGRESS</div>
+
+                <div>STATUS</div>
+
+                <div>ACTION</div>
+
+            </div>
+
+
+            <div
+                id="monitoringList"
+                class="monitoring-list"
+            >
+
+                <!-- SAMPLE DATA -->
+
+                <div class="monitoring-row">
+
+                    <div
+                        class="monitoring-project-no"
+                        data-label="PROJECT NO."
+                    >
+                        25AB0001
+                    </div>
+
+
+                    <div
+                        class="monitoring-project-name"
+                        data-label="PROJECT"
+                    >
+                        <strong>
+                            Construction of Multi-Purpose Building
+                        </strong>
+
+                        <span>
+                            Padre Garcia, Batangas
+                        </span>
+                    </div>
+
+
+                    <div
+                        class="monitoring-progress"
+                        data-label="PROGRESS"
+                    >
+
+                        <div class="progress-value">
+                            72%
+                        </div>
+
+                        <div class="progress-track">
+
+                            <div
+                                class="progress-fill"
+                                style="width:72%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div data-label="STATUS">
+
+                        <span class="monitoring-status ongoing">
+                            ON-GOING
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="monitoring-actions"
+                        data-label="ACTION"
+                    >
+
+                        <button
+                            type="button"
+                            class="monitoring-view"
+                            data-monitoring-action="view"
+                            data-project-id="25AB0001"
+                        >
+                            VIEW
+                        </button>
+
+                        <button
+                            type="button"
+                            class="monitoring-edit"
+                            data-monitoring-action="edit"
+                            data-project-id="25AB0001"
+                        >
+                            EDIT
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="monitoring-row">
+
+                    <div
+                        class="monitoring-project-no"
+                        data-label="PROJECT NO."
+                    >
+                        25AB0002
+                    </div>
+
+
+                    <div
+                        class="monitoring-project-name"
+                        data-label="PROJECT"
+                    >
+                        <strong>
+                            Construction of Road and Drainage
+                        </strong>
+
+                        <span>
+                            Rosario, Batangas
+                        </span>
+                    </div>
+
+
+                    <div
+                        class="monitoring-progress"
+                        data-label="PROGRESS"
+                    >
+
+                        <div class="progress-value">
+                            45%
+                        </div>
+
+                        <div class="progress-track">
+
+                            <div
+                                class="progress-fill"
+                                style="width:45%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div data-label="STATUS">
+
+                        <span class="monitoring-status ongoing">
+                            ON-GOING
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="monitoring-actions"
+                        data-label="ACTION"
+                    >
+
+                        <button
+                            type="button"
+                            class="monitoring-view"
+                            data-monitoring-action="view"
+                            data-project-id="25AB0002"
+                        >
+                            VIEW
+                        </button>
+
+                        <button
+                            type="button"
+                            class="monitoring-edit"
+                            data-monitoring-action="edit"
+                            data-project-id="25AB0002"
+                        >
+                            EDIT
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="monitoring-row">
+
+                    <div
+                        class="monitoring-project-no"
+                        data-label="PROJECT NO."
+                    >
+                        25AB0003
+                    </div>
+
+
+                    <div
+                        class="monitoring-project-name"
+                        data-label="PROJECT"
+                    >
+                        <strong>
+                            Improvement of Barangay Access Road
+                        </strong>
+
+                        <span>
+                            San Jose, Batangas
+                        </span>
+                    </div>
+
+
+                    <div
+                        class="monitoring-progress"
+                        data-label="PROGRESS"
+                    >
+
+                        <div class="progress-value">
+                            100%
+                        </div>
+
+                        <div class="progress-track">
+
+                            <div
+                                class="progress-fill completed"
+                                style="width:100%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div data-label="STATUS">
+
+                        <span class="monitoring-status completed">
+                            COMPLETED
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="monitoring-actions"
+                        data-label="ACTION"
+                    >
+
+                        <button
+                            type="button"
+                            class="monitoring-view"
+                            data-monitoring-action="view"
+                            data-project-id="25AB0003"
+                        >
+                            VIEW
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="monitoringEmpty"
+                class="monitoring-empty"
+                style="display:none;"
+            >
+
+                <strong>
+                    No projects found
+                </strong>
+
+                <span>
+                    Try changing your search or filter.
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
 
             <!-- =================================================
                  03 — DOCUMENTS
