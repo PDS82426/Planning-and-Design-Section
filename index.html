@@ -57,115 +57,228 @@
 <body>
 
 
+```html
 <!-- =========================================================
      AUTH SCREEN
 ========================================================= -->
 
 <div id="authScreen">
 
-    <div class="auth-container">
+    <div class="auth-page">
 
+        <!-- LEFT — DPWH / PDS BRANDING -->
+        <div class="auth-brand-panel">
 
-        <!-- DPWH LOGO -->
+            <div class="auth-brand-top">
 
-        <div class="auth-logo">
-            DPWH
-        </div>
-
-
-        <!-- TITLE -->
-
-        <h1>
-            Planning & Design
-        </h1>
-
-
-        <p>
-            Department of Public Works and Highways
-        </p>
-
-
-        <div class="auth-section-label">
-            PLANNING & DESIGN SECTION
-        </div>
-
-
-        <!-- LOGIN -->
-
-        <form id="loginForm">
-
-
-            <div class="form-group">
-
-                <label for="loginEmail">
-                    EMAIL ADDRESS
-                </label>
-
-                <input
-                    type="email"
-                    id="loginEmail"
-                    placeholder="Email Address"
-                    autocomplete="email"
-                    required
+                <img
+                    src="assets/dpwh-logo.png"
+                    alt="DPWH Logo"
+                    class="auth-dpwh-logo"
+                    onerror="this.style.display='none';"
                 >
+
+                <div class="auth-agency">
+                    <strong>DEPARTMENT OF PUBLIC WORKS</strong>
+                    <span>AND HIGHWAYS</span>
+                </div>
 
             </div>
 
 
-            <div class="form-group">
+            <div class="auth-brand-content">
 
-                <label for="loginPassword">
-                    PASSWORD
-                </label>
+                <div class="auth-overline">
+                    PLANNING &amp; DESIGN SECTION
+                </div>
 
-                <input
-                    type="password"
-                    id="loginPassword"
-                    placeholder="Password"
-                    autocomplete="current-password"
-                    required
-                >
+                <h1>
+                    PDS
+                    <span>CONTROL DESK</span>
+                </h1>
+
+                <p>
+                    A centralized digital workspace for planning,
+                    engineering design, project development,
+                    technical documentation and project monitoring.
+                </p>
+
+                <div class="auth-brand-line"></div>
+
+                <div class="auth-brand-meta">
+
+                    <div>
+                        <span class="meta-label">OFFICE</span>
+                        <strong>PLANNING &amp; DESIGN SECTION</strong>
+                    </div>
+
+                    <div>
+                        <span class="meta-label">SYSTEM</span>
+                        <strong>PDS TECHNICAL WORKSPACE</strong>
+                    </div>
+
+                </div>
 
             </div>
 
 
-            <button
-                type="submit"
-                class="auth-button"
-            >
-                SIGN IN
-            </button>
+            <div class="auth-brand-footer">
 
+                <span>DPWH</span>
+                <span>•</span>
+                <span>PDS CONTROL DESK</span>
 
-        </form>
-
-
-        <div
-            id="loginMessage"
-            class="auth-message"
-        ></div>
-
-
-        <div class="auth-footer">
-
-            <span>
-                PDS CONTROL DESK
-            </span>
-
-            <span>
-                •
-            </span>
-
-            <span>
-                DPWH
-            </span>
+            </div>
 
         </div>
 
+
+        <!-- RIGHT — SIGN IN -->
+        <div class="auth-login-panel">
+
+            <div class="auth-login-box">
+
+                <div class="auth-mobile-logo">
+
+                    <img
+                        src="assets/dpwh-logo.png"
+                        alt="DPWH Logo"
+                        onerror="this.style.display='none';"
+                    >
+
+                </div>
+
+
+                <div class="auth-login-header">
+
+                    <div class="auth-login-kicker">
+                        PDS / SECURE ACCESS
+                    </div>
+
+                    <h2>
+                        Welcome back
+                    </h2>
+
+                    <p>
+                        Sign in to access the Planning &amp; Design
+                        Section workspace.
+                    </p>
+
+                </div>
+
+
+                <!-- LOGIN FORM -->
+                <form id="loginForm" class="auth-login-form">
+
+                    <div class="form-group">
+
+                        <label for="loginEmail">
+                            EMAIL ADDRESS
+                        </label>
+
+                        <div class="auth-input-wrap">
+
+                            <span class="auth-input-icon">
+                                @
+                            </span>
+
+                            <input
+                                type="email"
+                                id="loginEmail"
+                                placeholder="Enter your email address"
+                                autocomplete="email"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <div class="auth-password-label">
+
+                            <label for="loginPassword">
+                                PASSWORD
+                            </label>
+
+                        </div>
+
+                        <div class="auth-input-wrap">
+
+                            <span class="auth-input-icon">
+                                •
+                            </span>
+
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="auth-button"
+                    >
+                        <span>SIGN IN</span>
+                        <span class="auth-button-arrow">→</span>
+                    </button>
+
+                </form>
+
+
+                <!-- LOGIN MESSAGE -->
+                <div
+                    id="loginMessage"
+                    class="auth-message"
+                ></div>
+
+
+                <div class="auth-security-note">
+
+                    <span class="security-icon">
+                        ✓
+                    </span>
+
+                    <div>
+                        <strong>Authorized Access</strong>
+                        <span>
+                            This workspace is intended for
+                            authorized PDS personnel.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="auth-login-footer">
+
+                    <div>
+                        <span>PDS CONTROL DESK</span>
+                    </div>
+
+                    <div>
+                        <span>DPWH • PLANNING &amp; DESIGN</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 
 </div>
+```
 
 
 
