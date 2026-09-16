@@ -1,9 +1,16 @@
+```javascript
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
-   AUTH + SESSION + DASHBOARD + PROJECTS + DOCUMENTS
-   DEPARTMENT ORDERS + PDS AI
-========================================================= */
+
+   AUTH + SESSION
+   DASHBOARD
+   PROJECTS
+   DOCUMENTS
+   DEPARTMENT ORDERS
+   PROJECT MONITORING
+   PDS AI
+   ========================================================= */
 
 
 /* =========================================================
@@ -13,16 +20,6 @@
 const SUPABASE_URL =
     "https://zvwghoabsqfyakbqzhil.supabase.co";
 
-/*
- * IMPORTANT:
- * Paste the CURRENT "Publishable key" from:
- *
- * Supabase
- * → Project Settings
- * → API
- *
- * DO NOT use the service_role key.
- */
 const SUPABASE_ANON_KEY =
     "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
 
@@ -32,6 +29,7 @@ const SUPABASE_ANON_KEY =
 ========================================================= */
 
 let db = null;
+
 
 function initializeSupabase() {
 
@@ -43,6 +41,7 @@ function initializeSupabase() {
 
         return false;
     }
+
 
     if (
         !SUPABASE_URL ||
@@ -58,6 +57,7 @@ function initializeSupabase() {
 
         return false;
     }
+
 
     try {
 
@@ -81,7 +81,9 @@ function initializeSupabase() {
                 }
             );
 
+
         return true;
+
 
     } catch (error) {
 
@@ -91,7 +93,9 @@ function initializeSupabase() {
         );
 
         return false;
+
     }
+
 }
 
 
@@ -100,16 +104,25 @@ function initializeSupabase() {
 ========================================================= */
 
 let currentUser = null;
+
 let currentProfile = null;
 
 let pdsAIHistory = [];
 
 let cachedDocuments = [];
 
+let cachedMonitoringProjects = [];
+
 let navigationReady = false;
+
 let authFormsReady = false;
+
 let documentSearchReady = false;
+
 let aiReady = false;
+
+let monitoringFiltersReady = false;
+
 let initialized = false;
 
 
@@ -199,16 +212,20 @@ function showLogin() {
     const app =
         $("app");
 
+
     if (app) {
 
         app.style.display =
             "none";
+
     }
+
 
     if (authScreen) {
 
         authScreen.style.display =
             "flex";
+
     }
 
 }
@@ -222,16 +239,20 @@ function hideLogin() {
     const app =
         $("app");
 
+
     if (authScreen) {
 
         authScreen.style.display =
             "none";
+
     }
+
 
     if (app) {
 
         app.style.display =
             "flex";
+
     }
 
 }
@@ -249,12 +270,15 @@ function authMessage(
     const element =
         $("loginMessage");
 
+
     if (!element) {
 
         console.error(message);
 
         return;
+
     }
+
 
     element.textContent =
         message;
@@ -274,9 +298,13 @@ function clearAuthMessage() {
     const element =
         $("loginMessage");
 
+
     if (!element) {
+
         return;
+
     }
+
 
     element.textContent =
         "";
@@ -297,12 +325,16 @@ async function createProfile(
 ) {
 
     if (!user || !db) {
+
         return;
+
     }
+
 
     const profile = {
 
-        id: user.id,
+        id:
+            user.id,
 
         email:
             user.email || "",
@@ -314,6 +346,7 @@ async function createProfile(
             "PDS User"
 
     };
+
 
     const {
         error
@@ -327,6 +360,7 @@ async function createProfile(
                 }
             );
 
+
     if (error) {
 
         console.warn(
@@ -335,7 +369,9 @@ async function createProfile(
         );
 
         return;
+
     }
+
 
     currentProfile =
         profile;
@@ -362,16 +398,20 @@ async function loginUser(
         return {
             success: false
         };
+
     }
+
 
     try {
 
         clearAuthMessage();
 
+
         authMessage(
             "Signing in...",
             "loading"
         );
+
 
         const {
             data,
@@ -396,6 +436,7 @@ async function loginUser(
             );
 
             throw error;
+
         }
 
 
@@ -407,18 +448,13 @@ async function loginUser(
             throw new Error(
                 "No user account was returned by Supabase."
             );
+
         }
 
 
         currentUser =
             data.user;
 
-
-        /*
-         * IMPORTANT:
-         * Hide login immediately after
-         * successful authentication.
-         */
 
         hideLogin();
 
@@ -428,20 +464,11 @@ async function loginUser(
         );
 
 
-        /*
-         * Load user information.
-         * These failures must NOT
-         * log the user out.
-         */
-
         await loadUserProfile();
+
 
         updateUserInterface();
 
-
-        /*
-         * Load application data.
-         */
 
         await Promise.allSettled([
 
@@ -461,8 +488,11 @@ async function loginUser(
 
 
         return {
+
             success: true,
+
             data
+
         };
 
 
@@ -478,10 +508,6 @@ async function loginUser(
             error?.message ||
             "Unable to sign in.";
 
-
-        /*
-         * Make API-key problem obvious.
-         */
 
         if (
             message
@@ -504,8 +530,11 @@ async function loginUser(
 
 
         return {
+
             success: false,
+
             error
+
         };
 
     }
@@ -519,65 +548,90 @@ async function loginUser(
 
 async function signOut() {
 
-    console.log("PDS: Signing out...");
+    console.log(
+        "PDS: Signing out..."
+    );
+
 
     try {
 
         if (!db) {
-            console.warn("PDS: Supabase client is not initialized.");
+
+            console.warn(
+                "PDS: Supabase client is not initialized."
+            );
+
+            currentUser = null;
+
+            currentProfile = null;
+
+            cachedDocuments = [];
+
+            cachedMonitoringProjects = [];
+
+            pdsAIHistory = [];
+
             showLogin();
+
             return;
+
         }
 
-        /*
-         * Sign out from the current browser session.
-         * The AUTH STATE listener will handle the UI.
-         */
-        const { error } = await db.auth.signOut({
-            scope: "local"
-        });
+
+        const {
+            error
+        } =
+            await db.auth.signOut({
+                scope: "local"
+            });
+
 
         if (error) {
+
             console.error(
                 "PDS SIGN OUT ERROR:",
                 error
             );
 
-            /*
-             * Even if Supabase reports an error,
-             * force the local application back to login.
-             */
+
             currentUser = null;
+
             currentProfile = null;
+
             cachedDocuments = [];
+
+            cachedMonitoringProjects = [];
+
             pdsAIHistory = [];
 
+
             try {
+
                 localStorage.removeItem(
                     "pds-supabase-auth"
                 );
+
             } catch (storageError) {
+
                 console.warn(
                     "Unable to clear auth storage:",
                     storageError
                 );
+
             }
+
 
             showLogin();
 
             return;
+
         }
+
 
         console.log(
             "PDS: Supabase sign out successful."
         );
 
-        /*
-         * Do not manually manipulate the UI here.
-         *
-         * Supabase will fire SIGNED_OUT and
-         * setupAuthStateListener() will call showLogin().
-         */
 
     } catch (error) {
 
@@ -586,28 +640,40 @@ async function signOut() {
             error
         );
 
-        /*
-         * Safety fallback.
-         */
+
         currentUser = null;
+
         currentProfile = null;
+
         cachedDocuments = [];
+
+        cachedMonitoringProjects = [];
+
         pdsAIHistory = [];
 
+
         try {
+
             localStorage.removeItem(
                 "pds-supabase-auth"
             );
+
         } catch (storageError) {
+
             console.warn(
                 "Auth storage cleanup warning:",
                 storageError
             );
+
         }
 
+
         showLogin();
+
     }
+
 }
+
 
 /* =========================================================
    LOAD USER PROFILE
@@ -621,6 +687,7 @@ async function loadUserProfile() {
     ) {
 
         return;
+
     }
 
 
@@ -648,6 +715,7 @@ async function loadUserProfile() {
             );
 
             return;
+
         }
 
 
@@ -663,6 +731,7 @@ async function loadUserProfile() {
             );
 
         }
+
 
     } catch (error) {
 
@@ -687,6 +756,7 @@ async function restoreSession() {
         showLogin();
 
         return false;
+
     }
 
 
@@ -714,6 +784,7 @@ async function restoreSession() {
             showLogin();
 
             return false;
+
         }
 
 
@@ -730,19 +801,19 @@ async function restoreSession() {
                 "PDS: No active session."
             );
 
+
             currentUser = null;
 
             currentProfile = null;
 
+
             showLogin();
 
+
             return false;
+
         }
 
-
-        /*
-         * SESSION EXISTS
-         */
 
         currentUser =
             session.user;
@@ -753,12 +824,6 @@ async function restoreSession() {
             currentUser.email
         );
 
-
-        /*
-         * IMPORTANT:
-         * Do this BEFORE loading
-         * projects/documents.
-         */
 
         hideLogin();
 
@@ -773,11 +838,6 @@ async function restoreSession() {
 
         updateUserInterface();
 
-
-        /*
-         * Dashboard data can fail
-         * without forcing sign out.
-         */
 
         await Promise.allSettled([
 
@@ -801,10 +861,6 @@ async function restoreSession() {
         );
 
 
-        /*
-         * Check session one more time.
-         */
-
         try {
 
             const {
@@ -820,14 +876,25 @@ async function restoreSession() {
                 currentUser =
                     data.session.user;
 
+
                 hideLogin();
+
 
                 showPage(
                     "dashboard"
                 );
 
+
+                await loadUserProfile();
+
+
+                updateUserInterface();
+
+
                 return true;
+
             }
+
 
         } catch (secondError) {
 
@@ -835,12 +902,15 @@ async function restoreSession() {
                 "Final session check failed:",
                 secondError
             );
+
         }
 
 
         showLogin();
 
+
         return false;
+
     }
 
 }
@@ -878,8 +948,14 @@ function updateUserInterface() {
     const profileEmail =
         $("profileEmail");
 
+    const welcomeName =
+        $("welcomeName");
+
     const topAvatar =
         $("topAvatar");
+
+    const sidebarAvatar =
+        $("sidebarAvatar");
 
 
     if (profileName) {
@@ -898,12 +974,32 @@ function updateUserInterface() {
     }
 
 
+    if (welcomeName) {
+
+        welcomeName.textContent =
+            name;
+
+    }
+
+
+    const initial =
+        name
+            .charAt(0)
+            .toUpperCase();
+
+
     if (topAvatar) {
 
         topAvatar.textContent =
-            name
-                .charAt(0)
-                .toUpperCase();
+            initial;
+
+    }
+
+
+    if (sidebarAvatar) {
+
+        sidebarAvatar.textContent =
+            initial;
 
     }
 
@@ -921,7 +1017,14 @@ function normalizePageId(
     if (!pageId) {
 
         return "dashboard";
+
     }
+
+
+    const normalized =
+        String(pageId)
+            .trim()
+            .toLowerCase();
 
 
     const aliases = {
@@ -940,11 +1043,16 @@ function normalizePageId(
 
         myprojects:
             "projects",
-monitoring:
-    "monitoring",
 
-projectmonitoring:
-    "monitoring",
+        monitoring:
+            "monitoring",
+
+        projectmonitoring:
+            "monitoring",
+
+        "project-monitoring":
+            "monitoring",
+
         document:
             "documents",
 
@@ -1021,8 +1129,8 @@ projectmonitoring:
 
 
     return (
-        aliases[pageId] ||
-        pageId
+        aliases[normalized] ||
+        normalized
     );
 
 }
@@ -1090,6 +1198,7 @@ function showPage(
                 "active"
             );
 
+
             page.style.display =
                 "none";
 
@@ -1129,10 +1238,6 @@ function showPage(
     }
 
 
-    /*
-     * Sidebar active state
-     */
-
     document
         .querySelectorAll(
             "#sidebarNav [data-section]"
@@ -1155,23 +1260,19 @@ function showPage(
         );
 
 
-    /*
-     * Page title
-     */
+    const titles = {
 
-const titles = {
+        dashboard:
+            "Dashboard",
 
-    dashboard:
-        "Dashboard",
+        projects:
+            "Projects",
 
-    projects:
-        "Projects",
+        monitoring:
+            "Project Monitoring",
 
-    monitoring:
-        "Project Monitoring",
-
-    documents:
-        "Document Library",
+        documents:
+            "Document Library",
 
         "standards-guidelines":
             "Standards & Guidelines",
@@ -1213,10 +1314,6 @@ const titles = {
     }
 
 
-    /*
-     * Refresh section when opened.
-     */
-
     if (
         pageId ===
         "projects"
@@ -1225,14 +1322,17 @@ const titles = {
         loadProjects();
 
     }
-if (
-    pageId ===
-    "monitoring"
-) {
 
-    loadProjectMonitoring();
 
-}
+    if (
+        pageId ===
+        "monitoring"
+    ) {
+
+        loadProjectMonitoring();
+
+    }
+
 
     if (
         pageId ===
@@ -1265,8 +1365,11 @@ if (
 function setupNavigation() {
 
     if (navigationReady) {
+
         return;
+
     }
+
 
     navigationReady =
         true;
@@ -1283,7 +1386,9 @@ function setupNavigation() {
 
 
             if (!navItem) {
+
                 return;
+
             }
 
 
@@ -1317,7 +1422,9 @@ function setupSectionTargets() {
 
 
             if (!target) {
+
                 return;
+
             }
 
 
@@ -1345,7 +1452,9 @@ function setupGlobalSearch() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -1360,15 +1469,16 @@ function setupGlobalSearch() {
 
 
             if (!query) {
+
                 return;
+
             }
 
 
             const projectMatch =
-                document
-                    .querySelectorAll(
-                        ".project-card"
-                    );
+                document.querySelectorAll(
+                    ".project-card"
+                );
 
 
             if (
@@ -1403,6 +1513,20 @@ async function refreshAll() {
 
     ]);
 
+
+    if (
+        document
+            .getElementById(
+                "monitoring"
+            )
+            ?.classList
+            .contains("active")
+    ) {
+
+        await loadProjectMonitoring();
+
+    }
+
 }
 
 
@@ -1417,7 +1541,9 @@ async function loadProjects() {
 
 
     if (!list || !db) {
+
         return;
+
     }
 
 
@@ -1446,7 +1572,9 @@ async function loadProjects() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1469,6 +1597,7 @@ async function loadProjects() {
 
 
         renderProjects([]);
+
 
         updateProjectStats([]);
 
@@ -1564,7 +1693,9 @@ function renderProjects(
 
 
     if (!list) {
+
         return;
+
     }
 
 
@@ -1578,6 +1709,7 @@ function renderProjects(
         `;
 
         return;
+
     }
 
 
@@ -1596,6 +1728,7 @@ function renderProjects(
                         escapeHTML(
                             project.title ||
                             project.project_title ||
+                            project.name ||
                             "Untitled Project"
                         );
 
@@ -1618,7 +1751,9 @@ function renderProjects(
                     return `
                         <article
                             class="project-card"
-                            data-project-id="${escapeHTML(project.id || "")}"
+                            data-project-id="${escapeHTML(
+                                project.id || ""
+                            )}"
                             onclick="openProject('${id}')"
                         >
 
@@ -1662,6 +1797,7 @@ async function openProject(
     ) {
 
         return;
+
     }
 
 
@@ -1682,7 +1818,9 @@ async function openProject(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1699,6 +1837,7 @@ async function openProject(
         ) {
 
             return;
+
         }
 
 
@@ -1723,6 +1862,7 @@ async function openProject(
                         ${escapeHTML(
                             data.title ||
                             data.project_title ||
+                            data.name ||
                             "Untitled Project"
                         )}
                     </h2>
@@ -1800,7 +1940,9 @@ async function loadDocuments() {
 
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -1822,7 +1964,9 @@ async function loadDocuments() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -1899,7 +2043,9 @@ function renderDocuments(
 
 
     if (!list) {
+
         return;
+
     }
 
 
@@ -1913,6 +2059,7 @@ function renderDocuments(
         `;
 
         return;
+
     }
 
 
@@ -1924,7 +2071,9 @@ function renderDocuments(
                     return `
                         <article
                             class="document-card"
-                            onclick="openDocument('${escapeJS(document.id || "")}')"
+                            onclick="openDocument('${escapeJS(
+                                document.id || ""
+                            )}')"
                         >
 
                             <div class="document-icon">
@@ -1968,7 +2117,9 @@ function renderDocuments(
 function setupDocumentSearch() {
 
     if (documentSearchReady) {
+
         return;
+
     }
 
 
@@ -1977,7 +2128,9 @@ function setupDocumentSearch() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -2115,7 +2268,9 @@ function setupDocumentUpload() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -2152,6 +2307,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2177,6 +2333,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2187,6 +2344,7 @@ async function uploadDocument(
         );
 
         return;
+
     }
 
 
@@ -2215,7 +2373,9 @@ async function uploadDocument(
 
 
         if (uploadError) {
+
             throw uploadError;
+
         }
 
 
@@ -2228,27 +2388,21 @@ async function uploadDocument(
                 .insert({
 
                     title:
-
                         title,
 
                     file_name:
-
                         file.name,
 
                     file_path:
-
                         filePath,
 
                     file_size:
-
                         file.size,
 
                     mime_type:
-
                         file.type,
 
                     uploaded_by:
-
                         currentUser.id
 
                 })
@@ -2257,7 +2411,9 @@ async function uploadDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2323,7 +2479,9 @@ function setupDocumentForm() {
 
 
     if (!form) {
+
         return;
+
     }
 
 
@@ -2349,6 +2507,7 @@ async function openDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2369,7 +2528,9 @@ async function openDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2380,6 +2541,7 @@ async function openDocument(
             );
 
             return;
+
         }
 
 
@@ -2390,6 +2552,7 @@ async function openDocument(
             );
 
             return;
+
         }
 
 
@@ -2406,7 +2569,9 @@ async function openDocument(
 
 
         if (signedError) {
+
             throw signedError;
+
         }
 
 
@@ -2455,6 +2620,7 @@ async function deleteDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2465,6 +2631,7 @@ async function deleteDocument(
     ) {
 
         return;
+
     }
 
 
@@ -2487,7 +2654,9 @@ async function deleteDocument(
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -2530,7 +2699,9 @@ async function deleteDocument(
 
 
         if (deleteError) {
+
             throw deleteError;
+
         }
 
 
@@ -2577,7 +2748,9 @@ function renderDepartmentOrders(
 
 
     if (!container) {
+
         return;
+
     }
 
 
@@ -2590,6 +2763,7 @@ function renderDepartmentOrders(
         `;
 
         return;
+
     }
 
 
@@ -2652,7 +2826,9 @@ function setupDepartmentOrderFilters() {
 
 
     if (!search) {
+
         return;
+
     }
 
 
@@ -2719,7 +2895,9 @@ function setupProjectModal() {
 
 
     if (!modal) {
+
         return;
+
     }
 
 
@@ -2765,7 +2943,9 @@ function setupProjectModal() {
 function setupPDSAI() {
 
     if (aiReady) {
+
         return;
+
     }
 
 
@@ -2905,7 +3085,9 @@ function appendAIMessage(
 
 
     if (!response) {
+
         return;
+
     }
 
 
@@ -2947,8 +3129,13 @@ async function askPDSAI() {
         $("pdsAiSend");
 
 
-    if (!input || !db) {
+    if (
+        !input ||
+        !db
+    ) {
+
         return;
+
     }
 
 
@@ -2957,7 +3144,9 @@ async function askPDSAI() {
 
 
     if (!message) {
+
         return;
+
     }
 
 
@@ -2997,11 +3186,9 @@ async function askPDSAI() {
                     body: {
 
                         message:
-
                             message,
 
                         history:
-
                             pdsAIHistory
 
                     }
@@ -3010,7 +3197,9 @@ async function askPDSAI() {
 
 
         if (error) {
+
             throw error;
+
         }
 
 
@@ -3100,7 +3289,9 @@ function removeThinkingMessage() {
 
 
     if (!response) {
+
         return;
+
     }
 
 
@@ -3140,7 +3331,9 @@ function setupNotifications() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -3169,7 +3362,9 @@ function setupRefreshButton() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -3209,7 +3404,9 @@ function setupRefreshButton() {
 function setupAuthForms() {
 
     if (authFormsReady) {
+
         return;
+
     }
 
 
@@ -3228,6 +3425,7 @@ function setupAuthForms() {
         );
 
         return;
+
     }
 
 
@@ -3261,6 +3459,7 @@ function setupAuthForms() {
                 );
 
                 return;
+
             }
 
 
@@ -3309,9 +3508,11 @@ function setupAuthForms() {
 
 function setupSignOut() {
 
-    const buttons = document.querySelectorAll(
-        "#logoutButton, #signOutButton, [data-action='signout']"
-    );
+    const buttons =
+        document.querySelectorAll(
+            "#logoutButton, #signOutButton, [data-action='signout']"
+        );
+
 
     if (!buttons.length) {
 
@@ -3320,64 +3521,85 @@ function setupSignOut() {
         );
 
         return;
+
     }
 
-    buttons.forEach(button => {
 
-        if (button.dataset.signoutReady === "true") {
-            return;
-        }
+    buttons.forEach(
+        button => {
 
-        button.dataset.signoutReady = "true";
+            if (
+                button.dataset.signoutReady ===
+                "true"
+            ) {
 
-        button.addEventListener(
-            "click",
-            async event => {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                console.log(
-                    "PDS: Sign Out button clicked."
-                );
-
-                await signOut();
+                return;
 
             }
-        );
 
-        /*
-         * Keyboard accessibility
-         */
-        button.addEventListener(
-            "keydown",
-            async event => {
 
-                if (
-                    event.key === "Enter" ||
-                    event.key === " "
-                ) {
+            button.dataset.signoutReady =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                async event => {
 
                     event.preventDefault();
+
                     event.stopPropagation();
 
+
                     console.log(
-                        "PDS: Sign Out keyboard action."
+                        "PDS: Sign Out button clicked."
                     );
+
 
                     await signOut();
 
                 }
+            );
 
-            }
-        );
 
-    });
+            button.addEventListener(
+                "keydown",
+                async event => {
+
+                    if (
+                        event.key ===
+                            "Enter" ||
+                        event.key ===
+                            " "
+                    ) {
+
+                        event.preventDefault();
+
+                        event.stopPropagation();
+
+
+                        console.log(
+                            "PDS: Sign Out keyboard action."
+                        );
+
+
+                        await signOut();
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
 
     console.log(
         `PDS: ${buttons.length} Sign Out button(s) ready.`
     );
+
 }
+
 
 /* =========================================================
    AUTH STATE CHANGE
@@ -3386,7 +3608,9 @@ function setupSignOut() {
 function setupAuthStateListener() {
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -3416,9 +3640,18 @@ function setupAuthStateListener() {
                 pdsAIHistory =
                     [];
 
+                cachedDocuments =
+                    [];
+
+                cachedMonitoringProjects =
+                    [];
+
+
                 showLogin();
 
+
                 return;
+
             }
 
 
@@ -3431,20 +3664,14 @@ function setupAuthStateListener() {
                     session.user;
 
 
-                /*
-                 * Never show login
-                 * when a valid session
-                 * exists.
-                 */
-
                 hideLogin();
 
 
                 if (
                     event ===
-                    "SIGNED_IN" ||
+                        "SIGNED_IN" ||
                     event ===
-                    "INITIAL_SESSION"
+                        "INITIAL_SESSION"
                 ) {
 
                     showPage(
@@ -3460,6 +3687,1976 @@ function setupAuthStateListener() {
 
         }
     );
+
+}
+
+
+/* =========================================================
+   PROJECT MONITORING
+   TEMPORARY LOCAL DATA
+
+   This is intentionally NOT loaded from Supabase.
+
+   This allows us to verify the monitoring UI using
+   the actual monitoring records before connecting
+   OneDrive / Excel.
+========================================================= */
+
+const monitoringTestData = [
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-Purpose Building, Barangay Poblacion D, Rosario, Batangas (13.842248°, 121.200737°)",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Rosario, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Jessica",
+        "ADVERTISEMENT BATCH": "Batch 1",
+        "CONTRACT ID": "26DD0005",
+        "CANVASS": "On-going",
+        "MARKET SCOPING": "Completed",
+        "CERT OF DED": "Completed",
+        "CERT OF CMPD": "Completed",
+        "CERT OF VALIDATION": "Completed",
+        "PRINTED COMPLETE PROGRAM": "Ongoing",
+        "SUBMITTED EXCEL FILE": "Not Yet Submitted",
+        "REMARKS": "",
+        "ARCHITECTURAL": "Completed",
+        "STRUCTURAL": "Completed",
+        "PLUMBING": "Completed",
+        "ELECTRICAL": "Completed",
+        "MECHANICAL": "Completed",
+        "SURVEY": "N/A",
+        "PRINTED COMPLETE PLAN": "For Signiture",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "77.86%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "83.33%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-purpose Building (Barangay Hall) at Brgy. Mataas na Lupa, Taysan, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Taysan, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Carlo",
+        "ADVERTISEMENT BATCH": "Batch 2",
+        "CONTRACT ID": "26DD0014",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "66.67%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "83.33%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction (Completion) of Multi-Purpose Building, Barangay Bago, Ibaan, Batangas (13.808654°, 121.117460°)",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Ibaan, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Carlo",
+        "ADVERTISEMENT BATCH": "Batch 3",
+        "CONTRACT ID": "26DD0026",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "83.33%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-purpose Building in Brgy. Don Luis, San Jose, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "San Jose, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Carlo",
+        "ADVERTISEMENT BATCH": "Batch 5",
+        "CONTRACT ID": "26DD0032",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "11.43%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "75%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Roads",
+        "PROJECT TITLE AS PER GAA":
+            "Concreting of Barangay Road Barangay Bukal, Taysan, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Taysan, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Marjon",
+        "ADVERTISEMENT BATCH": "Batch 5",
+        "CONTRACT ID": "26DD0055",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "0%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-Purpose Building (Senior Citizens' Center), Barangay Catmon, San Juan, Batangas (13.806327°, 121.450402°)",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "San Juan, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Anjeline",
+        "ADVERTISEMENT BATCH": "Batch 11",
+        "CONTRACT ID": "26DD0071",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "83.33%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-Purpose Building, Barangay Timbugan, Rosario, Batangas (13.812014°, 121.182458°)",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Rosario, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "JR",
+        "ADVERTISEMENT BATCH": "Batch 12",
+        "CONTRACT ID": "26DD0101",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "96.67%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-Purpose Building (Barangay Hall) at Barangay Panghayaan, Taysan, Batangas (13.779880, 121.189344)",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Taysan, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Jessica",
+        "ADVERTISEMENT BATCH": "Batch 13",
+        "CONTRACT ID": "26DD0113",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "75%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi-Purpose Building (Covered Court) at Rosario East Central School (107571), Brgy. Poblacion A, Rosario, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Rosario, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Karisa",
+        "ADVERTISEMENT BATCH": "Batch 13",
+        "CONTRACT ID": "26DD0118",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "75%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Roads",
+        "PROJECT TITLE AS PER GAA":
+            "Batangas-Quezon Rd - K0121 + 300 - K0121 + 870, K0122 + 000 - K0122 + 510",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Not Found",
+        "PROGRAM2": "Christine",
+        "PLAN": "Jerald",
+        "ADVERTISEMENT BATCH": "Batch 14",
+        "CONTRACT ID": "26DD0140",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "66.67%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "66.67%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Multi Purpose Building at Rosario East Central School, Poblacion A, Rosario, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Rosario, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Karisa",
+        "ADVERTISEMENT BATCH": "Batch 14",
+        "CONTRACT ID": "26DD0143",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "64.29%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "75%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Buildings",
+        "PROJECT TITLE AS PER GAA":
+            "Construction of Outdoor Sports Center, Rosario, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Rosario, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Aero",
+        "ADVERTISEMENT BATCH": "Batch 15",
+        "CONTRACT ID": "26DD0179",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "66.67%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "41.67%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    },
+
+
+    {
+        "CATEGORY": "Infrastructure",
+        "PROGRAM": "Infrastructure Program",
+        "SUB-PROGRAM": "Roads",
+        "PROJECT TITLE AS PER GAA":
+            "Improvement of Road at Barangay Pinagkawitan, Lipa City, Batangas",
+        "NO. OF PROJS": 1,
+        "ALLOCATION": 13000000,
+        "MUNICIPALITY": "Lipa City, Batangas",
+        "PROGRAM2": "Christine",
+        "PLAN": "Rose Anne",
+        "ADVERTISEMENT BATCH": "Batch 15",
+        "CONTRACT ID": "26DD0191",
+        "CANVASS": "",
+        "MARKET SCOPING": "",
+        "CERT OF DED": "",
+        "CERT OF CMPD": "",
+        "CERT OF VALIDATION": "",
+        "PRINTED COMPLETE PROGRAM": "",
+        "SUBMITTED EXCEL FILE": "",
+        "REMARKS": "",
+        "ARCHITECTURAL": "",
+        "STRUCTURAL": "",
+        "PLUMBING": "",
+        "ELECTRICAL": "",
+        "MECHANICAL": "",
+        "SURVEY": "",
+        "PRINTED COMPLETE PLAN": "",
+        "REMARKS2": "",
+        "PROGRAM STATUS": "Ongoing",
+        "PROGRAM % COMPLETE": "66.67%",
+        "PLAN STATUS": "For Completion",
+        "PLAN % COMPLETE": "50%",
+        "LAST UPDATED": "2026-09-16",
+        "DAYS SINCE UPDATE": 0,
+        "OVERALL STATUS": "In Progress"
+    }
+
+];
+
+
+/* =========================================================
+   MONITORING TEXT NORMALIZER
+========================================================= */
+
+function normalizeMonitoringText(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .trim()
+        .toLowerCase()
+        .replace(
+            /\s+/g,
+            " "
+        );
+
+}
+
+
+/* =========================================================
+   MONITORING COLUMN HELPER
+========================================================= */
+
+function getMonitoringValue(
+    row,
+    columnName
+) {
+
+    if (!row) {
+
+        return "";
+
+    }
+
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            row,
+            columnName
+        )
+    ) {
+
+        return row[columnName];
+
+    }
+
+
+    const target =
+        normalizeMonitoringText(
+            columnName
+        );
+
+
+    const key =
+        Object.keys(row)
+            .find(
+                key =>
+                    normalizeMonitoringText(
+                        key
+                    ) === target
+            );
+
+
+    return key
+        ? row[key]
+        : "";
+
+}
+
+
+/* =========================================================
+   MONITORING PERCENTAGE
+========================================================= */
+
+function monitoringPercent(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return 0;
+
+    }
+
+
+    let text =
+        String(value)
+            .trim()
+            .replace(
+                "%",
+                ""
+            );
+
+
+    let number =
+        parseFloat(text);
+
+
+    if (
+        Number.isNaN(number)
+    ) {
+
+        return 0;
+
+    }
+
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            number
+        )
+    );
+
+}
+
+
+/* =========================================================
+   CURRENT USER NAME
+========================================================= */
+
+function getCurrentMonitoringUserName() {
+
+    if (currentProfile) {
+
+        return (
+            currentProfile.full_name ||
+            currentProfile.name ||
+            currentProfile.display_name ||
+            ""
+        );
+
+    }
+
+
+    if (currentUser) {
+
+        return (
+            currentUser.user_metadata?.full_name ||
+            currentUser.user_metadata?.name ||
+            currentUser.email?.split("@")[0] ||
+            ""
+        );
+
+    }
+
+
+    return "";
+
+}
+
+
+/* =========================================================
+   MONITORING ASSIGNMENT
+========================================================= */
+
+function isMonitoringProjectAssigned(
+    project
+) {
+
+    const userName =
+        normalizeMonitoringText(
+            getCurrentMonitoringUserName()
+        );
+
+
+    if (!userName) {
+
+        return false;
+
+    }
+
+
+    const programUser =
+        normalizeMonitoringText(
+            getMonitoringValue(
+                project,
+                "PROGRAM2"
+            )
+        );
+
+
+    const planUser =
+        normalizeMonitoringText(
+            getMonitoringValue(
+                project,
+                "PLAN"
+            )
+        );
+
+
+    return (
+        userName === programUser ||
+        userName === planUser ||
+        programUser.includes(userName) ||
+        planUser.includes(userName)
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING EDIT PERMISSION
+========================================================= */
+
+function canEditMonitoringProject(
+    project
+) {
+
+    if (!currentUser) {
+
+        return false;
+
+    }
+
+
+    if (
+        !isMonitoringProjectAssigned(
+            project
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    const status =
+        normalizeMonitoringText(
+            getMonitoringValue(
+                project,
+                "OVERALL STATUS"
+            )
+        );
+
+
+    if (
+        status.includes(
+            "completed"
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   MONITORING STATUS CLASS
+========================================================= */
+
+function getMonitoringStatusClass(
+    status
+) {
+
+    const normalized =
+        normalizeMonitoringText(
+            status
+        );
+
+
+    if (
+        normalized.includes(
+            "completed"
+        )
+    ) {
+
+        return "completed";
+
+    }
+
+
+    if (
+        normalized.includes(
+            "hold"
+        )
+    ) {
+
+        return "hold";
+
+    }
+
+
+    if (
+        normalized.includes(
+            "signature"
+        ) ||
+        normalized.includes(
+            "completion"
+        )
+    ) {
+
+        return "bidding";
+
+    }
+
+
+    return "ongoing";
+
+}
+
+
+/* =========================================================
+   LOAD PROJECT MONITORING
+========================================================= */
+
+async function loadProjectMonitoring() {
+
+    const list =
+        $("monitoringList");
+
+
+    if (!list) {
+
+        return;
+
+    }
+
+
+    list.innerHTML = `
+        <div class="monitoring-loading">
+            Loading project monitoring data...
+        </div>
+    `;
+
+
+    /*
+     * TEMPORARY TEST SOURCE
+     *
+     * Actual OneDrive connection comes later.
+     */
+
+    cachedMonitoringProjects =
+        [...monitoringTestData];
+
+
+    applyMonitoringFilters();
+
+}
+
+
+/* =========================================================
+   APPLY MONITORING FILTERS
+========================================================= */
+
+function applyMonitoringFilters() {
+
+    const search =
+        $("monitoringSearch");
+
+    const statusFilter =
+        $("monitoringStatusFilter");
+
+    const myProjectsFilter =
+        $("myProjectsFilter");
+
+
+    const query =
+        normalizeMonitoringText(
+            search?.value || ""
+        );
+
+
+    const selectedStatus =
+        statusFilter?.value ||
+        "all";
+
+
+    const myProjectsOnly =
+        myProjectsFilter?.checked ??
+        true;
+
+
+    let projects =
+        [...cachedMonitoringProjects];
+
+
+    /*
+     * SEARCH
+     */
+
+    if (query) {
+
+        projects =
+            projects.filter(
+                project => {
+
+                    const text = [
+
+                        getMonitoringValue(
+                            project,
+                            "CONTRACT ID"
+                        ),
+
+                        getMonitoringValue(
+                            project,
+                            "PROJECT TITLE AS PER GAA"
+                        ),
+
+                        getMonitoringValue(
+                            project,
+                            "MUNICIPALITY"
+                        ),
+
+                        getMonitoringValue(
+                            project,
+                            "PROGRAM2"
+                        ),
+
+                        getMonitoringValue(
+                            project,
+                            "PLAN"
+                        ),
+
+                        getMonitoringValue(
+                            project,
+                            "ADVERTISEMENT BATCH"
+                        )
+
+                    ]
+                        .filter(Boolean)
+                        .join(" ");
+
+
+                    return normalizeMonitoringText(
+                        text
+                    ).includes(
+                        query
+                    );
+
+                }
+            );
+
+    }
+
+
+    /*
+     * STATUS
+     */
+
+    if (
+        selectedStatus !== "all"
+    ) {
+
+        projects =
+            projects.filter(
+                project => {
+
+                    const status =
+                        normalizeMonitoringText(
+                            getMonitoringValue(
+                                project,
+                                "OVERALL STATUS"
+                            )
+                        );
+
+
+                    return (
+                        status ===
+                        normalizeMonitoringText(
+                            selectedStatus
+                        )
+                    );
+
+                }
+            );
+
+    }
+
+
+    /*
+     * MY PROJECTS
+     */
+
+    if (myProjectsOnly) {
+
+        projects =
+            projects.filter(
+                project =>
+                    isMonitoringProjectAssigned(
+                        project
+                    )
+            );
+
+    }
+
+
+    renderProjectMonitoring(
+        projects
+    );
+
+}
+
+
+/* =========================================================
+   RENDER PROJECT MONITORING
+========================================================= */
+
+function renderProjectMonitoring(
+    projects
+) {
+
+    const list =
+        $("monitoringList");
+
+    const empty =
+        $("monitoringEmpty");
+
+
+    if (!list) {
+
+        return;
+
+    }
+
+
+    if (
+        !projects ||
+        !projects.length
+    ) {
+
+        list.innerHTML = "";
+
+
+        if (empty) {
+
+            empty.style.display =
+                "flex";
+
+        }
+
+
+        updateMonitoringSummary(
+            projects || []
+        );
+
+
+        return;
+
+    }
+
+
+    if (empty) {
+
+        empty.style.display =
+            "none";
+
+    }
+
+
+    list.innerHTML =
+        projects
+            .map(
+                project => {
+
+                    const projectNo =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "CONTRACT ID"
+                            ) ||
+                            "—"
+                        );
+
+
+                    const title =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "PROJECT TITLE AS PER GAA"
+                            ) ||
+                            "Untitled Project"
+                        );
+
+
+                    const municipality =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "MUNICIPALITY"
+                            ) ||
+                            "—"
+                        );
+
+
+                    const programPercent =
+                        monitoringPercent(
+                            getMonitoringValue(
+                                project,
+                                "PROGRAM % COMPLETE"
+                            )
+                        );
+
+
+                    const planPercent =
+                        monitoringPercent(
+                            getMonitoringValue(
+                                project,
+                                "PLAN % COMPLETE"
+                            )
+                        );
+
+
+                    const programStatus =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "PROGRAM STATUS"
+                            ) ||
+                            "—"
+                        );
+
+
+                    const planStatus =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "PLAN STATUS"
+                            ) ||
+                            "—"
+                        );
+
+
+                    const overallStatus =
+                        escapeHTML(
+                            getMonitoringValue(
+                                project,
+                                "OVERALL STATUS"
+                            ) ||
+                            "—"
+                        );
+
+
+                    const editable =
+                        canEditMonitoringProject(
+                            project
+                        );
+
+
+                    const statusClass =
+                        getMonitoringStatusClass(
+                            overallStatus
+                        );
+
+
+                    const encodedProject =
+                        encodeURIComponent(
+                            getMonitoringValue(
+                                project,
+                                "CONTRACT ID"
+                            )
+                        );
+
+
+                    return `
+
+                        <div
+                            class="monitoring-row"
+                            data-project-id="${escapeHTML(
+                                getMonitoringValue(
+                                    project,
+                                    "CONTRACT ID"
+                                )
+                            )}"
+                        >
+
+                            <div
+                                class="monitoring-project-no"
+                                data-label="PROJECT NO."
+                            >
+                                ${projectNo}
+                            </div>
+
+
+                            <div
+                                class="monitoring-project-name"
+                                data-label="PROJECT"
+                            >
+
+                                <strong>
+                                    ${title}
+                                </strong>
+
+                                <span>
+                                    ${municipality}
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                class="monitoring-progress"
+                                data-label="PROGRAM"
+                            >
+
+                                <div class="progress-value">
+                                    ${programPercent.toFixed(2)}%
+                                </div>
+
+                                <div class="progress-track">
+
+                                    <div
+                                        class="progress-fill"
+                                        style="width:${programPercent}%"
+                                    ></div>
+
+                                </div>
+
+                                <small>
+                                    ${programStatus}
+                                </small>
+
+                            </div>
+
+
+                            <div
+                                class="monitoring-progress"
+                                data-label="PLAN"
+                            >
+
+                                <div class="progress-value">
+                                    ${planPercent.toFixed(2)}%
+                                </div>
+
+                                <div class="progress-track">
+
+                                    <div
+                                        class="progress-fill"
+                                        style="width:${planPercent}%"
+                                    ></div>
+
+                                </div>
+
+                                <small>
+                                    ${planStatus}
+                                </small>
+
+                            </div>
+
+
+                            <div
+                                data-label="OVERALL STATUS"
+                            >
+
+                                <span
+                                    class="monitoring-status ${statusClass}"
+                                >
+                                    ${overallStatus}
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                class="monitoring-actions"
+                                data-label="ACTION"
+                            >
+
+                                <button
+                                    type="button"
+                                    class="monitoring-view"
+                                    data-monitoring-action="view"
+                                    data-project-id="${encodedProject}"
+                                >
+                                    VIEW
+                                </button>
+
+                                ${
+                                    editable
+                                        ? `
+                                            <button
+                                                type="button"
+                                                class="monitoring-edit"
+                                                data-monitoring-action="edit"
+                                                data-project-id="${encodedProject}"
+                                            >
+                                                EDIT
+                                            </button>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    updateMonitoringSummary(
+        projects
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING SUMMARY
+========================================================= */
+
+function updateMonitoringSummary(
+    projects
+) {
+
+    const total =
+        $("monitoringTotal");
+
+    const programAverage =
+        $("monitoringProgramAverage");
+
+    const planAverage =
+        $("monitoringPlanAverage");
+
+    const inProgress =
+        $("monitoringInProgress");
+
+
+    if (
+        !projects ||
+        !projects.length
+    ) {
+
+        if (total) {
+
+            total.textContent =
+                "0";
+
+        }
+
+
+        if (programAverage) {
+
+            programAverage.textContent =
+                "0%";
+
+        }
+
+
+        if (planAverage) {
+
+            planAverage.textContent =
+                "0%";
+
+        }
+
+
+        if (inProgress) {
+
+            inProgress.textContent =
+                "0";
+
+        }
+
+
+        return;
+
+    }
+
+
+    let programTotal =
+        0;
+
+    let planTotal =
+        0;
+
+    let activeCount =
+        0;
+
+
+    projects.forEach(
+        project => {
+
+            programTotal +=
+                monitoringPercent(
+                    getMonitoringValue(
+                        project,
+                        "PROGRAM % COMPLETE"
+                    )
+                );
+
+
+            planTotal +=
+                monitoringPercent(
+                    getMonitoringValue(
+                        project,
+                        "PLAN % COMPLETE"
+                    )
+                );
+
+
+            const status =
+                normalizeMonitoringText(
+                    getMonitoringValue(
+                        project,
+                        "OVERALL STATUS"
+                    )
+                );
+
+
+            if (
+                status.includes(
+                    "progress"
+                ) ||
+                status.includes(
+                    "ongoing"
+                )
+            ) {
+
+                activeCount++;
+
+            }
+
+        }
+    );
+
+
+    const programAverageValue =
+        programTotal /
+        projects.length;
+
+
+    const planAverageValue =
+        planTotal /
+        projects.length;
+
+
+    if (total) {
+
+        total.textContent =
+            projects.length;
+
+    }
+
+
+    if (programAverage) {
+
+        programAverage.textContent =
+            programAverageValue.toFixed(2) +
+            "%";
+
+    }
+
+
+    if (planAverage) {
+
+        planAverage.textContent =
+            planAverageValue.toFixed(2) +
+            "%";
+
+    }
+
+
+    if (inProgress) {
+
+        inProgress.textContent =
+            activeCount;
+
+    }
+
+}
+
+
+/* =========================================================
+   VIEW MONITORING PROJECT
+========================================================= */
+
+function viewMonitoringProject(
+    projectId
+) {
+
+    const decodedId =
+        decodeURIComponent(
+            projectId
+        );
+
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(
+                    getMonitoringValue(
+                        item,
+                        "CONTRACT ID"
+                    )
+                ) ===
+                String(
+                    decodedId
+                )
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    const modal =
+        $("projectModal");
+
+    const content =
+        $("projectModalContent");
+
+
+    if (
+        !modal ||
+        !content
+    ) {
+
+        return;
+
+    }
+
+
+    const title =
+        getMonitoringValue(
+            project,
+            "PROJECT TITLE AS PER GAA"
+        ) ||
+        "Untitled Project";
+
+
+    const projectNo =
+        getMonitoringValue(
+            project,
+            "CONTRACT ID"
+        ) ||
+        "—";
+
+
+    const municipality =
+        getMonitoringValue(
+            project,
+            "MUNICIPALITY"
+        ) ||
+        "—";
+
+
+    const programUser =
+        getMonitoringValue(
+            project,
+            "PROGRAM2"
+        ) ||
+        "—";
+
+
+    const planUser =
+        getMonitoringValue(
+            project,
+            "PLAN"
+        ) ||
+        "—";
+
+
+    const programPercent =
+        monitoringPercent(
+            getMonitoringValue(
+                project,
+                "PROGRAM % COMPLETE"
+            )
+        );
+
+
+    const planPercent =
+        monitoringPercent(
+            getMonitoringValue(
+                project,
+                "PLAN % COMPLETE"
+            )
+        );
+
+
+    const overallStatus =
+        getMonitoringValue(
+            project,
+            "OVERALL STATUS"
+        ) ||
+        "—";
+
+
+    const programStatus =
+        getMonitoringValue(
+            project,
+            "PROGRAM STATUS"
+        ) ||
+        "—";
+
+
+    const planStatus =
+        getMonitoringValue(
+            project,
+            "PLAN STATUS"
+        ) ||
+        "—";
+
+
+    const remarks =
+        getMonitoringValue(
+            project,
+            "REMARKS"
+        ) ||
+        getMonitoringValue(
+            project,
+            "REMARKS2"
+        ) ||
+        "No monitoring remarks available.";
+
+
+    content.innerHTML = `
+
+        <div class="project-detail">
+
+            <div class="detail-label">
+                PROJECT MONITORING
+            </div>
+
+
+            <h2>
+                ${escapeHTML(title)}
+            </h2>
+
+
+            <div class="detail-grid">
+
+                <div>
+                    <span>PROJECT NO.</span>
+                    <strong>
+                        ${escapeHTML(projectNo)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>LOCATION</span>
+                    <strong>
+                        ${escapeHTML(municipality)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PROGRAM</span>
+                    <strong>
+                        ${escapeHTML(programUser)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PLAN</span>
+                    <strong>
+                        ${escapeHTML(planUser)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PROGRAM COMPLETION</span>
+                    <strong>
+                        ${programPercent.toFixed(2)}%
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PLAN COMPLETION</span>
+                    <strong>
+                        ${planPercent.toFixed(2)}%
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PROGRAM STATUS</span>
+                    <strong>
+                        ${escapeHTML(programStatus)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>PLAN STATUS</span>
+                    <strong>
+                        ${escapeHTML(planStatus)}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>OVERALL STATUS</span>
+                    <strong>
+                        ${escapeHTML(overallStatus)}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div style="margin-top:20px;">
+
+                <div class="detail-label">
+                    MONITORING REMARKS
+                </div>
+
+                <p>
+                    ${escapeHTML(remarks)}
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
+   EDIT MONITORING PROJECT
+========================================================= */
+
+function editMonitoringProject(
+    projectId
+) {
+
+    const decodedId =
+        decodeURIComponent(
+            projectId
+        );
+
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(
+                    getMonitoringValue(
+                        item,
+                        "CONTRACT ID"
+                    )
+                ) ===
+                String(
+                    decodedId
+                )
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !canEditMonitoringProject(
+            project
+        )
+    ) {
+
+        alert(
+            "You are not authorized to edit this project."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Editing will be connected to OneDrive
+     * in the next implementation step.
+     */
+
+    alert(
+        "Project editing will be enabled after the OneDrive monitoring editor is connected."
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING FILTER SETUP
+========================================================= */
+
+function setupProjectMonitoringFilters() {
+
+    if (monitoringFiltersReady) {
+
+        return;
+
+    }
+
+
+    monitoringFiltersReady =
+        true;
+
+
+    const search =
+        $("monitoringSearch");
+
+    const status =
+        $("monitoringStatusFilter");
+
+    const myProjects =
+        $("myProjectsFilter");
+
+    const refresh =
+        $("monitoringRefreshButton");
+
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (status) {
+
+        status.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (myProjects) {
+
+        myProjects.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (refresh) {
+
+        refresh.addEventListener(
+            "click",
+            async () => {
+
+                await loadProjectMonitoring();
+
+            }
+        );
+
+    }
+
+
+    const list =
+        $("monitoringList");
+
+
+    if (list) {
+
+        list.addEventListener(
+            "click",
+            event => {
+
+                const button =
+                    event.target.closest(
+                        "[data-monitoring-action]"
+                    );
+
+
+                if (!button) {
+
+                    return;
+
+                }
+
+
+                event.preventDefault();
+
+
+                const action =
+                    button.dataset.monitoringAction;
+
+
+                const projectId =
+                    button.dataset.projectId;
+
+
+                if (
+                    action ===
+                    "view"
+                ) {
+
+                    viewMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+
+                if (
+                    action ===
+                    "edit"
+                ) {
+
+                    editMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+            }
+        );
+
+    }
 
 }
 
@@ -3567,7 +5764,9 @@ function escapeJS(
 async function initializePDS() {
 
     if (initialized) {
+
         return;
+
     }
 
 
@@ -3579,11 +5778,6 @@ async function initializePDS() {
         "PDS — Initializing..."
     );
 
-
-    /*
-     * Hide everything while
-     * authentication is checked.
-     */
 
     const authScreen =
         $("authScreen");
@@ -3608,10 +5802,6 @@ async function initializePDS() {
     }
 
 
-    /*
-     * Initialize Supabase.
-     */
-
     const supabaseReady =
         initializeSupabase();
 
@@ -3633,11 +5823,12 @@ async function initializePDS() {
 
 
         return;
+
     }
 
 
     /*
-     * Setup UI.
+     * SETUP UI
      */
 
     setupNavigation();
@@ -3645,7 +5836,8 @@ async function initializePDS() {
     setupSectionTargets();
 
     setupGlobalSearch();
-   setupProjectMonitoringFilters();
+
+    setupProjectMonitoringFilters();
 
     setupAuthForms();
 
@@ -3673,7 +5865,7 @@ async function initializePDS() {
 
 
     /*
-     * Restore existing session.
+     * RESTORE SESSION
      */
 
     await restoreSession();
@@ -3685,1027 +5877,7 @@ async function initializePDS() {
 
 }
 
-/* =========================================================
-   PROJECT MONITORING
-   USER-SPECIFIC MONITORING
-========================================================= */
 
-let cachedMonitoringProjects = [];
-
-
-/* =========================================================
-   LOAD PROJECT MONITORING
-========================================================= */
-
-async function loadProjectMonitoring() {
-
-    const list =
-        $("monitoringList");
-
-    if (!list) {
-        return;
-    }
-
-    list.innerHTML = `
-        <div class="empty-state">
-            Loading project monitoring...
-        </div>
-    `;
-
-
-    /*
-     * A user must be logged in.
-     */
-
-    if (!currentUser) {
-
-        renderProjectMonitoring([]);
-
-        return;
-    }
-
-
-    try {
-
-        /*
-         * TEMPORARY SOURCE
-         *
-         * For this first step we use the
-         * existing Supabase projects table.
-         *
-         * OneDrive will be connected later.
-         */
-
-        if (!db) {
-
-            renderProjectMonitoring([]);
-
-            return;
-        }
-
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("projects")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
-
-
-        if (error) {
-            throw error;
-        }
-
-
-        cachedMonitoringProjects =
-            data || [];
-
-
-        /*
-         * Render projects for the
-         * currently logged-in user.
-         */
-
-        applyMonitoringFilters();
-
-
-    } catch (error) {
-
-        console.error(
-            "Project Monitoring error:",
-            error
-        );
-
-
-        cachedMonitoringProjects =
-            [];
-
-
-        renderProjectMonitoring([]);
-
-    }
-
-}
-
-
-/* =========================================================
-   APPLY MONITORING FILTERS
-========================================================= */
-
-function applyMonitoringFilters() {
-
-    const search =
-        $("monitoringSearch");
-
-    const statusFilter =
-        $("monitoringStatusFilter");
-
-    const myProjectsFilter =
-        $("myProjectsFilter");
-
-
-    const query =
-        search?.value
-            ?.trim()
-            ?.toLowerCase() ||
-        "";
-
-
-    const selectedStatus =
-        statusFilter?.value ||
-        "all";
-
-
-    const myProjectsOnly =
-        myProjectsFilter?.checked ||
-        false;
-
-
-    let projects =
-        [...cachedMonitoringProjects];
-
-
-    /*
-     * SEARCH
-     */
-
-    if (query) {
-
-        projects =
-            projects.filter(
-                project => {
-
-                    const text = [
-
-                        project.project_code,
-
-                        project.project_no,
-
-                        project.title,
-
-                        project.project_title,
-
-                        project.name,
-
-                        project.location,
-
-                        project.status
-
-                    ]
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
-
-
-                    return text.includes(
-                        query
-                    );
-
-                }
-            );
-
-    }
-
-
-    /*
-     * STATUS
-     */
-
-    if (
-        selectedStatus &&
-        selectedStatus !== "all"
-    ) {
-
-        projects =
-            projects.filter(
-                project => {
-
-                    const status =
-                        String(
-                            project.status ||
-                            ""
-                        )
-                            .trim()
-                            .toUpperCase();
-
-
-                    return status ===
-                        selectedStatus
-                            .toUpperCase();
-
-                }
-            );
-
-    }
-
-
-    /*
-     * MY PROJECTS
-     *
-     * We support several possible
-     * assignment fields so that
-     * existing project records
-     * do not break.
-     */
-
-    if (myProjectsOnly) {
-
-        projects =
-            projects.filter(
-                project =>
-                    isProjectAssignedToCurrentUser(
-                        project
-                    )
-            );
-
-    }
-
-
-    renderProjectMonitoring(
-        projects
-    );
-
-}
-
-
-/* =========================================================
-   CHECK PROJECT ASSIGNMENT
-========================================================= */
-
-function isProjectAssignedToCurrentUser(
-    project
-) {
-
-    if (!currentUser) {
-        return false;
-    }
-
-
-    const userId =
-        String(
-            currentUser.id ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    const userEmail =
-        String(
-            currentUser.email ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    /*
-     * Possible assignment fields.
-     *
-     * These allow us to support the
-     * eventual OneDrive structure.
-     */
-
-    const assignedUserId =
-        String(
-            project.assigned_user_id ||
-            project.owner_id ||
-            project.user_id ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    const assignedEmail =
-        String(
-            project.assigned_email ||
-            project.user_email ||
-            project.assigned_to_email ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    const assignedTo =
-        String(
-            project.assigned_to ||
-            project.assigned_user ||
-            project.project_engineer ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    /*
-     * Match by Supabase user ID.
-     */
-
-    if (
-        userId &&
-        assignedUserId &&
-        userId === assignedUserId
-    ) {
-
-        return true;
-
-    }
-
-
-    /*
-     * Match by email.
-     */
-
-    if (
-        userEmail &&
-        assignedEmail &&
-        userEmail === assignedEmail
-    ) {
-
-        return true;
-
-    }
-
-
-    /*
-     * Match a simple assigned-to
-     * email field.
-     */
-
-    if (
-        userEmail &&
-        assignedTo &&
-        assignedTo === userEmail
-    ) {
-
-        return true;
-
-    }
-
-
-    return false;
-
-}
-
-
-/* =========================================================
-   CHECK PROJECT EDIT PERMISSION
-========================================================= */
-
-function canEditMonitoringProject(
-    project
-) {
-
-    if (!currentUser) {
-        return false;
-    }
-
-
-    /*
-     * Project must first belong
-     * to the current user.
-     */
-
-    if (
-        !isProjectAssignedToCurrentUser(
-            project
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    /*
-     * Explicit edit fields.
-     */
-
-    if (
-        project.can_edit === false ||
-        project.editable === false
-    ) {
-
-        return false;
-
-    }
-
-
-    /*
-     * Completed projects are
-     * VIEW ONLY by default.
-     */
-
-    const status =
-        String(
-            project.status ||
-            ""
-        )
-            .trim()
-            .toUpperCase();
-
-
-    if (
-        status ===
-        "COMPLETED"
-    ) {
-
-        return false;
-
-    }
-
-
-    return true;
-
-}
-
-
-/* =========================================================
-   RENDER PROJECT MONITORING
-========================================================= */
-
-function renderProjectMonitoring(
-    projects
-) {
-
-    const list =
-        $("monitoringList");
-
-    const empty =
-        $("monitoringEmpty");
-
-
-    if (!list) {
-        return;
-    }
-
-
-    if (!projects.length) {
-
-        list.innerHTML = "";
-
-
-        if (empty) {
-
-            empty.style.display =
-                "flex";
-
-        }
-
-        return;
-
-    }
-
-
-    if (empty) {
-
-        empty.style.display =
-            "none";
-
-    }
-
-
-    list.innerHTML =
-        projects
-            .map(
-                project => {
-
-                    const projectId =
-                        escapeJS(
-                            project.id ||
-                            ""
-                        );
-
-
-                    const projectNo =
-                        escapeHTML(
-                            project.project_code ||
-                            project.project_no ||
-                            project.control_no ||
-                            "—"
-                        );
-
-
-                    const title =
-                        escapeHTML(
-                            project.title ||
-                            project.project_title ||
-                            project.name ||
-                            "Untitled Project"
-                        );
-
-
-                    const location =
-                        escapeHTML(
-                            project.location ||
-                            project.project_location ||
-                            ""
-                        );
-
-
-                    const status =
-                        String(
-                            project.status ||
-                            "ON-GOING"
-                        )
-                            .trim()
-                            .toUpperCase();
-
-
-                    let progress =
-                        Number(
-                            project.progress ??
-                            project.physical_progress ??
-                            0
-                        );
-
-
-                    if (
-                        Number.isNaN(
-                            progress
-                        )
-                    ) {
-
-                        progress = 0;
-
-                    }
-
-
-                    progress =
-                        Math.max(
-                            0,
-                            Math.min(
-                                100,
-                                progress
-                            )
-                        );
-
-
-                    const editable =
-                        canEditMonitoringProject(
-                            project
-                        );
-
-
-                    const statusClass =
-                        getMonitoringStatusClass(
-                            status
-                        );
-
-
-                    const completedClass =
-                        progress >= 100
-                            ? "completed"
-                            : "";
-
-
-                    return `
-                        <div
-                            class="monitoring-row"
-                            data-project-id="${escapeHTML(
-                                project.id || ""
-                            )}"
-                        >
-
-                            <div class="monitoring-project-no">
-                                ${projectNo}
-                            </div>
-
-
-                            <div class="monitoring-project-name">
-
-                                <strong>
-                                    ${title}
-                                </strong>
-
-                                ${
-                                    location
-                                        ? `
-                                            <span>
-                                                ${location}
-                                            </span>
-                                          `
-                                        : ""
-                                }
-
-                            </div>
-
-
-                            <div class="monitoring-progress">
-
-                                <div class="progress-value">
-                                    ${progress}%
-                                </div>
-
-                                <div class="progress-track">
-
-                                    <div
-                                        class="progress-fill ${completedClass}"
-                                        style="width:${progress}%"
-                                    ></div>
-
-                                </div>
-
-                            </div>
-
-
-                            <div>
-
-                                <span
-                                    class="monitoring-status ${statusClass}"
-                                >
-                                    ${escapeHTML(status)}
-                                </span>
-
-                            </div>
-
-
-                            <div class="monitoring-actions">
-
-                                <button
-                                    type="button"
-                                    class="monitoring-view"
-                                    onclick="viewMonitoringProject('${projectId}')"
-                                >
-                                    VIEW
-                                </button>
-
-                                ${
-                                    editable
-                                        ? `
-                                            <button
-                                                type="button"
-                                                class="monitoring-edit"
-                                                onclick="editMonitoringProject('${projectId}')"
-                                            >
-                                                EDIT
-                                            </button>
-                                          `
-                                        : ""
-                                }
-
-                            </div>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =========================================================
-   MONITORING STATUS CLASS
-========================================================= */
-
-function getMonitoringStatusClass(
-    status
-) {
-
-    const normalized =
-        String(
-            status || ""
-        )
-            .trim()
-            .toUpperCase();
-
-
-    if (
-        normalized.includes(
-            "COMPLETED"
-        )
-    ) {
-
-        return "completed";
-
-    }
-
-
-    if (
-        normalized.includes(
-            "HOLD"
-        )
-    ) {
-
-        return "hold";
-
-    }
-
-
-    if (
-        normalized.includes(
-            "BIDDING"
-        )
-    ) {
-
-        return "bidding";
-
-    }
-
-
-    return "ongoing";
-
-}
-
-
-/* =========================================================
-   VIEW MONITORING PROJECT
-========================================================= */
-
-function viewMonitoringProject(
-    projectId
-) {
-
-    const project =
-        cachedMonitoringProjects.find(
-            item =>
-                String(item.id) ===
-                String(projectId)
-        );
-
-
-    if (!project) {
-
-        alert(
-            "Project monitoring record not found."
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * Reuse the existing project modal.
-     */
-
-    const modal =
-        $("projectModal");
-
-    const content =
-        $("projectModalContent");
-
-
-    if (
-        !modal ||
-        !content
-    ) {
-
-        return;
-
-    }
-
-
-    const title =
-        project.title ||
-        project.project_title ||
-        project.name ||
-        "Untitled Project";
-
-
-    const projectNo =
-        project.project_code ||
-        project.project_no ||
-        project.control_no ||
-        "—";
-
-
-    const status =
-        project.status ||
-        "—";
-
-
-    const progress =
-        project.progress ??
-        project.physical_progress ??
-        0;
-
-
-    const location =
-        project.location ||
-        project.project_location ||
-        "—";
-
-
-    const contractor =
-        project.contractor ||
-        "—";
-
-
-    content.innerHTML = `
-
-        <div class="project-detail">
-
-            <div class="detail-label">
-                PROJECT MONITORING
-            </div>
-
-
-            <h2>
-                ${escapeHTML(title)}
-            </h2>
-
-
-            <div class="detail-grid">
-
-                <div>
-                    <span>PROJECT NO.</span>
-                    <strong>
-                        ${escapeHTML(projectNo)}
-                    </strong>
-                </div>
-
-
-                <div>
-                    <span>STATUS</span>
-                    <strong>
-                        ${escapeHTML(status)}
-                    </strong>
-                </div>
-
-
-                <div>
-                    <span>PROGRESS</span>
-                    <strong>
-                        ${escapeHTML(progress)}%
-                    </strong>
-                </div>
-
-
-                <div>
-                    <span>LOCATION</span>
-                    <strong>
-                        ${escapeHTML(location)}
-                    </strong>
-                </div>
-
-
-                <div>
-                    <span>CONTRACTOR</span>
-                    <strong>
-                        ${escapeHTML(contractor)}
-                    </strong>
-                </div>
-
-
-                <div>
-                    <span>ASSIGNED USER</span>
-                    <strong>
-                        ${escapeHTML(
-                            project.assigned_email ||
-                            project.assigned_to ||
-                            "—"
-                        )}
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div style="margin-top:20px;">
-
-                <div class="detail-label">
-                    MONITORING REMARKS
-                </div>
-
-                <p>
-                    ${escapeHTML(
-                        project.monitoring_remarks ||
-                        project.remarks ||
-                        project.notes ||
-                        "No monitoring remarks available."
-                    )}
-                </p>
-
-            </div>
-
-        </div>
-
-    `;
-
-
-    modal.style.display =
-        "flex";
-
-}
-
-
-/* =========================================================
-   EDIT MONITORING PROJECT
-========================================================= */
-
-function editMonitoringProject(
-    projectId
-) {
-
-    const project =
-        cachedMonitoringProjects.find(
-            item =>
-                String(item.id) ===
-                String(projectId)
-        );
-
-
-    if (!project) {
-
-        alert(
-            "Project monitoring record not found."
-        );
-
-        return;
-
-    }
-
-
-    if (
-        !canEditMonitoringProject(
-            project
-        )
-    ) {
-
-        alert(
-            "You are not authorized to edit this project."
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * STEP 3 ONLY
-     *
-     * We are not writing changes
-     * to OneDrive or Supabase yet.
-     *
-     * The next step will create
-     * the actual monitoring editor.
-     */
-
-    alert(
-        "Project editing will be enabled in the next step."
-    );
-
-}
-
-
-/* =========================================================
-   MONITORING FILTER SETUP
-========================================================= */
-
-function setupProjectMonitoringFilters() {
-
-    const search =
-        $("monitoringSearch");
-
-    const status =
-        $("monitoringStatusFilter");
-
-    const myProjects =
-        $("myProjectsFilter");
-
-
-    if (search) {
-
-        search.addEventListener(
-            "input",
-            applyMonitoringFilters
-        );
-
-    }
-
-
-    if (status) {
-
-        status.addEventListener(
-            "change",
-            applyMonitoringFilters
-        );
-
-    }
-
-
-    if (myProjects) {
-
-        myProjects.addEventListener(
-            "change",
-            applyMonitoringFilters
-        );
-
-    }
-
-}
 /* =========================================================
    START
 ========================================================= */
@@ -4725,3 +5897,4 @@ if (
     initializePDS();
 
 }
+```
