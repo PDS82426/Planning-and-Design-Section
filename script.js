@@ -3332,17 +3332,15 @@ function setupSignOut() {
 
             const button =
                 event.target.closest(
-                    '[data-action="signout"], #signOutButton'
+                    '#logoutButton, [data-action="signout"], #signOutButton'
                 );
-
 
             if (!button) {
                 return;
             }
 
-
             event.preventDefault();
-
+            event.stopPropagation();
 
             signOut();
 
