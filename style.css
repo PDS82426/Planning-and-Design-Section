@@ -1636,4 +1636,32 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
     }
 
 }
+/* =========================================================
+   AUTH / MAIN APP VISIBILITY
+========================================================= */
+
+#authScreen {
+    display: flex;
+}
+
+#authScreen.hidden {
+    display: none !important;
+}
+
+#app {
+    display: none;
+}
+
+#app.active {
+    display: flex;
+}
+
+/* Never allow the main sidebar/app to appear over Sign In */
+body.auth-active #app {
+    display: none !important;
+}
+
+body.app-active #authScreen {
+    display: none !important;
+}
 ```
