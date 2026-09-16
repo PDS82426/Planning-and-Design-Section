@@ -838,6 +838,7 @@
 
     <div class="page">
 
+        <!-- PAGE HEADER -->
         <div class="page-title">
 
             <div>
@@ -851,7 +852,7 @@
                 </h1>
 
                 <p>
-                    Project implementation monitoring and status tracking
+                    Project implementation, program and plan monitoring
                 </p>
 
             </div>
@@ -859,13 +860,128 @@
         </div>
 
 
-        <!-- MONITORING TOOLBAR -->
+        <!-- =================================================
+             MONITORING SUMMARY
+        ================================================== -->
+
+        <div class="stats-grid monitoring-stats">
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    MY PROJECTS
+                </div>
+
+                <div
+                    class="stat-number"
+                    id="monitoringTotal"
+                >
+                    0
+                </div>
+
+                <div class="stat-change">
+                    ASSIGNED PROJECTS
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    PROGRAM
+                </div>
+
+                <div
+                    class="stat-number"
+                    id="monitoringProgramAverage"
+                >
+                    0%
+                </div>
+
+                <div class="stat-change">
+                    AVERAGE PROGRAM COMPLETION
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    PLAN
+                </div>
+
+                <div
+                    class="stat-number"
+                    id="monitoringPlanAverage"
+                >
+                    0%
+                </div>
+
+                <div class="stat-change">
+                    AVERAGE PLAN COMPLETION
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    IN PROGRESS
+                </div>
+
+                <div
+                    class="stat-number"
+                    id="monitoringInProgress"
+                >
+                    0
+                </div>
+
+                <div class="stat-change">
+                    ACTIVE PROJECTS
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             MONITORING CONTROLS
+        ================================================== -->
+
+        <div
+            class="section-heading"
+            style="margin-top:22px;"
+        >
+
+            <div>
+
+                <h2>
+                    Project Monitoring
+                </h2>
+
+                <p>
+                    Monitor assigned projects and track program and
+                    detailed plan requirements.
+                </p>
+
+            </div>
+
+        </div>
+
 
         <div class="monitoring-toolbar">
 
+            <!-- SEARCH -->
+
             <div class="monitoring-search">
 
-                <span>⌕</span>
+                <span>
+                    ⌕
+                </span>
 
                 <input
                     type="search"
@@ -877,36 +993,48 @@
             </div>
 
 
-            <select id="monitoringStatusFilter">
+            <!-- STATUS -->
+
+            <select
+                id="monitoringStatusFilter"
+                aria-label="Filter by project status"
+            >
 
                 <option value="all">
                     All Status
                 </option>
 
-                <option value="ON-GOING">
-                    ON-GOING
+                <option value="In Progress">
+                    In Progress
                 </option>
 
-                <option value="COMPLETED">
-                    COMPLETED
+                <option value="Completed">
+                    Completed
                 </option>
 
-                <option value="FOR BIDDING">
-                    FOR BIDDING
+                <option value="For Completion">
+                    For Completion
                 </option>
 
-                <option value="ON HOLD">
-                    ON HOLD
+                <option value="For Signature">
+                    For Signature
+                </option>
+
+                <option value="On Hold">
+                    On Hold
                 </option>
 
             </select>
 
+
+            <!-- MY PROJECTS -->
 
             <label class="monitoring-check">
 
                 <input
                     type="checkbox"
                     id="myProjectsFilter"
+                    checked
                 >
 
                 <span>
@@ -915,273 +1043,77 @@
 
             </label>
 
+
+            <!-- REFRESH -->
+
+            <button
+                type="button"
+                class="button secondary"
+                id="monitoringRefreshButton"
+            >
+                ↻ REFRESH
+            </button>
+
         </div>
 
 
-        <!-- MONITORING TABLE -->
+        <!-- =================================================
+             MONITORING TABLE
+        ================================================== -->
 
         <div class="monitoring-panel">
 
+            <!-- TABLE HEADER -->
+
             <div class="monitoring-table-header">
 
-                <div>PROJECT NO.</div>
+                <div>
+                    PROJECT NO.
+                </div>
 
-                <div>PROJECT</div>
+                <div>
+                    PROJECT
+                </div>
 
-                <div>PROGRESS</div>
+                <div>
+                    PROGRAM
+                </div>
 
-                <div>STATUS</div>
+                <div>
+                    PLAN
+                </div>
 
-                <div>ACTION</div>
+                <div>
+                    OVERALL STATUS
+                </div>
+
+                <div>
+                    ACTION
+                </div>
 
             </div>
 
+
+            <!-- DYNAMIC PROJECT LIST -->
 
             <div
                 id="monitoringList"
                 class="monitoring-list"
             >
 
-                <!-- SAMPLE DATA -->
-
-                <div class="monitoring-row">
-
-                    <div
-                        class="monitoring-project-no"
-                        data-label="PROJECT NO."
-                    >
-                        25AB0001
-                    </div>
-
-
-                    <div
-                        class="monitoring-project-name"
-                        data-label="PROJECT"
-                    >
-                        <strong>
-                            Construction of Multi-Purpose Building
-                        </strong>
-
-                        <span>
-                            Padre Garcia, Batangas
-                        </span>
-                    </div>
-
-
-                    <div
-                        class="monitoring-progress"
-                        data-label="PROGRESS"
-                    >
-
-                        <div class="progress-value">
-                            72%
-                        </div>
-
-                        <div class="progress-track">
-
-                            <div
-                                class="progress-fill"
-                                style="width:72%;"
-                            ></div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div data-label="STATUS">
-
-                        <span class="monitoring-status ongoing">
-                            ON-GOING
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="monitoring-actions"
-                        data-label="ACTION"
-                    >
-
-                        <button
-                            type="button"
-                            class="monitoring-view"
-                            data-monitoring-action="view"
-                            data-project-id="25AB0001"
-                        >
-                            VIEW
-                        </button>
-
-                        <button
-                            type="button"
-                            class="monitoring-edit"
-                            data-monitoring-action="edit"
-                            data-project-id="25AB0001"
-                        >
-                            EDIT
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <div class="monitoring-row">
-
-                    <div
-                        class="monitoring-project-no"
-                        data-label="PROJECT NO."
-                    >
-                        25AB0002
-                    </div>
-
-
-                    <div
-                        class="monitoring-project-name"
-                        data-label="PROJECT"
-                    >
-                        <strong>
-                            Construction of Road and Drainage
-                        </strong>
-
-                        <span>
-                            Rosario, Batangas
-                        </span>
-                    </div>
-
-
-                    <div
-                        class="monitoring-progress"
-                        data-label="PROGRESS"
-                    >
-
-                        <div class="progress-value">
-                            45%
-                        </div>
-
-                        <div class="progress-track">
-
-                            <div
-                                class="progress-fill"
-                                style="width:45%;"
-                            ></div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div data-label="STATUS">
-
-                        <span class="monitoring-status ongoing">
-                            ON-GOING
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="monitoring-actions"
-                        data-label="ACTION"
-                    >
-
-                        <button
-                            type="button"
-                            class="monitoring-view"
-                            data-monitoring-action="view"
-                            data-project-id="25AB0002"
-                        >
-                            VIEW
-                        </button>
-
-                        <button
-                            type="button"
-                            class="monitoring-edit"
-                            data-monitoring-action="edit"
-                            data-project-id="25AB0002"
-                        >
-                            EDIT
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <div class="monitoring-row">
-
-                    <div
-                        class="monitoring-project-no"
-                        data-label="PROJECT NO."
-                    >
-                        25AB0003
-                    </div>
-
-
-                    <div
-                        class="monitoring-project-name"
-                        data-label="PROJECT"
-                    >
-                        <strong>
-                            Improvement of Barangay Access Road
-                        </strong>
-
-                        <span>
-                            San Jose, Batangas
-                        </span>
-                    </div>
-
-
-                    <div
-                        class="monitoring-progress"
-                        data-label="PROGRESS"
-                    >
-
-                        <div class="progress-value">
-                            100%
-                        </div>
-
-                        <div class="progress-track">
-
-                            <div
-                                class="progress-fill completed"
-                                style="width:100%;"
-                            ></div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div data-label="STATUS">
-
-                        <span class="monitoring-status completed">
-                            COMPLETED
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="monitoring-actions"
-                        data-label="ACTION"
-                    >
-
-                        <button
-                            type="button"
-                            class="monitoring-view"
-                            data-monitoring-action="view"
-                            data-project-id="25AB0003"
-                        >
-                            VIEW
-                        </button>
-
-                    </div>
+                <div
+                    id="monitoringLoading"
+                    class="monitoring-loading"
+                >
+
+                    Loading project monitoring data...
 
                 </div>
 
             </div>
 
+
+            <!-- EMPTY STATE -->
 
             <div
                 id="monitoringEmpty"
@@ -1200,6 +1132,7 @@
             </div>
 
         </div>
+
 
     </div>
 
