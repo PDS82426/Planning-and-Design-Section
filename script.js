@@ -705,44 +705,208 @@ async function signOutUser() {
 
 
 /* =========================================================
-   AUTH FORM INITIALIZATION
+   AUTH FORM INITIALIZATION — FINAL FIX
 ========================================================= */
 
 function initializeAuthForms() {
 
     if (authFormsReady) {
+        console.log(
+            "PDS Auth: Forms already initialized."
+        );
         return;
     }
 
+    console.log(
+        "PDS Auth: Initializing Sign In form..."
+    );
+
+
+    /*
+     * SIGN IN FORM
+     */
 
     const signInForm =
-        $("signInForm");
+        document.getElementById(
+            "signInForm"
+        );
 
 
-    const emailInput =
-        $("email") ||
-        $("loginEmail") ||
-        $("signInEmail");
+    /*
+     * SIGN IN BUTTON
+     */
+
+    const signInButton =
+        document.getElementById(
+            "signInButton"
+        ) ||
+        document.getElementById(
+            "loginButton"
+        ) ||
+        document.getElementById(
+            "signInBtn"
+        );
 
 
-    const passwordInput =
-        $("password") ||
-        $("loginPassword") ||
-        $("signInPassword");
-
+    /*
+     * FORM SUBMIT
+     */
 
     if (signInForm) {
 
         signInForm.addEventListener(
             "submit",
-            async event => {
+            async function (event) {
 
                 event.preventDefault();
+                event.stopPropagation();
+
+                console.log(
+                    "PDS Auth: Sign In form submitted."
+                );
+
+
+                const emailInput =
+                    document.getElementById(
+                        "email"
+                    ) ||
+                    document.getElementById(
+                        "loginEmail"
+                    ) ||
+                    document.getElementById(
+                        "signInEmail"
+                    );
+
+
+                const passwordInput =
+                    document.getElementById(
+                        "password"
+                    ) ||
+                    document.getElementById(
+                        "loginPassword"
+                    ) ||
+                    document.getElementById(
+                        "signInPassword"
+                    );
 
 
                 const email =
-                    emailInput?.value?.trim() ||
+                    emailInput?.value
+                        ?.trim() ||
                     "";
+
+
+                const password =
+                    passwordInput?.value ||
+                    "";
+
+
+                console.log(
+                    "PDS Auth: Email entered:",
+                    email
+                );
+
+
+                if (!email) {
+
+                    showMessage(
+                        "Please enter your email.",
+                        "warning"
+                    );
+
+                    emailInput?.focus();
+
+                    return;
+                }
+
+
+                if (!password) {
+
+                    showMessage(
+                        "Please enter your password.",
+                        "warning"
+                    );
+
+                    passwordInput?.focus();
+
+                    return;
+                }
+
+
+                await signInUser(
+                    email,
+                    password
+                );
+
+            }
+        );
+
+
+        console.log(
+            "PDS Auth: Sign In form listener attached."
+        );
+
+    } else {
+
+        console.warn(
+            "PDS Auth: #signInForm was not found."
+        );
+    }
+
+
+    /*
+     * FALLBACK SIGN IN BUTTON
+     *
+     * This is used if the HTML does not have
+     * a form submit event.
+     */
+
+    if (
+        !signInForm &&
+        signInButton
+    ) {
+
+        signInButton.addEventListener(
+            "click",
+            async function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                console.log(
+                    "PDS Auth: Sign In button clicked."
+                );
+
+
+                const emailInput =
+                    document.getElementById(
+                        "email"
+                    ) ||
+                    document.getElementById(
+                        "loginEmail"
+                    ) ||
+                    document.getElementById(
+                        "signInEmail"
+                    );
+
+
+                const passwordInput =
+                    document.getElementById(
+                        "password"
+                    ) ||
+                    document.getElementById(
+                        "loginPassword"
+                    ) ||
+                    document.getElementById(
+                        "signInPassword"
+                    );
+
+
+                const email =
+                    emailInput?.value
+                        ?.trim() ||
+                    "";
+
 
                 const password =
                     passwordInput?.value ||
@@ -753,44 +917,20 @@ function initializeAuthForms() {
                     email,
                     password
                 );
+
             }
         );
 
-    } else {
 
-        const signInButton =
-            $("signInButton") ||
-            $("loginButton") ||
-            $("signInBtn");
-
-
-        if (signInButton) {
-
-            signInButton.addEventListener(
-                "click",
-                async event => {
-
-                    event.preventDefault();
-
-
-                    const email =
-                        emailInput?.value?.trim() ||
-                        "";
-
-                    const password =
-                        passwordInput?.value ||
-                        "";
-
-
-                    await signInUser(
-                        email,
-                        password
-                    );
-                }
-            );
-        }
+        console.log(
+            "PDS Auth: Sign In button listener attached."
+        );
     }
 
+
+    /*
+     * SIGN OUT BUTTONS
+     */
 
     const signOutButtons =
         document.querySelectorAll(
@@ -801,24 +941,42 @@ function initializeAuthForms() {
     signOutButtons.forEach(
         button => {
 
+            if (
+                button.dataset.authBound ===
+                "true"
+            ) {
+                return;
+            }
+
+
+            button.dataset.authBound =
+                "true";
+
+
             button.addEventListener(
                 "click",
-                async event => {
+                async function (event) {
 
                     event.preventDefault();
+                    event.stopPropagation();
 
                     await signOutUser();
 
                 }
             );
+
         }
     );
 
 
-    authFormsReady = true;
+    authFormsReady =
+        true;
+
+
+    console.log(
+        "PDS Auth: Authentication forms ready."
+    );
 }
-
-
 /* =========================================================
    AUTH STATE LISTENER
 ========================================================= */
@@ -13470,3 +13628,212 @@ window.initializeAuthListener =
 
 window.startPDSApplication =
     startPDSApplication;
+/* =========================================================
+   PDS AUTH STARTUP — FINAL
+========================================================= */
+
+async function startPDSAuthentication() {
+
+    console.log(
+        "PDS Auth: Starting authentication..."
+    );
+
+
+    /*
+     * WAIT FOR SUPABASE LIBRARY
+     */
+
+    const ready =
+        await waitForSupabase();
+
+
+    if (!ready) {
+
+        console.error(
+            "PDS Auth: Supabase library not available."
+        );
+
+
+        showMessage(
+            "Supabase could not be loaded. Please refresh the page.",
+            "error"
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * INITIALIZE SUPABASE
+     */
+
+    const initializedSupabase =
+        initializeSupabase();
+
+
+    if (!initializedSupabase) {
+
+        console.error(
+            "PDS Auth: Supabase initialization failed."
+        );
+
+
+        showMessage(
+            "Supabase authentication could not be initialized.",
+            "error"
+        );
+
+
+        return;
+    }
+
+
+    console.log(
+        "PDS Auth: Supabase initialized."
+    );
+
+
+    /*
+     * AUTH STATE LISTENER
+     */
+
+    initializeAuthListener();
+
+
+    /*
+     * SIGN IN / SIGN OUT EVENTS
+     */
+
+    initializeAuthForms();
+
+
+    /*
+     * CHECK CURRENT SESSION
+     */
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await db.auth.getSession();
+
+
+        if (error) {
+
+            console.error(
+                "PDS Auth: Session check failed:",
+                error
+            );
+
+
+            updateAuthenticatedUI();
+
+            return;
+        }
+
+
+        const session =
+            data?.session ||
+            null;
+
+
+        if (
+            session?.user
+        ) {
+
+            currentUser =
+                session.user;
+
+
+            console.log(
+                "PDS Auth: Existing session:",
+                currentUser.email
+            );
+
+
+            await loadCurrentProfile(
+                currentUser.id
+            );
+
+
+            updateAuthenticatedUI();
+
+
+        } else {
+
+            currentUser =
+                null;
+
+            currentProfile =
+                null;
+
+
+            console.log(
+                "PDS Auth: No active session."
+            );
+
+
+            updateAuthenticatedUI();
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS Auth: Session initialization error:",
+            error
+        );
+
+
+        updateAuthenticatedUI();
+    }
+
+
+    console.log(
+        "PDS Auth: Authentication startup complete."
+    );
+}
+
+
+/* =========================================================
+   START AUTH AFTER DOM IS READY
+========================================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            startPDSAuthentication();
+
+        },
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    startPDSAuthentication();
+}
+
+
+/* =========================================================
+   GLOBAL AUTH CONTROLS
+========================================================= */
+
+window.startPDSAuthentication =
+    startPDSAuthentication;
+
+window.signInUser =
+    signInUser;
+
+window.signOutUser =
+    signOutUser;
