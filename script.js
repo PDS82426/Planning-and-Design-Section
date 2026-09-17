@@ -7416,3 +7416,162 @@ window.signInUser =
 
 window.signOutUser =
     signOutUser;
+/* =========================================================
+   FINAL PDS AUTH STARTUP
+========================================================= */
+
+(function startPDSAuthSystem() {
+
+    console.log("PDS AUTH: STARTING...");
+
+    async function bootAuth() {
+
+        try {
+
+            /* WAIT FOR SUPABASE */
+            const loaded =
+                await waitForSupabase();
+
+            if (!loaded) {
+                console.error(
+                    "PDS AUTH: Supabase library NOT loaded."
+                );
+
+                return;
+            }
+
+
+            /* CREATE SUPABASE CLIENT */
+            const ready =
+                initializeSupabase();
+
+            if (!ready || !db) {
+
+                console.error(
+                    "PDS AUTH: Supabase client NOT initialized."
+                );
+
+                return;
+            }
+
+
+            console.log(
+                "PDS AUTH: Supabase client ready."
+            );
+
+
+            /* AUTH STATE LISTENER */
+            initializeAuthListener();
+
+
+            /* SIGN IN / SIGN OUT BUTTONS */
+            initializeAuthForms();
+
+
+            /* CHECK CURRENT SESSION */
+            const {
+                data,
+                error
+            } =
+                await db.auth.getSession();
+
+
+            if (error) {
+
+                console.error(
+                    "PDS AUTH: Session error:",
+                    error
+                );
+
+                currentUser = null;
+                currentProfile = null;
+
+                updateAuthenticatedUI();
+
+                return;
+            }
+
+
+            currentUser =
+                data?.session?.user || null;
+
+
+            if (currentUser) {
+
+                console.log(
+                    "PDS AUTH: Session found:",
+                    currentUser.email
+                );
+
+
+                await loadCurrentProfile(
+                    currentUser.id
+                );
+
+
+            } else {
+
+                console.log(
+                    "PDS AUTH: No session."
+                );
+
+                currentProfile = null;
+
+            }
+
+
+            /* SHOW CORRECT SCREEN */
+            updateAuthenticatedUI();
+
+
+            console.log(
+                "PDS AUTH: READY."
+            );
+
+        } catch (error) {
+
+            console.error(
+                "PDS AUTH: BOOT ERROR:",
+                error
+            );
+
+            currentUser = null;
+            currentProfile = null;
+
+            try {
+                updateAuthenticatedUI();
+            } catch {}
+
+        }
+
+    }
+
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            bootAuth,
+            {
+                once: true
+            }
+        );
+
+    } else {
+
+        bootAuth();
+
+    }
+
+
+    /* GLOBAL TEST FUNCTIONS */
+    window.PDS_SIGN_IN =
+        signInUser;
+
+    window.PDS_SIGN_OUT =
+        signOutUser;
+
+})();
