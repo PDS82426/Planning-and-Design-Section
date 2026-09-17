@@ -13275,3 +13275,198 @@ console.log(
 
 
 })();
+/* =========================================================
+   PDS AUTHENTICATION STARTUP
+   FIX FOR SIGN IN NOT WORKING
+========================================================= */
+
+async function startPDSApplication() {
+
+    console.log(
+        "PDS: Starting application..."
+    );
+
+
+    if (initialized) {
+
+        console.log(
+            "PDS: Application already initialized."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Wait for the Supabase CDN to become available.
+     */
+
+    const supabaseReady =
+        await waitForSupabase();
+
+
+    if (!supabaseReady) {
+
+        console.error(
+            "PDS: Supabase library did not load."
+        );
+
+
+        showMessage(
+            "Unable to load the authentication service. Please refresh the page.",
+            "error"
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * Create the Supabase client.
+     */
+
+    const supabaseInitialized =
+        initializeSupabase();
+
+
+    if (!supabaseInitialized) {
+
+        console.error(
+            "PDS: Supabase initialization failed."
+        );
+
+
+        showMessage(
+            "Supabase authentication could not be initialized.",
+            "error"
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * IMPORTANT:
+     * Register the authentication listener BEFORE
+     * checking the existing session.
+     */
+
+    initializeAuthListener();
+
+
+    /*
+     * Connect the Sign In and Sign Out controls.
+     */
+
+    initializeAuthForms();
+
+
+    initialized =
+        true;
+
+
+    console.log(
+        "PDS: Authentication initialized successfully."
+    );
+
+
+    /*
+     * Check whether the user already has a session.
+     */
+
+    const session =
+        await getCurrentSession();
+
+
+    if (
+        session?.user
+    ) {
+
+        currentUser =
+            session.user;
+
+
+        await loadCurrentProfile(
+            currentUser.id
+        );
+
+
+        updateAuthenticatedUI();
+
+
+        console.log(
+            "PDS: Existing session restored:",
+            currentUser.email
+        );
+
+    } else {
+
+        currentUser =
+            null;
+
+
+        currentProfile =
+            null;
+
+
+        updateAuthenticatedUI();
+
+
+        console.log(
+            "PDS: No active session. Showing Sign In page."
+        );
+    }
+}
+
+
+/* =========================================================
+   START APPLICATION AFTER DOM IS READY
+========================================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+
+            startPDSApplication();
+
+        },
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    startPDSApplication();
+}
+
+
+/* =========================================================
+   GLOBAL AUTH FUNCTIONS
+========================================================= */
+
+window.signInUser =
+    signInUser;
+
+
+window.signOutUser =
+    signOutUser;
+
+
+window.initializeAuthForms =
+    initializeAuthForms;
+
+
+window.initializeAuthListener =
+    initializeAuthListener;
+
+
+window.startPDSApplication =
+    startPDSApplication;
