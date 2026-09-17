@@ -10,7 +10,9 @@
    PROJECT MONITORING
    PDS AI
 
-   AUTHENTICATION-STABLE VERSION
+   ONEDRIVE EXCEL INTEGRATION
+   SOURCE: trial for website.xlsx
+   SHEET: OVERALL
 ========================================================= */
 
 
@@ -26,6 +28,48 @@ const SUPABASE_ANON_KEY =
 
 
 /* =========================================================
+   MICROSOFT / ONEDRIVE CONFIGURATION
+========================================================= */
+
+const MICROSOFT_CLIENT_ID =
+    "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE";
+
+const MICROSOFT_AUTHORITY =
+    "https://login.microsoftonline.com/consumers/";
+
+const MICROSOFT_SCOPES = [
+    "User.Read",
+    "Files.ReadWrite"
+];
+
+const ONEDRIVE_FILE_NAME =
+    "trial for website.xlsx";
+
+const ONEDRIVE_SHEET_NAME =
+    "OVERALL";
+
+const ONEDRIVE_GRAPH_ROOT =
+    "https://graph.microsoft.com/v1.0";
+
+
+let msalInstance = null;
+
+let microsoftAccount = null;
+
+let oneDriveReady = false;
+
+let oneDriveAccessToken = null;
+
+let oneDriveWorkbookRows = [];
+
+let oneDriveHeaders = [];
+
+let oneDriveWorkbookSessionId = null;
+
+let oneDriveScriptLoading = null;
+
+
+/* =========================================================
    SUPABASE CLIENT
 ========================================================= */
 
@@ -37,6 +81,7 @@ let db = null;
 ========================================================= */
 
 let currentUser = null;
+
 let currentProfile = null;
 
 let pdsAIHistory = [];
@@ -46,10 +91,15 @@ let cachedDocuments = [];
 let cachedMonitoringProjects = [];
 
 let navigationReady = false;
+
 let authFormsReady = false;
+
 let documentSearchReady = false;
+
 let aiReady = false;
+
 let monitoringFiltersReady = false;
+
 let initialized = false;
 
 let authStateSubscription = null;
@@ -60,7 +110,9 @@ let authStateSubscription = null;
 ========================================================= */
 
 function $(id) {
+
     return document.getElementById(id);
+
 }
 
 
@@ -68,23 +120,41 @@ function $(id) {
    WAIT FOR SUPABASE
 ========================================================= */
 
-async function waitForSupabase(maxAttempts = 50) {
+async function waitForSupabase(
+    maxAttempts = 50
+) {
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    for (
+        let attempt = 0;
+        attempt < maxAttempts;
+        attempt++
+    ) {
 
         if (
             window.supabase &&
-            typeof window.supabase.createClient === "function"
+            typeof window.supabase.createClient ===
+                "function"
         ) {
+
             return true;
+
         }
 
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
+        await new Promise(
+            resolve => {
+
+                setTimeout(
+                    resolve,
+                    100
+                );
+
+            }
+        );
+
     }
 
     return false;
+
 }
 
 
@@ -96,7 +166,8 @@ function initializeSupabase() {
 
     if (
         !window.supabase ||
-        typeof window.supabase.createClient !== "function"
+        typeof window.supabase.createClient !==
+            "function"
     ) {
 
         console.error(
@@ -104,6 +175,7 @@ function initializeSupabase() {
         );
 
         return false;
+
     }
 
 
@@ -114,6 +186,7 @@ function initializeSupabase() {
         );
 
         return false;
+
     }
 
 
@@ -124,29 +197,33 @@ function initializeSupabase() {
         );
 
         return false;
+
     }
 
 
     try {
 
-        db = window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_ANON_KEY,
-            {
-                auth: {
+        db =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY,
+                {
 
-                    persistSession: true,
+                    auth: {
 
-                    autoRefreshToken: true,
+                        persistSession: true,
 
-                    detectSessionInUrl: true,
+                        autoRefreshToken: true,
 
-                    storageKey:
-                        "pds-supabase-auth"
+                        detectSessionInUrl: true,
+
+                        storageKey:
+                            "pds-supabase-auth"
+
+                    }
 
                 }
-            }
-        );
+            );
 
 
         console.log(
@@ -200,18 +277,11 @@ function showLogin() {
     );
 
 
-    /*
-     * FORCE MAIN APPLICATION OFF
-     */
-
     if (app) {
 
-        app.classList.remove(
-            "active"
+        app.classList.add(
+            "hidden"
         );
-
-        app.style.display =
-            "none";
 
         app.setAttribute(
             "aria-hidden",
@@ -221,18 +291,11 @@ function showLogin() {
     }
 
 
-    /*
-     * SHOW AUTH SCREEN
-     */
-
     if (authScreen) {
 
         authScreen.classList.remove(
             "hidden"
         );
-
-        authScreen.style.display =
-            "flex";
 
         authScreen.setAttribute(
             "aria-hidden",
@@ -242,26 +305,41 @@ function showLogin() {
     }
 
 
-    /*
-     * ALWAYS RETURN TO TOP
-     */
+    document.body.style.overflow =
+        "hidden";
 
-    window.scrollTo(
-        0,
-        0
-    );
+
+    const loginEmail =
+        $("loginEmail");
+
+    if (loginEmail) {
+
+        setTimeout(
+            () => {
+
+                try {
+
+                    loginEmail.focus();
+
+                } catch (_) {}
+
+            },
+            100
+        );
+
+    }
 
 }
 
 
 /* =========================================================
-   HIDE LOGIN / SHOW APPLICATION
+   HIDE AUTH SCREEN
 ========================================================= */
 
 function hideLogin() {
 
     console.log(
-        "PDS: Showing main application."
+        "PDS: Hiding Sign In screen."
     );
 
 
@@ -281,18 +359,11 @@ function hideLogin() {
     );
 
 
-    /*
-     * HIDE AUTH SCREEN
-     */
-
     if (authScreen) {
 
         authScreen.classList.add(
             "hidden"
         );
-
-        authScreen.style.display =
-            "none";
 
         authScreen.setAttribute(
             "aria-hidden",
@@ -302,18 +373,11 @@ function hideLogin() {
     }
 
 
-    /*
-     * SHOW APPLICATION
-     */
-
     if (app) {
 
-        app.classList.add(
-            "active"
+        app.classList.remove(
+            "hidden"
         );
-
-        app.style.display =
-            "flex";
 
         app.setAttribute(
             "aria-hidden",
@@ -323,10 +387,8 @@ function hideLogin() {
     }
 
 
-    window.scrollTo(
-        0,
-        0
-    );
+    document.body.style.overflow =
+        "";
 
 }
 
@@ -337,23 +399,18 @@ function hideLogin() {
 
 function authMessage(
     message,
-    type = "error"
+    type = "info"
 ) {
 
     const element =
-        $("loginMessage");
-
+        $("authMessage");
 
     if (!element) {
 
-        if (message) {
-
-            console.log(
-                "PDS Auth:",
-                message
-            );
-
-        }
+        console.log(
+            `PDS Auth [${type}]:`,
+            message
+        );
 
         return;
 
@@ -361,442 +418,26 @@ function authMessage(
 
 
     element.textContent =
-        message || "";
+        message;
 
 
     element.className =
-        `auth-message ${type}`.trim();
-
-}
+        "auth-message";
 
 
-/* =========================================================
-   CLEAR AUTH MESSAGE
-========================================================= */
+    if (type) {
 
-function clearAuthMessage() {
-
-    authMessage(
-        "",
-        ""
-    );
-
-}
-
-
-/* =========================================================
-   AUTH ERROR FORMATTER
-========================================================= */
-
-function getAuthErrorMessage(
-    error
-) {
-
-    if (!error) {
-
-        return "Unable to sign in.";
-
-    }
-
-
-    const raw =
-        String(
-            error.message ||
-            error.error_description ||
-            error.msg ||
-            error
-        );
-
-
-    const message =
-        raw.toLowerCase();
-
-
-    if (
-        message.includes(
-            "invalid login credentials"
-        )
-    ) {
-
-        return (
-            "Incorrect email or password."
+        element.classList.add(
+            `is-${type}`
         );
 
     }
 
 
-    if (
-        message.includes(
-            "email not confirmed"
-        )
-    ) {
-
-        return (
-            "Your email address has not been confirmed."
-        );
-
-    }
-
-
-    if (
-        message.includes(
-            "invalid api key"
-        )
-    ) {
-
-        return (
-            "Invalid Supabase Publishable key. Check the API key in script.js."
-        );
-
-    }
-
-
-    if (
-        message.includes(
-            "failed to fetch"
-        ) ||
-        message.includes(
-            "network"
-        )
-    ) {
-
-        return (
-            "Unable to connect to Supabase. Please check your internet connection."
-        );
-
-    }
-
-
-    if (
-        message.includes(
-            "too many requests"
-        )
-    ) {
-
-        return (
-            "Too many login attempts. Please wait a moment and try again."
-        );
-
-    }
-
-
-    return raw ||
-        "Unable to sign in. Please try again.";
-
-}
-
-
-/* =========================================================
-   CREATE PROFILE
-========================================================= */
-
-async function createProfile(
-    user,
-    fullName = ""
-) {
-
-    if (
-        !user ||
-        !db
-    ) {
-
-        return null;
-
-    }
-
-
-    const profile = {
-
-        id:
-            user.id,
-
-        email:
-            user.email || "",
-
-        full_name:
-            fullName ||
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split("@")[0] ||
-            "PDS User"
-
-    };
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("profiles")
-                .upsert(
-                    profile,
-                    {
-                        onConflict: "id"
-                    }
-                )
-                .select()
-                .maybeSingle();
-
-
-        if (error) {
-
-            console.warn(
-                "PDS: Profile creation warning:",
-                error
-            );
-
-            currentProfile =
-                profile;
-
-            return profile;
-
-        }
-
-
-        currentProfile =
-            data ||
-            profile;
-
-
-        return currentProfile;
-
-
-    } catch (error) {
-
-        console.warn(
-            "PDS: Profile creation failed:",
-            error
-        );
-
-
-        currentProfile =
-            profile;
-
-
-        return profile;
-
-    }
-
-}
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-async function loginUser(
-    email,
-    password
-) {
-
-    if (!db) {
-
-        authMessage(
-            "Supabase is not initialized. Please refresh the page.",
-            "error"
-        );
-
-        return {
-            success: false
-        };
-
-    }
-
-
-    const cleanEmail =
-        String(
-            email || ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    if (
-        !cleanEmail ||
-        !password
-    ) {
-
-        authMessage(
-            "Please enter your email and password.",
-            "error"
-        );
-
-        return {
-            success: false
-        };
-
-    }
-
-
-    try {
-
-        clearAuthMessage();
-
-
-        authMessage(
-            "Signing in...",
-            "loading"
-        );
-
-
-        console.log(
-            "PDS: Attempting sign in:",
-            cleanEmail
-        );
-
-
-        const {
-            data,
-            error
-        } =
-            await db.auth.signInWithPassword({
-
-                email:
-                    cleanEmail,
-
-                password:
-                    password
-
-            });
-
-
-        if (error) {
-
-            console.error(
-                "PDS: Supabase login error:",
-                error
-            );
-
-            throw error;
-
-        }
-
-
-        if (
-            !data ||
-            !data.user
-        ) {
-
-            throw new Error(
-                "Supabase did not return a user account."
-            );
-
-        }
-
-
-        /*
-         * SAVE USER
-         */
-
-        currentUser =
-            data.user;
-
-
-        console.log(
-            "PDS: Sign in successful:",
-            currentUser.email
-        );
-
-
-        /*
-         * SWITCH SCREEN
-         */
-
-        hideLogin();
-
-
-        /*
-         * LOAD PROFILE
-         */
-
-        await loadUserProfile();
-
-
-        /*
-         * UPDATE UI
-         */
-
-        updateUserInterface();
-
-
-        /*
-         * SHOW DASHBOARD
-         */
-
-        showPage(
-            "dashboard"
-        );
-
-
-        /*
-         * LOAD DATA
-         */
-
-        await Promise.allSettled([
-
-            loadProjects(),
-
-            loadDocuments(),
-
-            loadDepartmentOrders()
-
-        ]);
-
-
-        clearAuthMessage();
-
-
-        return {
-
-            success: true,
-
-            data: data
-
-        };
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Login failed:",
-            error
-        );
-
-
-        /*
-         * MAKE SURE APP DOES NOT REMAIN VISIBLE
-         */
-
-        currentUser =
-            null;
-
-        currentProfile =
-            null;
-
-
-        showLogin();
-
-
-        authMessage(
-            getAuthErrorMessage(
-                error
-            ),
-            "error"
-        );
-
-
-        return {
-
-            success: false,
-
-            error: error
-
-        };
-
-    }
+    element.style.display =
+        message
+            ? "block"
+            : "none";
 
 }
 
@@ -807,473 +448,205 @@ async function loginUser(
 
 function clearUserState() {
 
-    currentUser =
-        null;
+    currentUser = null;
 
-    currentProfile =
-        null;
+    currentProfile = null;
 
-    cachedDocuments =
-        [];
+    microsoftAccount = null;
 
-    cachedMonitoringProjects =
-        [];
+    oneDriveReady = false;
 
-    pdsAIHistory =
-        [];
+    oneDriveAccessToken = null;
 
+    oneDriveWorkbookRows = [];
 
-    /*
-     * Clear application-only UI
-     */
+    oneDriveHeaders = [];
 
-    const aiResponse =
-        $("aiResponse");
+    oneDriveWorkbookSessionId = null;
 
-    if (aiResponse) {
+    cachedMonitoringProjects = [];
 
-        aiResponse.innerHTML =
-            "";
-
-    }
-
-
-    /*
-     * Clear login password
-     */
-
-    const password =
-        $("loginPassword");
-
-    if (password) {
-
-        password.value =
-            "";
-
-    }
-
-
-    /*
-     * Reset user interface
-     */
-
-    updateUserInterface();
+    pdsAIHistory = [];
 
 }
 
 
 /* =========================================================
-   SIGN OUT
+   LOAD MICROSOFT MSAL BROWSER
 ========================================================= */
 
-async function signOut() {
+async function loadMicrosoftMSAL() {
 
-    console.log(
-        "PDS: Sign Out requested."
-    );
+    if (
+        window.msal &&
+        window.msal.PublicClientApplication
+    ) {
 
-
-    /*
-     * Immediately clear application state.
-     */
-
-    clearUserState();
-
-
-    /*
-     * Hide application immediately.
-     */
-
-    showLogin();
-
-
-    authMessage(
-        "Signing out...",
-        "loading"
-    );
-
-
-    try {
-
-        if (db) {
-
-            const {
-                error
-            } =
-                await db.auth.signOut({
-                    scope: "local"
-                });
-
-
-            if (error) {
-
-                console.warn(
-                    "PDS: Supabase sign out warning:",
-                    error
-                );
-
-            }
-
-        }
-
-    } catch (error) {
-
-        console.warn(
-            "PDS: Sign out exception:",
-            error
-        );
+        return window.msal;
 
     }
 
 
-    /*
-     * Remove our custom auth storage.
-     */
+    if (
+        oneDriveScriptLoading
+    ) {
 
-    try {
-
-        localStorage.removeItem(
-            "pds-supabase-auth"
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "PDS: Unable to remove auth storage:",
-            error
-        );
+        return oneDriveScriptLoading;
 
     }
 
 
-    /*
-     * Remove possible Supabase auth entries
-     * belonging to this project.
-     */
+    oneDriveScriptLoading =
+        new Promise(
+            (resolve, reject) => {
 
-    try {
-
-        const keysToRemove = [];
-
-
-        for (
-            let index = 0;
-            index < localStorage.length;
-            index++
-        ) {
-
-            const key =
-                localStorage.key(
-                    index
-                );
-
-
-            if (
-                key &&
-                (
-                    key ===
-                        "pds-supabase-auth" ||
-                    key.startsWith(
-                        "sb-"
-                    )
-                )
-            ) {
-
-                keysToRemove.push(
-                    key
-                );
-
-            }
-
-        }
-
-
-        keysToRemove.forEach(
-            key => {
-
-                try {
-
-                    localStorage.removeItem(
-                        key
+                const existing =
+                    document.querySelector(
+                        'script[data-pds-msal="true"]'
                     );
 
-                } catch (error) {
 
-                    console.warn(
-                        "PDS: Could not remove:",
-                        key
+                if (existing) {
+
+                    existing.addEventListener(
+                        "load",
+                        () => {
+
+                            if (
+                                window.msal
+                            ) {
+
+                                resolve(
+                                    window.msal
+                                );
+
+                            } else {
+
+                                reject(
+                                    new Error(
+                                        "MSAL loaded but window.msal is unavailable."
+                                    )
+                                );
+
+                            }
+
+                        }
                     );
+
+
+                    existing.addEventListener(
+                        "error",
+                        () => {
+
+                            reject(
+                                new Error(
+                                    "Unable to load Microsoft MSAL."
+                                )
+                            );
+
+                        }
+                    );
+
+
+                    return;
 
                 }
 
+
+                const script =
+                    document.createElement(
+                        "script"
+                    );
+
+
+                script.src =
+                    "https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js";
+
+
+                script.async =
+                    true;
+
+
+                script.defer =
+                    true;
+
+
+                script.dataset.pdsMsal =
+                    "true";
+
+
+                script.onload =
+                    () => {
+
+                        if (
+                            window.msal
+                        ) {
+
+                            resolve(
+                                window.msal
+                            );
+
+                        } else {
+
+                            reject(
+                                new Error(
+                                    "MSAL loaded but window.msal is unavailable."
+                                )
+                            );
+
+                        }
+
+                    };
+
+
+                script.onerror =
+                    () => {
+
+                        reject(
+                            new Error(
+                                "Microsoft MSAL script failed to load."
+                            )
+                        );
+
+                    };
+
+
+                document.head.appendChild(
+                    script
+                );
+
             }
         );
-
-    } catch (error) {
-
-        console.warn(
-            "PDS: Storage cleanup warning:",
-            error
-        );
-
-    }
-
-
-    currentUser =
-        null;
-
-    currentProfile =
-        null;
-
-
-    /*
-     * Give the auth state event time to finish.
-     */
-
-    setTimeout(
-        () => {
-
-            showLogin();
-
-            clearAuthMessage();
-
-            const email =
-                $("loginEmail");
-
-            if (email) {
-
-                email.focus();
-
-            }
-
-            console.log(
-                "PDS: Sign Out complete."
-            );
-
-        },
-        50
-    );
-
-}
-
-
-/* =========================================================
-   LOAD USER PROFILE
-========================================================= */
-
-async function loadUserProfile() {
-
-    if (
-        !db ||
-        !currentUser
-    ) {
-
-        return null;
-
-    }
 
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("profiles")
-                .select("*")
-                .eq(
-                    "id",
-                    currentUser.id
-                )
-                .maybeSingle();
+        return await oneDriveScriptLoading;
+
+    } finally {
+
+        oneDriveScriptLoading =
+            null;
+
+    }
+
+}
 
 
-        if (error) {
+/* =========================================================
+   INITIALIZE MICROSOFT AUTH
+========================================================= */
 
-            console.warn(
-                "PDS: Profile loading warning:",
-                error
-            );
+async function initializeMicrosoftAuth() {
 
-
-            /*
-             * Keep basic auth user information available.
-             */
-
-            currentProfile = {
-
-                id:
-                    currentUser.id,
-
-                email:
-                    currentUser.email || "",
-
-                full_name:
-                    currentUser.user_metadata?.full_name ||
-                    currentUser.user_metadata?.name ||
-                    currentUser.email?.split("@")[0] ||
-                    "PDS User"
-
-            };
-
-
-            return currentProfile;
-
-        }
-
-
-        if (data) {
-
-            currentProfile =
-                data;
-
-        } else {
-
-            await createProfile(
-                currentUser
-            );
-
-        }
-
-
-        return currentProfile;
-
-
-    } catch (error) {
+    if (
+        MICROSOFT_CLIENT_ID ===
+        "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
+    ) {
 
         console.warn(
-            "PDS: Profile loading failed:",
-            error
+            "PDS OneDrive: Microsoft Client ID has not been configured."
         );
-
-
-        currentProfile = {
-
-            id:
-                currentUser.id,
-
-            email:
-                currentUser.email || "",
-
-            full_name:
-                currentUser.user_metadata?.full_name ||
-                currentUser.user_metadata?.name ||
-                currentUser.email?.split("@")[0] ||
-                "PDS User"
-
-        };
-
-
-        return currentProfile;
-
-    }
-
-}
-
-
-/* =========================================================
-   UPDATE USER INTERFACE
-========================================================= */
-
-function updateUserInterface() {
-
-    const user =
-        currentUser;
-
-    const profile =
-        currentProfile;
-
-
-    const name =
-        profile?.full_name ||
-        profile?.name ||
-        profile?.display_name ||
-        user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
-        user?.email?.split("@")[0] ||
-        "PDS User";
-
-
-    const email =
-        profile?.email ||
-        user?.email ||
-        "";
-
-
-    const profileName =
-        $("profileName");
-
-    const profileEmail =
-        $("profileEmail");
-
-    const welcomeName =
-        $("welcomeName");
-
-    const topAvatar =
-        $("topAvatar");
-
-    const sidebarAvatar =
-        $("sidebarAvatar");
-
-
-    if (profileName) {
-
-        profileName.textContent =
-            name;
-
-    }
-
-
-    if (profileEmail) {
-
-        profileEmail.textContent =
-            email;
-
-    }
-
-
-    if (welcomeName) {
-
-        welcomeName.textContent =
-            name;
-
-    }
-
-
-    const initial =
-        name
-            .charAt(0)
-            .toUpperCase();
-
-
-    if (topAvatar) {
-
-        topAvatar.textContent =
-            initial;
-
-    }
-
-
-    if (sidebarAvatar) {
-
-        sidebarAvatar.textContent =
-            initial;
-
-    }
-
-}
-
-
-/* =========================================================
-   SESSION RESTORATION
-========================================================= */
-
-async function restoreSession() {
-
-    if (!db) {
-
-        showLogin();
 
         return false;
 
@@ -1282,91 +655,104 @@ async function restoreSession() {
 
     try {
 
-        console.log(
-            "PDS: Checking existing session..."
-        );
-
-
-        const {
-            data,
-            error
-        } =
-            await db.auth.getSession();
-
-
-        if (error) {
-
-            console.error(
-                "PDS: Session error:",
-                error
-            );
-
-
-            clearUserState();
-
-            showLogin();
-
-            return false;
-
-        }
-
-
-        const session =
-            data?.session;
+        const msal =
+            await loadMicrosoftMSAL();
 
 
         if (
-            !session ||
-            !session.user
+            !msal ||
+            !msal.PublicClientApplication
         ) {
 
-            console.log(
-                "PDS: No active session."
+            throw new Error(
+                "Microsoft MSAL Browser is unavailable."
             );
-
-
-            clearUserState();
-
-            showLogin();
-
-            return false;
 
         }
 
 
-        currentUser =
-            session.user;
+        if (
+            msalInstance
+        ) {
+
+            return true;
+
+        }
+
+
+        msalInstance =
+            new msal.PublicClientApplication({
+
+                auth: {
+
+                    clientId:
+                        MICROSOFT_CLIENT_ID,
+
+                    authority:
+                        MICROSOFT_AUTHORITY,
+
+                    redirectUri:
+                        window.location.origin +
+                        window.location.pathname
+
+                },
+
+                cache: {
+
+                    cacheLocation:
+                        "localStorage",
+
+                    storeAuthStateInCookie:
+                        true
+
+                }
+
+            });
+
+
+        await msalInstance.initialize();
+
+
+        const redirectResult =
+            await msalInstance.handleRedirectPromise();
+
+
+        if (
+            redirectResult?.account
+        ) {
+
+            microsoftAccount =
+                redirectResult.account;
+
+            msalInstance.setActiveAccount(
+                microsoftAccount
+            );
+
+        }
+
+
+        const accounts =
+            msalInstance.getAllAccounts();
+
+
+        if (
+            !microsoftAccount &&
+            accounts.length
+        ) {
+
+            microsoftAccount =
+                accounts[0];
+
+            msalInstance.setActiveAccount(
+                microsoftAccount
+            );
+
+        }
 
 
         console.log(
-            "PDS: Session restored:",
-            currentUser.email
+            "PDS OneDrive: Microsoft authentication initialized."
         );
-
-
-        hideLogin();
-
-
-        await loadUserProfile();
-
-
-        updateUserInterface();
-
-
-        showPage(
-            "dashboard"
-        );
-
-
-        await Promise.allSettled([
-
-            loadProjects(),
-
-            loadDocuments(),
-
-            loadDepartmentOrders()
-
-        ]);
 
 
         return true;
@@ -1375,14 +761,126 @@ async function restoreSession() {
     } catch (error) {
 
         console.error(
-            "PDS: Session restoration failed:",
+            "PDS OneDrive: Microsoft authentication initialization failed:",
+            error
+        );
+
+        msalInstance =
+            null;
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   MICROSOFT LOGIN
+========================================================= */
+
+async function signInToMicrosoft() {
+
+    if (
+        !MICROSOFT_CLIENT_ID ||
+        MICROSOFT_CLIENT_ID ===
+            "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
+    ) {
+
+        alert(
+            "Microsoft OneDrive is not configured yet.\n\nPlease enter your Microsoft Entra Client ID in script.js."
+        );
+
+        return false;
+
+    }
+
+
+    try {
+
+        if (
+            !msalInstance
+        ) {
+
+            const ready =
+                await initializeMicrosoftAuth();
+
+
+            if (!ready) {
+
+                throw new Error(
+                    "Microsoft authentication could not be initialized."
+                );
+
+            }
+
+        }
+
+
+        const loginRequest = {
+
+            scopes:
+                MICROSOFT_SCOPES
+
+        };
+
+
+        const response =
+            await msalInstance.loginPopup(
+                loginRequest
+            );
+
+
+        if (
+            response?.account
+        ) {
+
+            microsoftAccount =
+                response.account;
+
+            msalInstance.setActiveAccount(
+                microsoftAccount
+            );
+
+        }
+
+
+        oneDriveAccessToken =
+            await acquireMicrosoftAccessToken();
+
+
+        if (
+            oneDriveAccessToken
+        ) {
+
+            oneDriveReady =
+                true;
+
+            await loadOverallFromOneDrive();
+
+            return true;
+
+        }
+
+
+        return false;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS OneDrive sign-in failed:",
             error
         );
 
 
-        clearUserState();
-
-        showLogin();
+        alert(
+            "Microsoft sign-in failed.\n\n" +
+            (
+                error?.message ||
+                "Unknown Microsoft authentication error."
+            )
+        );
 
 
         return false;
@@ -1393,3384 +891,502 @@ async function restoreSession() {
 
 
 /* =========================================================
-   NAVIGATION NORMALIZER
+   MICROSOFT ACCESS TOKEN
 ========================================================= */
 
-function normalizePageId(
-    pageId
-) {
+async function acquireMicrosoftAccessToken() {
 
-    if (!pageId) {
+    if (
+        !msalInstance
+    ) {
 
-        return "dashboard";
+        throw new Error(
+            "Microsoft authentication is not initialized."
+        );
 
     }
 
 
-    const normalized =
-        String(pageId)
-            .trim()
-            .toLowerCase();
+    let account =
+        microsoftAccount;
 
 
-    const aliases = {
+    if (!account) {
 
-        overview:
-            "dashboard",
+        account =
+            msalInstance.getActiveAccount();
 
-        dashboard:
-            "dashboard",
+    }
 
-        project:
-            "projects",
 
-        projects:
-            "projects",
+    if (!account) {
 
-        myprojects:
-            "projects",
+        const accounts =
+            msalInstance.getAllAccounts();
 
-        monitoring:
-            "monitoring",
 
-        projectmonitoring:
-            "monitoring",
+        account =
+            accounts[0] ||
+            null;
 
-        "project-monitoring":
-            "monitoring",
+    }
 
-        document:
-            "documents",
 
-        documents:
-            "documents",
+    if (!account) {
 
-        content:
-            "documents",
+        throw new Error(
+            "No Microsoft account is signed in."
+        );
 
-        orders:
-            "department-orders",
+    }
 
-        departmentorders:
-            "department-orders",
 
-        "department-orders":
-            "department-orders",
+    microsoftAccount =
+        account;
 
-        standards:
-            "standards-guidelines",
 
-        guidelines:
-            "standards-guidelines",
+    msalInstance.setActiveAccount(
+        account
+    );
 
-        "standards-guidelines":
-            "standards-guidelines",
 
-        forms:
-            "forms-templates",
+    try {
 
-        templates:
-            "forms-templates",
+        const response =
+            await msalInstance.acquireTokenSilent({
 
-        "forms-templates":
-            "forms-templates",
+                account,
 
-        news:
-            "announcements",
+                scopes:
+                    MICROSOFT_SCOPES
 
-        announcement:
-            "announcements",
+            });
 
-        announcements:
-            "announcements",
 
-        ai:
-            "pds-ai-assistant",
+        oneDriveAccessToken =
+            response.accessToken;
 
-        pdsai:
-            "pds-ai-assistant",
 
-        "pds-ai-assistant":
-            "pds-ai-assistant",
+        return response.accessToken;
 
-        about:
-            "aboutpds",
 
-        aboutpds:
-            "aboutpds",
+    } catch (silentError) {
 
-        contact:
-            "contact-us",
+        console.warn(
+            "PDS OneDrive: Silent token acquisition failed. Opening Microsoft sign-in.",
+            silentError
+        );
 
-        "contact-us":
-            "contact-us",
 
-        profile:
-            "profile",
+        const response =
+            await msalInstance.acquireTokenPopup({
 
-        userprofile:
-            "profile"
+                account,
+
+                scopes:
+                    MICROSOFT_SCOPES
+
+            });
+
+
+        oneDriveAccessToken =
+            response.accessToken;
+
+
+        return response.accessToken;
+
+    }
+
+}
+
+
+/* =========================================================
+   GRAPH REQUEST
+========================================================= */
+
+async function graphRequest(
+    endpoint,
+    options = {},
+    retry = true
+) {
+
+    let token =
+        oneDriveAccessToken;
+
+
+    if (!token) {
+
+        token =
+            await acquireMicrosoftAccessToken();
+
+    }
+
+
+    const headers = {
+
+        Authorization:
+            `Bearer ${token}`,
+
+        Accept:
+            "application/json",
+
+        ...(options.headers || {})
 
     };
 
 
-    return (
-        aliases[normalized] ||
-        normalized
-    );
+    const response =
+        await fetch(
+            endpoint,
+            {
 
-}
+                ...options,
 
+                headers
 
-/* =========================================================
-   GET PDS PAGES
-========================================================= */
-
-function getPDSPages() {
-
-    return Array.from(
-        document.querySelectorAll(
-            "#app .page-section, " +
-            "#app [data-page-section], " +
-            "#app section[data-section]"
-        )
-    );
-
-}
-
-
-/* =========================================================
-   SHOW ONLY ONE PAGE
-========================================================= */
-
-function showPage(
-    pageId
-) {
-
-    pageId =
-        normalizePageId(
-            pageId
+            }
         );
 
 
-    const pages =
-        getPDSPages();
+    if (
+        response.status ===
+            401 &&
+        retry
+    ) {
+
+        oneDriveAccessToken =
+            await acquireMicrosoftAccessToken();
 
 
-    let targetPage =
+        return graphRequest(
+            endpoint,
+            options,
+            false
+        );
+
+    }
+
+
+    const text =
+        await response.text();
+
+
+    let data =
         null;
 
 
-    /*
-     * Hide every page.
-     */
+    if (text) {
 
-    pages.forEach(
-        page => {
+        try {
 
-            const id =
-                page.id ||
-                page.dataset.section ||
-                page.dataset.pageSection;
+            data =
+                JSON.parse(text);
 
+        } catch (_) {
 
-            if (
-                normalizePageId(id) ===
-                pageId
-            ) {
-
-                targetPage =
-                    page;
-
-            }
-
-
-            page.classList.remove(
-                "active"
-            );
-
-
-            page.style.display =
-                "none";
+            data =
+                text;
 
         }
-    );
-
-
-    /*
-     * Fallback direct ID.
-     */
-
-    if (!targetPage) {
-
-        const direct =
-            $(pageId);
-
-
-        if (direct) {
-
-            targetPage =
-                direct;
-
-        }
-
-    }
-
-
-    /*
-     * Dashboard fallback.
-     */
-
-    if (!targetPage) {
-
-        targetPage =
-            $("dashboard");
-
-        pageId =
-            "dashboard";
-
-    }
-
-
-    /*
-     * Show selected page.
-     */
-
-    if (targetPage) {
-
-        targetPage.classList.add(
-            "active"
-        );
-
-        targetPage.style.display =
-            "block";
-
-    }
-
-
-    /*
-     * Sidebar active state.
-     */
-
-    document
-        .querySelectorAll(
-            "#sidebarNav [data-section]"
-        )
-        .forEach(
-            item => {
-
-                const itemPage =
-                    normalizePageId(
-                        item.dataset.section
-                    );
-
-
-                item.classList.toggle(
-                    "active",
-                    itemPage === pageId
-                );
-
-            }
-        );
-
-
-    /*
-     * Page titles.
-     */
-
-    const titles = {
-
-        dashboard:
-            "Dashboard",
-
-        projects:
-            "Projects",
-
-        monitoring:
-            "Project Monitoring",
-
-        documents:
-            "Document Library",
-
-        "standards-guidelines":
-            "Standards & Guidelines",
-
-        "department-orders":
-            "Department Orders",
-
-        "forms-templates":
-            "Forms & Templates",
-
-        announcements:
-            "Announcements",
-
-        "pds-ai-assistant":
-            "PDS AI Assistant",
-
-        aboutpds:
-            "About PDS",
-
-        "contact-us":
-            "Contact Us",
-
-        profile:
-            "My Profile"
-
-    };
-
-
-    const pageTitle =
-        $("pageTitle");
-
-
-    if (pageTitle) {
-
-        pageTitle.textContent =
-            titles[pageId] ||
-            "Planning & Design Section";
-
-    }
-
-
-    /*
-     * Load page-specific data.
-     */
-
-    if (
-        pageId ===
-        "projects"
-    ) {
-
-        loadProjects();
 
     }
 
 
     if (
-        pageId ===
-        "monitoring"
+        !response.ok
     ) {
 
-        loadProjectMonitoring();
-
-    }
-
-
-    if (
-        pageId ===
-        "documents"
-    ) {
-
-        loadDocuments();
-
-    }
-
-
-    if (
-        pageId ===
-        "department-orders"
-    ) {
-
-        renderDepartmentOrders(
-            departmentOrders
-        );
-
-    }
-
-
-    /*
-     * Always return page to top.
-     */
-
-    window.scrollTo(
-        0,
-        0
-    );
-
-}
-
-
-/* =========================================================
-   NAVIGATION SETUP
-========================================================= */
-
-function setupNavigation() {
-
-    if (navigationReady) {
-
-        return;
-
-    }
-
-
-    navigationReady =
-        true;
-
-
-    document.addEventListener(
-        "click",
-        event => {
-
-            const navItem =
-                event.target.closest(
-                    "#sidebarNav [data-section]"
-                );
-
-
-            if (!navItem) {
-
-                return;
-
-            }
-
-
-            event.preventDefault();
-
-
-            const page =
-                navItem.dataset.section;
-
-
-            if (page) {
-
-                showPage(
-                    page
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   QUICK ACTIONS
-========================================================= */
-
-function setupSectionTargets() {
-
-    document.addEventListener(
-        "click",
-        event => {
-
-            const target =
-                event.target.closest(
-                    "[data-section-target]"
-                );
-
-
-            if (!target) {
-
-                return;
-
-            }
-
-
-            event.preventDefault();
-
-
-            showPage(
-                target.dataset.sectionTarget
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   GLOBAL SEARCH
-========================================================= */
-
-function setupGlobalSearch() {
-
-    const search =
-        $("globalSearch");
-
-
-    if (!search) {
-
-        return;
-
-    }
-
-
-    search.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key !==
-                "Enter"
-            ) {
-
-                return;
-
-            }
-
-
-            const query =
-                search.value
-                    .trim()
-                    .toLowerCase();
-
-
-            if (!query) {
-
-                return;
-
-            }
-
-
-            showPage(
-                "projects"
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   REFRESH ALL
-========================================================= */
-
-async function refreshAll() {
-
-    await Promise.allSettled([
-
-        loadProjects(),
-
-        loadDocuments(),
-
-        loadDepartmentOrders()
-
-    ]);
-
-
-    const monitoring =
-        $("monitoring");
-
-
-    if (
-        monitoring &&
-        monitoring.classList.contains(
-            "active"
-        )
-    ) {
-
-        await loadProjectMonitoring();
-
-    }
-
-}
-
-
-/* =========================================================
-   PROJECTS
-========================================================= */
-
-async function loadProjects() {
-
-    const list =
-        $("projectList");
-
-
-    if (
-        !list ||
-        !db
-    ) {
-
-        return;
-
-    }
-
-
-    list.innerHTML = `
-        <div class="empty-state">
-            Loading projects...
-        </div>
-    `;
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("projects")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        renderProjects(
-            data || []
-        );
-
-
-        updateProjectStats(
-            data || []
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Projects error:",
-            error
-        );
-
-
-        renderProjects(
-            []
-        );
-
-
-        updateProjectStats(
-            []
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   PROJECT STATS
-========================================================= */
-
-function updateProjectStats(
-    projects
-) {
-
-    const total =
-        projects.length;
-
-
-    const ongoing =
-        projects.filter(
-            project =>
-                String(
-                    project.status || ""
-                )
-                    .toLowerCase()
-                    .includes(
-                        "ongoing"
-                    )
-        ).length;
-
-
-    const completed =
-        projects.filter(
-            project =>
-                String(
-                    project.status || ""
-                )
-                    .toLowerCase()
-                    .includes(
-                        "completed"
-                    )
-        ).length;
-
-
-    const totalProjects =
-        $("totalProjects");
-
-    const ongoingProjects =
-        $("ongoingProjects");
-
-    const completedProjects =
-        $("completedProjects");
-
-
-    if (totalProjects) {
-
-        totalProjects.textContent =
-            total;
-
-    }
-
-
-    if (ongoingProjects) {
-
-        ongoingProjects.textContent =
-            ongoing;
-
-    }
-
-
-    if (completedProjects) {
-
-        completedProjects.textContent =
-            completed;
-
-    }
-
-}
-
-
-/* =========================================================
-   RENDER PROJECTS
-========================================================= */
-
-function renderProjects(
-    projects
-) {
-
-    const list =
-        $("projectList");
-
-
-    if (!list) {
-
-        return;
-
-    }
-
-
-    if (!projects.length) {
-
-        list.innerHTML = `
-            <div class="empty-state">
-                <strong>No projects found</strong>
-                <span>Project records will appear here.</span>
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    list.innerHTML =
-        projects
-            .map(
-                project => {
-
-                    const id =
-                        escapeJS(
-                            project.id || ""
-                        );
-
-
-                    const title =
-                        escapeHTML(
-                            project.title ||
-                            project.project_title ||
-                            project.name ||
-                            "Untitled Project"
-                        );
-
-
-                    const status =
-                        escapeHTML(
-                            project.status ||
-                            "Active"
-                        );
-
-
-                    const location =
-                        escapeHTML(
-                            project.location ||
-                            project.project_location ||
-                            "—"
-                        );
-
-
-                    return `
-                        <article
-                            class="project-card"
-                            data-project-id="${escapeHTML(
-                                project.id || ""
-                            )}"
-                            onclick="openProject('${id}')"
-                        >
-
-                            <div class="project-card-top">
-
-                                <span class="project-status">
-                                    ${status}
-                                </span>
-
-                            </div>
-
-                            <h3>
-                                ${title}
-                            </h3>
-
-                            <p>
-                                ${location}
-                            </p>
-
-                        </article>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =========================================================
-   OPEN PROJECT
-========================================================= */
-
-async function openProject(
-    projectId
-) {
-
-    if (
-        !projectId ||
-        !db
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("projects")
-                .select("*")
-                .eq(
-                    "id",
-                    projectId
-                )
-                .maybeSingle();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        const modal =
-            $("projectModal");
-
-        const content =
-            $("projectModalContent");
-
-
-        if (
-            !modal ||
-            !content
-        ) {
-
-            return;
-
-        }
-
-
-        if (!data) {
-
-            content.innerHTML = `
-                <div class="empty-state">
-                    Project not found.
-                </div>
-            `;
-
-        } else {
-
-            content.innerHTML = `
-                <div class="project-detail">
-
-                    <div class="detail-label">
-                        PROJECT
-                    </div>
-
-                    <h2>
-                        ${escapeHTML(
-                            data.title ||
-                            data.project_title ||
-                            data.name ||
-                            "Untitled Project"
-                        )}
-                    </h2>
-
-                    <div class="detail-grid">
-
-                        <div>
-                            <span>STATUS</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.status || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>LOCATION</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.location || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>CONTRACTOR</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.contractor || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>ABC</span>
-                            <strong>
-                                ${escapeHTML(
-                                    data.abc || "—"
-                                )}
-                            </strong>
-                        </div>
-
-                    </div>
-
-                </div>
-            `;
-
-        }
-
-
-        modal.style.display =
-            "flex";
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Project open error:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DOCUMENTS
-========================================================= */
-
-async function loadDocuments() {
-
-    const list =
-        $("libraryList");
-
-
-    if (!db) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("documents")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        cachedDocuments =
-            data || [];
-
-
-        renderDocuments(
-            cachedDocuments
-        );
-
-
-        const totalDocuments =
-            $("totalDocuments");
-
-
-        if (totalDocuments) {
-
-            totalDocuments.textContent =
-                cachedDocuments.length;
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Documents error:",
-            error
-        );
-
-
-        cachedDocuments =
-            [];
-
-
-        if (list) {
-
-            list.innerHTML = `
-                <div class="empty-state">
-                    No documents available.
-                </div>
-            `;
-
-        }
-
-
-        const totalDocuments =
-            $("totalDocuments");
-
-
-        if (totalDocuments) {
-
-            totalDocuments.textContent =
-                "0";
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   RENDER DOCUMENTS
-========================================================= */
-
-function renderDocuments(
-    documents
-) {
-
-    const list =
-        $("libraryList");
-
-
-    if (!list) {
-
-        return;
-
-    }
-
-
-    if (!documents.length) {
-
-        list.innerHTML = `
-            <div class="empty-state">
-                <strong>No documents found</strong>
-                <span>Upload a document to begin.</span>
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    list.innerHTML =
-        documents
-            .map(
-                document => {
-
-                    return `
-                        <article
-                            class="document-card"
-                            onclick="openDocument('${escapeJS(
-                                document.id || ""
-                            )}')"
-                        >
-
-                            <div class="document-icon">
-                                DOC
-                            </div>
-
-                            <div class="document-info">
-
-                                <h3>
-                                    ${escapeHTML(
-                                        document.title ||
-                                        document.name ||
-                                        "Untitled Document"
-                                    )}
-                                </h3>
-
-                                <p>
-                                    ${escapeHTML(
-                                        document.file_name ||
-                                        document.name ||
-                                        "Document"
-                                    )}
-                                </p>
-
-                            </div>
-
-                        </article>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =========================================================
-   DOCUMENT SEARCH
-========================================================= */
-
-function setupDocumentSearch() {
-
-    if (documentSearchReady) {
-
-        return;
-
-    }
-
-
-    const search =
-        $("documentSearch");
-
-
-    if (!search) {
-
-        return;
-
-    }
-
-
-    documentSearchReady =
-        true;
-
-
-    search.addEventListener(
-        "input",
-        event => {
-
-            const query =
-                event.target.value
-                    .trim()
-                    .toLowerCase();
-
-
-            const filtered =
-                cachedDocuments.filter(
-                    document => {
-
-                        const text = [
-
-                            document.title,
-
-                            document.name,
-
-                            document.file_name,
-
-                            document.description
-
-                        ]
-                            .filter(Boolean)
-                            .join(" ")
-                            .toLowerCase();
-
-
-                        return text.includes(
-                            query
-                        );
-
-                    }
-                );
-
-
-            renderDocuments(
-                filtered
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   DOCUMENT MODAL
-========================================================= */
-
-function openDocumentModal() {
-
-    const modal =
-        $("documentModal");
-
-
-    if (modal) {
-
-        modal.style.display =
-            "flex";
-
-    }
-
-}
-
-
-function closeDocumentModal() {
-
-    const modal =
-        $("documentModal");
-
-
-    if (modal) {
-
-        modal.style.display =
-            "none";
-
-    }
-
-}
-
-
-/* =========================================================
-   DOCUMENT MODAL SETUP
-========================================================= */
-
-function setupDocumentModal() {
-
-    const close =
-        $("closeDocumentModal");
-
-    const cancel =
-        $("cancelDocument");
-
-
-    if (close) {
-
-        close.addEventListener(
-            "click",
-            closeDocumentModal
-        );
-
-    }
-
-
-    if (cancel) {
-
-        cancel.addEventListener(
-            "click",
-            closeDocumentModal
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DOCUMENT UPLOAD BUTTON
-========================================================= */
-
-function setupDocumentUpload() {
-
-    const button =
-        $("uploadDocumentButton");
-
-
-    if (!button) {
-
-        return;
-
-    }
-
-
-    button.addEventListener(
-        "click",
-        openDocumentModal
-    );
-
-}
-
-
-/* =========================================================
-   DOCUMENT UPLOAD
-========================================================= */
-
-async function uploadDocument(
-    event
-) {
-
-    if (event) {
-
-        event.preventDefault();
-
-    }
-
-
-    if (
-        !db ||
-        !currentUser
-    ) {
-
-        alert(
-            "Please sign in again."
-        );
-
-        return;
-
-    }
-
-
-    const titleInput =
-        $("documentTitle");
-
-    const fileInput =
-        $("documentFile");
-
-
-    const title =
-        titleInput?.value.trim();
-
-
-    const file =
-        fileInput?.files?.[0];
-
-
-    if (!title) {
-
-        alert(
-            "Please enter a document title."
-        );
-
-        return;
-
-    }
-
-
-    if (!file) {
-
-        alert(
-            "Please select a file."
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        const fileName =
-            `${Date.now()}_${file.name}`;
-
-
-        const filePath =
-            `${currentUser.id}/${fileName}`;
-
-
-        const {
-            error: uploadError
-        } =
-            await db.storage
-                .from("documents")
-                .upload(
-                    filePath,
-                    file,
-                    {
-                        upsert: false
-                    }
-                );
-
-
-        if (uploadError) {
-
-            throw uploadError;
-
-        }
-
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("documents")
-                .insert({
-
-                    title:
-                        title,
-
-                    file_name:
-                        file.name,
-
-                    file_path:
-                        filePath,
-
-                    file_size:
-                        file.size,
-
-                    mime_type:
-                        file.type,
-
-                    uploaded_by:
-                        currentUser.id
-
-                })
-                .select()
-                .single();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        console.log(
-            "PDS: Document uploaded:",
-            data
-        );
-
-
-        closeDocumentModal();
-
-
-        if (titleInput) {
-
-            titleInput.value =
-                "";
-
-        }
-
-
-        if (fileInput) {
-
-            fileInput.value =
-                "";
-
-        }
-
-
-        await loadDocuments();
-
-
-        alert(
-            "Document uploaded successfully."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Document upload error:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Document upload failed."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DOCUMENT FORM
-========================================================= */
-
-function setupDocumentForm() {
-
-    const form =
-        $("documentForm");
-
-
-    if (!form) {
-
-        return;
-
-    }
-
-
-    form.addEventListener(
-        "submit",
-        uploadDocument
-    );
-
-}
-
-
-/* =========================================================
-   OPEN DOCUMENT
-========================================================= */
-
-async function openDocument(
-    documentId
-) {
-
-    if (
-        !db ||
-        !documentId
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("documents")
-                .select("*")
-                .eq(
-                    "id",
-                    documentId
-                )
-                .maybeSingle();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        if (!data) {
-
-            alert(
-                "Document not found."
-            );
-
-            return;
-
-        }
-
-
-        if (!data.file_path) {
-
-            alert(
-                "No file is attached to this document."
-            );
-
-            return;
-
-        }
-
-
-        const {
-            data: signedData,
-            error: signedError
-        } =
-            await db.storage
-                .from("documents")
-                .createSignedUrl(
-                    data.file_path,
-                    3600
-                );
-
-
-        if (signedError) {
-
-            throw signedError;
-
-        }
-
-
-        if (
-            signedData?.signedUrl
-        ) {
-
-            window.open(
-                signedData.signedUrl,
-                "_blank",
-                "noopener,noreferrer"
-            );
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Open document error:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Unable to open document."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DELETE DOCUMENT
-========================================================= */
-
-async function deleteDocument(
-    documentId
-) {
-
-    if (
-        !db ||
-        !documentId
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        !confirm(
-            "Delete this document?"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db
-                .from("documents")
-                .select(
-                    "file_path"
-                )
-                .eq(
-                    "id",
-                    documentId
-                )
-                .maybeSingle();
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        if (data?.file_path) {
-
-            const {
-                error:
-                    storageError
-            } =
-                await db.storage
-                    .from("documents")
-                    .remove([
-                        data.file_path
-                    ]);
-
-
-            if (storageError) {
-
-                console.warn(
-                    "PDS: Storage delete warning:",
-                    storageError
-                );
-
-            }
-
-        }
-
-
-        const {
-            error:
-                deleteError
-        } =
-            await db
-                .from("documents")
-                .delete()
-                .eq(
-                    "id",
-                    documentId
-                );
-
-
-        if (deleteError) {
-
-            throw deleteError;
-
-        }
-
-
-        await loadDocuments();
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Delete document error:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Unable to delete document."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DEPARTMENT ORDERS
-========================================================= */
-
-const departmentOrders = [
-
-    {
-        number: "DO 75",
-        year: "2024",
-        title: "Guidelines and Procedures",
-        description:
-            "Department policies, guidelines and procedures.",
-        category: "Guidelines"
-    },
-
-    {
-        number: "DO 159",
-        year: "2022",
-        title: "Infrastructure Guidelines",
-        description:
-            "Policies and procedures related to infrastructure projects.",
-        category: "Infrastructure"
-    },
-
-    {
-        number: "DO 37",
-        year: "2021",
-        title: "Planning and Design",
-        description:
-            "Planning and design implementation guidelines.",
-        category: "Planning & Design"
-    },
-
-    {
-        number: "DO 120",
-        year: "2019",
-        title: "Infrastructure Standards",
-        description:
-            "Standards and procedures for infrastructure implementation.",
-        category: "Standards"
-    },
-
-    {
-        number: "DO 27",
-        year: "2019",
-        title: "Project Development",
-        description:
-            "Project development and implementation guidelines.",
-        category: "Project Development"
-    },
-
-    {
-        number: "DO 28",
-        year: "2019",
-        title: "Cost Estimation Manual",
-        description:
-            "Guidelines for cost estimation and construction costing.",
-        category: "Cost Estimation"
-    }
-
-];
-
-
-async function loadDepartmentOrders() {
-
-    renderDepartmentOrders(
-        departmentOrders
-    );
-
-}
-
-
-function renderDepartmentOrders(
-    orders
-) {
-
-    const container =
-        $("departmentOrdersGrid");
-
-
-    if (!container) {
-
-        return;
-
-    }
-
-
-    if (!orders.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                No Department Orders found.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        orders
-            .map(
-                order => {
-
-                    return `
-                        <article class="order-card">
-
-                            <div class="order-number">
-                                ${escapeHTML(
-                                    order.number
-                                )}
-                            </div>
-
-                            <div class="order-year">
-                                SERIES ${escapeHTML(
-                                    order.year
-                                )}
-                            </div>
-
-                            <h3>
-                                ${escapeHTML(
-                                    order.title
-                                )}
-                            </h3>
-
-                            <p>
-                                ${escapeHTML(
-                                    order.description
-                                )}
-                            </p>
-
-                            <span class="order-category">
-                                ${escapeHTML(
-                                    order.category
-                                )}
-                            </span>
-
-                        </article>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =========================================================
-   DEPARTMENT ORDER SEARCH
-========================================================= */
-
-function setupDepartmentOrderFilters() {
-
-    const search =
-        $("departmentOrderSearch");
-
-
-    if (!search) {
-
-        return;
-
-    }
-
-
-    search.addEventListener(
-        "input",
-        () => {
-
-            const query =
-                search.value
-                    .trim()
-                    .toLowerCase();
-
-
-            const filtered =
-                departmentOrders.filter(
-                    order => {
-
-                        const text = [
-
-                            order.number,
-
-                            order.year,
-
-                            order.title,
-
-                            order.description,
-
-                            order.category
-
-                        ]
-                            .join(" ")
-                            .toLowerCase();
-
-
-                        return text.includes(
-                            query
-                        );
-
-                    }
-                );
-
-
-            renderDepartmentOrders(
-                filtered
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PROJECT MODAL
-========================================================= */
-
-function setupProjectModal() {
-
-    const modal =
-        $("projectModal");
-
-    const close =
-        $("closeProjectModal");
-
-
-    if (!modal) {
-
-        return;
-
-    }
-
-
-    if (close) {
-
-        close.addEventListener(
-            "click",
-            () => {
-
-                modal.style.display =
-                    "none";
-
-            }
-        );
-
-    }
-
-
-    modal.addEventListener(
-        "click",
-        event => {
-
-            if (
-                event.target ===
-                modal
-            ) {
-
-                modal.style.display =
-                    "none";
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PDS AI
-========================================================= */
-
-function setupPDSAI() {
-
-    if (aiReady) {
-
-        return;
-
-    }
-
-
-    aiReady =
-        true;
-
-
-    const launcher =
-        $("pdsAiLauncher");
-
-    const chatbot =
-        $("pdsAiChatbot");
-
-    const send =
-        $("pdsAiSend");
-
-    const input =
-        $("aiInput");
-
-    const fullButton =
-        $("openFullPDSAI");
-
-
-    if (
-        launcher &&
-        chatbot
-    ) {
-
-        launcher.addEventListener(
-            "click",
-            () => {
-
-                const isHidden =
-                    chatbot.style.display ===
-                        "none" ||
-                    !chatbot.style.display;
-
-
-                chatbot.style.display =
-                    isHidden
-                        ? "flex"
-                        : "none";
-
-
-                if (
-                    isHidden &&
-                    input
-                ) {
-
-                    setTimeout(
-                        () => {
-
-                            input.focus();
-
-                        },
-                        100
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (send) {
-
-        send.addEventListener(
-            "click",
-            askPDSAI
-        );
-
-    }
-
-
-    if (input) {
-
-        input.addEventListener(
-            "keydown",
-            event => {
-
-                if (
-                    event.key ===
-                    "Enter"
-                ) {
-
-                    event.preventDefault();
-
-                    askPDSAI();
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (fullButton) {
-
-        fullButton.addEventListener(
-            "click",
-            () => {
-
-                showPage(
-                    "pds-ai-assistant"
-                );
-
-
-                if (chatbot) {
-
-                    chatbot.style.display =
-                        "none";
-
-                }
-
-            }
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   AI MESSAGE
-========================================================= */
-
-function appendAIMessage(
-    message,
-    sender = "ai"
-) {
-
-    const response =
-        $("aiResponse");
-
-
-    if (!response) {
-
-        return;
-
-    }
-
-
-    const element =
-        document.createElement(
-            "div"
-        );
-
-
-    element.className =
-        `ai-message ${sender}`;
-
-
-    element.textContent =
-        message;
-
-
-    response.appendChild(
-        element
-    );
-
-
-    response.scrollTop =
-        response.scrollHeight;
-
-}
-
-
-/* =========================================================
-   REMOVE AI THINKING
-========================================================= */
-
-function removeThinkingMessage() {
-
-    const response =
-        $("aiResponse");
-
-
-    if (!response) {
-
-        return;
-
-    }
-
-
-    const messages =
-        response.querySelectorAll(
-            ".ai-message.ai"
-        );
-
-
-    const last =
-        messages[
-            messages.length - 1
-        ];
-
-
-    if (
-        last &&
-        last.textContent ===
-            "PDS AI is thinking..."
-    ) {
-
-        last.remove();
-
-    }
-
-}
-
-
-/* =========================================================
-   ASK PDS AI
-========================================================= */
-
-async function askPDSAI() {
-
-    const input =
-        $("aiInput");
-
-    const send =
-        $("pdsAiSend");
-
-
-    if (
-        !input ||
-        !db
-    ) {
-
-        return;
-
-    }
-
-
-    const message =
-        input.value.trim();
-
-
-    if (!message) {
-
-        return;
-
-    }
-
-
-    appendAIMessage(
-        message,
-        "user"
-    );
-
-
-    input.value =
-        "";
-
-
-    if (send) {
-
-        send.disabled =
-            true;
-
-    }
-
-
-    appendAIMessage(
-        "PDS AI is thinking...",
-        "ai"
-    );
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await db.functions.invoke(
-                "PDS-AI",
-                {
-                    body: {
-
-                        message:
-                            message,
-
-                        history:
-                            pdsAIHistory
-
-                    }
-                }
-            );
-
-
-        if (error) {
-
-            throw error;
-
-        }
-
-
-        const answer =
-            data?.answer ||
-            data?.response ||
+        const message =
+            data?.error?.message ||
             data?.message ||
-            "PDS AI did not return a response.";
+            `Microsoft Graph request failed (${response.status}).`;
 
 
-        removeThinkingMessage();
-
-
-        appendAIMessage(
-            answer,
-            "ai"
+        throw new Error(
+            message
         );
-
-
-        pdsAIHistory.push({
-
-            role:
-                "user",
-
-            content:
-                message
-
-        });
-
-
-        pdsAIHistory.push({
-
-            role:
-                "assistant",
-
-            content:
-                answer
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "PDS AI error:",
-            error
-        );
-
-
-        removeThinkingMessage();
-
-
-        appendAIMessage(
-            "PDS AI could not respond. Please try again.",
-            "ai"
-        );
-
-    } finally {
-
-        if (send) {
-
-            send.disabled =
-                false;
-
-        }
-
-
-        if (input) {
-
-            input.focus();
-
-        }
 
     }
+
+
+    return data;
 
 }
 
 
 /* =========================================================
-   NOTIFICATIONS
+   FIND EXCEL FILE IN ONEDRIVE
 ========================================================= */
 
-function setupNotifications() {
+async function findOverallWorkbook() {
 
-    const button =
-        $("notificationButton");
+    const encodedName =
+        encodeURIComponent(
+            ONEDRIVE_FILE_NAME
+        );
 
 
-    if (!button) {
+    /*
+     * Search OneDrive root recursively.
+     */
 
-        return;
+    const endpoint =
+        `${ONEDRIVE_GRAPH_ROOT}/me/drive/root/search(q='${encodedName}')`;
+
+
+    const data =
+        await graphRequest(
+            endpoint
+        );
+
+
+    const items =
+        Array.isArray(
+            data?.value
+        )
+            ? data.value
+            : [];
+
+
+    const exact =
+        items.find(
+            item =>
+                String(
+                    item?.name ||
+                    ""
+                ).toLowerCase() ===
+                ONEDRIVE_FILE_NAME.toLowerCase()
+        );
+
+
+    if (
+        exact
+    ) {
+
+        return exact;
 
     }
 
 
-    button.addEventListener(
-        "click",
-        () => {
+    /*
+     * Fallback:
+     * search result may use encoded or
+     * slightly different naming.
+     */
 
-            alert(
-                "No new PDS notifications."
-            );
+    const fallback =
+        items.find(
+            item =>
+                String(
+                    item?.name ||
+                    ""
+                )
+                    .toLowerCase()
+                    .includes(
+                        "trial for website"
+                    )
+        );
 
-        }
+
+    if (
+        fallback
+    ) {
+
+        return fallback;
+
+    }
+
+
+    throw new Error(
+        `The OneDrive file "${ONEDRIVE_FILE_NAME}" could not be found.`
     );
 
 }
 
 
 /* =========================================================
-   REFRESH BUTTON
+   GET EXCEL WORKBOOK ITEM
 ========================================================= */
 
-function setupRefreshButton() {
+async function getOverallWorkbookItem() {
 
-    const button =
-        $("refreshButton");
+    const item =
+        await findOverallWorkbook();
 
 
-    if (!button) {
+    if (
+        !item?.id
+    ) {
 
-        return;
+        throw new Error(
+            "The OneDrive Excel workbook was found but has no valid item ID."
+        );
 
     }
 
 
-    button.addEventListener(
-        "click",
-        async () => {
+    return item;
 
-            button.classList.add(
-                "is-loading"
-            );
+}
 
 
-            await refreshAll();
+/* =========================================================
+   CREATE EXCEL WORKBOOK SESSION
+========================================================= */
+
+async function createWorkbookSession(
+    driveItemId
+) {
+
+    const endpoint =
+        `${ONEDRIVE_GRAPH_ROOT}/me/drive/items/${encodeURIComponent(driveItemId)}/workbook/createSession`;
 
 
-            setTimeout(
-                () => {
+    const data =
+        await graphRequest(
+            endpoint,
+            {
 
-                    button.classList.remove(
-                        "is-loading"
-                    );
+                method:
+                    "POST",
+
+                headers: {
+
+                    "Content-Type":
+                        "application/json"
 
                 },
-                300
-            );
 
-        }
-    );
+                body:
+                    JSON.stringify({
 
-}
+                        persistChanges:
+                            true
 
-
-/* =========================================================
-   AUTH FORMS
-========================================================= */
-
-function setupAuthForms() {
-
-    if (authFormsReady) {
-
-        return;
-
-    }
-
-
-    const loginForm =
-        $("loginForm");
-
-
-    if (!loginForm) {
-
-        console.warn(
-            "PDS: loginForm not found."
-        );
-
-        return;
-
-    }
-
-
-    authFormsReady =
-        true;
-
-
-    loginForm.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-
-            const email =
-                $("loginEmail")
-                    ?.value
-                    .trim();
-
-
-            const password =
-                $("loginPassword")
-                    ?.value ||
-                "";
-
-
-            if (
-                !email ||
-                !password
-            ) {
-
-                authMessage(
-                    "Please enter your email and password.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            const button =
-                loginForm.querySelector(
-                    'button[type="submit"]'
-                );
-
-
-            if (button) {
-
-                button.disabled =
-                    true;
-
-                button.textContent =
-                    "SIGNING IN...";
-
-            }
-
-
-            try {
-
-                await loginUser(
-                    email,
-                    password
-                );
-
-            } finally {
-
-                if (button) {
-
-                    button.disabled =
-                        false;
-
-                    button.textContent =
-                        "SIGN IN";
-
-                }
-
-            }
-
-        }
-    );
-
-
-    /*
-     * Allow Enter in password field.
-     * The form submit handler handles it.
-     */
-
-    const password =
-        $("loginPassword");
-
-
-    if (password) {
-
-        password.addEventListener(
-            "keydown",
-            event => {
-
-                if (
-                    event.key ===
-                    "Enter"
-                ) {
-
-                    /*
-                     * Browser form submission
-                     * handles the actual login.
-                     */
-
-                }
+                    })
 
             }
         );
 
-    }
 
-}
-
-
-/* =========================================================
-   SIGN OUT BUTTON
-========================================================= */
-
-function setupSignOut() {
-
-    const buttons =
-        document.querySelectorAll(
-            "#logoutButton, #signOutButton, [data-action='signout']"
-        );
-
-
-    if (!buttons.length) {
-
-        console.warn(
-            "PDS: Sign Out button was not found."
-        );
-
-        return;
-
-    }
-
-
-    buttons.forEach(
-        button => {
-
-            if (
-                button.dataset.signoutReady ===
-                "true"
-            ) {
-
-                return;
-
-            }
-
-
-            button.dataset.signoutReady =
-                "true";
-
-
-            button.addEventListener(
-                "click",
-                async event => {
-
-                    event.preventDefault();
-
-                    event.stopPropagation();
-
-
-                    await signOut();
-
-                }
-            );
-
-        }
-    );
-
-
-    console.log(
-        `PDS: ${buttons.length} Sign Out button(s) ready.`
-    );
-
-}
-
-
-/* =========================================================
-   AUTH STATE LISTENER
-========================================================= */
-
-function setupAuthStateListener() {
-
-    if (
-        !db ||
-        authStateSubscription
-    ) {
-
-        return;
-
-    }
-
-
-    const {
-        data
-    } =
-        db.auth.onAuthStateChange(
-            (
-                event,
-                session
-            ) => {
-
-                console.log(
-                    "PDS Auth Event:",
-                    event
-                );
-
-
-                /*
-                 * USER SIGNED OUT
-                 */
-
-                if (
-                    event ===
-                    "SIGNED_OUT"
-                ) {
-
-                    clearUserState();
-
-                    showLogin();
-
-                    return;
-
-                }
-
-
-                /*
-                 * VALID SESSION
-                 */
-
-                if (
-                    session?.user
-                ) {
-
-                    currentUser =
-                        session.user;
-
-
-                    hideLogin();
-
-
-                    updateUserInterface();
-
-
-                    /*
-                     * Do not repeatedly perform
-                     * database queries during token refresh.
-                     */
-
-                    if (
-                        event ===
-                            "SIGNED_IN" ||
-                        event ===
-                            "INITIAL_SESSION"
-                    ) {
-
-                        showPage(
-                            "dashboard"
-                        );
-
-
-                        /*
-                         * Load profile asynchronously.
-                         */
-
-                        setTimeout(
-                            async () => {
-
-                                if (
-                                    !currentUser
-                                ) {
-
-                                    return;
-
-                                }
-
-
-                                await loadUserProfile();
-
-                                updateUserInterface();
-
-                            },
-                            0
-                        );
-
-                    }
-
-                }
-
-            }
-        );
-
-
-    authStateSubscription =
-        data?.subscription ||
+    oneDriveWorkbookSessionId =
+        data?.id ||
         null;
 
 
-    console.log(
-        "PDS: Auth state listener ready."
+    return oneDriveWorkbookSessionId;
+
+}
+
+
+/* =========================================================
+   EXCEL WORKBOOK URL
+========================================================= */
+
+function workbookEndpoint(
+    driveItemId,
+    path
+) {
+
+    let endpoint =
+        `${ONEDRIVE_GRAPH_ROOT}/me/drive/items/${encodeURIComponent(driveItemId)}/workbook`;
+
+
+    if (
+        path
+    ) {
+
+        endpoint +=
+            `/${path}`;
+
+    }
+
+
+    if (
+        oneDriveWorkbookSessionId
+    ) {
+
+        endpoint +=
+            endpoint.includes("?")
+                ? "&"
+                : "?";
+
+
+        endpoint +=
+            `workbook-session-id=${encodeURIComponent(
+                oneDriveWorkbookSessionId
+            )}`;
+
+    }
+
+
+    return endpoint;
+
+}
+
+
+/* =========================================================
+   GET WORKSHEET
+========================================================= */
+
+async function getOverallWorksheet(
+    driveItemId
+) {
+
+    const endpoint =
+        workbookEndpoint(
+            driveItemId,
+            `worksheets('${encodeURIComponent(
+                ONEDRIVE_SHEET_NAME
+            )}')`
+        );
+
+
+    return graphRequest(
+        endpoint
     );
 
 }
 
 
 /* =========================================================
-   PROJECT MONITORING TEST DATA
+   GET OVERALL USED RANGE
 ========================================================= */
 
-const monitoringTestData = [
+async function getOverallUsedRange(
+    driveItemId
+) {
 
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-Purpose Building, Barangay Poblacion D, Rosario, Batangas (13.842248°, 121.200737°)",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Rosario, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Jessica",
-        "ADVERTISEMENT BATCH": "Batch 1",
-        "CONTRACT ID": "26DD0005",
-        "CANVASS": "On-going",
-        "MARKET SCOPING": "Completed",
-        "CERT OF DED": "Completed",
-        "CERT OF CMPD": "Completed",
-        "CERT OF VALIDATION": "Completed",
-        "PRINTED COMPLETE PROGRAM": "Ongoing",
-        "SUBMITTED EXCEL FILE": "Not Yet Submitted",
-        "REMARKS": "",
-        "ARCHITECTURAL": "Completed",
-        "STRUCTURAL": "Completed",
-        "PLUMBING": "Completed",
-        "ELECTRICAL": "Completed",
-        "MECHANICAL": "Completed",
-        "SURVEY": "N/A",
-        "PRINTED COMPLETE PLAN": "For Signiture",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "77.86%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "83.33%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
+    const endpoint =
+        workbookEndpoint(
+            driveItemId,
+            `worksheets('${encodeURIComponent(
+                ONEDRIVE_SHEET_NAME
+            )}')/usedRange(valuesOnly=false)`
+        );
 
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-purpose Building (Barangay Hall) at Brgy. Mataas na Lupa, Taysan, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Taysan, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Carlo",
-        "ADVERTISEMENT BATCH": "Batch 2",
-        "CONTRACT ID": "26DD0014",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "66.67%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "83.33%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
 
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction (Completion) of Multi-Purpose Building, Barangay Bago, Ibaan, Batangas (13.808654°, 121.117460°)",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Ibaan, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Carlo",
-        "ADVERTISEMENT BATCH": "Batch 3",
-        "CONTRACT ID": "26DD0026",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "83.33%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
+    return graphRequest(
+        endpoint
+    );
 
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-purpose Building in Brgy. Don Luis, San Jose, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "San Jose, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Carlo",
-        "ADVERTISEMENT BATCH": "Batch 5",
-        "CONTRACT ID": "26DD0032",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "11.43%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "75%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Roads",
-        "PROJECT TITLE AS PER GAA":
-            "Concreting of Barangay Road Barangay Bukal, Taysan, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Taysan, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Marjon",
-        "ADVERTISEMENT BATCH": "Batch 5",
-        "CONTRACT ID": "26DD0055",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "0%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-Purpose Building (Senior Citizens' Center), Barangay Catmon, San Juan, Batangas (13.806327°, 121.450402°)",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "San Juan, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Anjeline",
-        "ADVERTISEMENT BATCH": "Batch 11",
-        "CONTRACT ID": "26DD0071",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "83.33%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-Purpose Building, Barangay Timbugan, Rosario, Batangas (13.812014°, 121.182458°)",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Rosario, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "JR",
-        "ADVERTISEMENT BATCH": "Batch 12",
-        "CONTRACT ID": "26DD0101",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "96.67%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-Purpose Building (Barangay Hall) at Barangay Panghayaan, Taysan, Batangas (13.779880, 121.189344)",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Taysan, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Jessica",
-        "ADVERTISEMENT BATCH": "Batch 13",
-        "CONTRACT ID": "26DD0113",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "75%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi-Purpose Building (Covered Court) at Rosario East Central School (107571), Brgy. Poblacion A, Rosario, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Rosario, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Karisa",
-        "ADVERTISEMENT BATCH": "Batch 13",
-        "CONTRACT ID": "26DD0118",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "75%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Roads",
-        "PROJECT TITLE AS PER GAA":
-            "Batangas-Quezon Rd - K0121 + 300 - K0121 + 870, K0122 + 000 - K0122 + 510",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Not Found",
-        "PROGRAM2": "Christine",
-        "PLAN": "Jerald",
-        "ADVERTISEMENT BATCH": "Batch 14",
-        "CONTRACT ID": "26DD0140",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "66.67%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "66.67%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Multi Purpose Building at Rosario East Central School, Poblacion A, Rosario, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Rosario, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Karisa",
-        "ADVERTISEMENT BATCH": "Batch 14",
-        "CONTRACT ID": "26DD0143",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "64.29%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "75%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Buildings",
-        "PROJECT TITLE AS PER GAA":
-            "Construction of Outdoor Sports Center, Rosario, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Rosario, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Aero",
-        "ADVERTISEMENT BATCH": "Batch 15",
-        "CONTRACT ID": "26DD0179",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "66.67%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "41.67%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    },
-
-    {
-        "CATEGORY": "Infrastructure",
-        "PROGRAM": "Infrastructure Program",
-        "SUB-PROGRAM": "Roads",
-        "PROJECT TITLE AS PER GAA":
-            "Improvement of Road at Barangay Pinagkawitan, Lipa City, Batangas",
-        "NO. OF PROJS": 1,
-        "ALLOCATION": 13000000,
-        "MUNICIPALITY": "Lipa City, Batangas",
-        "PROGRAM2": "Christine",
-        "PLAN": "Rose Anne",
-        "ADVERTISEMENT BATCH": "Batch 15",
-        "CONTRACT ID": "26DD0191",
-        "CANVASS": "",
-        "MARKET SCOPING": "",
-        "CERT OF DED": "",
-        "CERT OF CMPD": "",
-        "CERT OF VALIDATION": "",
-        "PRINTED COMPLETE PROGRAM": "",
-        "SUBMITTED EXCEL FILE": "",
-        "REMARKS": "",
-        "ARCHITECTURAL": "",
-        "STRUCTURAL": "",
-        "PLUMBING": "",
-        "ELECTRICAL": "",
-        "MECHANICAL": "",
-        "SURVEY": "",
-        "PRINTED COMPLETE PLAN": "",
-        "REMARKS2": "",
-        "PROGRAM STATUS": "Ongoing",
-        "PROGRAM % COMPLETE": "66.67%",
-        "PLAN STATUS": "For Completion",
-        "PLAN % COMPLETE": "50%",
-        "LAST UPDATED": "2026-09-16",
-        "DAYS SINCE UPDATE": 0,
-        "OVERALL STATUS": "In Progress"
-    }
-
-];
+}
 
 
 /* =========================================================
-   MONITORING HELPERS
+   NORMALIZE EXCEL VALUE
 ========================================================= */
 
-function normalizeMonitoringText(
+function normalizeExcelValue(
     value
 ) {
 
-    return String(
-        value ?? ""
-    )
-        .trim()
-        .toLowerCase()
-        .replace(
-            /\s+/g,
-            " "
-        );
-
-}
-
-
-function getMonitoringValue(
-    row,
-    columnName
-) {
-
-    if (!row) {
+    if (
+        value ===
+            null ||
+        value ===
+            undefined
+    ) {
 
         return "";
 
@@ -4778,879 +1394,121 @@ function getMonitoringValue(
 
 
     if (
-        Object.prototype.hasOwnProperty.call(
-            row,
-            columnName
-        )
+        typeof value ===
+            "string"
     ) {
 
-        return row[columnName];
+        return value.trim();
 
     }
 
 
-    const target =
-        normalizeMonitoringText(
-            columnName
-        );
-
-
-    const key =
-        Object.keys(row)
-            .find(
-                key =>
-                    normalizeMonitoringText(
-                        key
-                    ) === target
-            );
-
-
-    return key
-        ? row[key]
-        : "";
+    return value;
 
 }
 
 
-function monitoringPercent(
-    value
+/* =========================================================
+   FIND HEADER ROW
+========================================================= */
+
+function findOverallHeaderRow(
+    values
 ) {
 
     if (
-        value === null ||
-        value === undefined ||
-        value === ""
+        !Array.isArray(values)
     ) {
 
-        return 0;
+        return -1;
 
     }
 
 
-    let text =
-        String(value)
-            .trim()
-            .replace(
-                "%",
-                ""
-            );
+    const requiredHeaders = [
 
+        "CATEGORY",
 
-    let number =
-        parseFloat(text);
+        "PROGRAM",
 
+        "SUB-PROGRAM",
 
-    if (
-        Number.isNaN(number)
-    ) {
+        "PROJECT TITLE AS PER GAA",
 
-        return 0;
+        "NO. OF PROJS",
 
-    }
+        "ALLOCATION",
 
+        "MUNICIPALITY",
 
-    return Math.max(
-        0,
-        Math.min(
-            100,
-            number
-        )
-    );
+        "PROGRAM2"
 
-}
+    ];
 
 
-/* =========================================================
-   CURRENT MONITORING USER
-========================================================= */
+    let bestIndex =
+        -1;
 
-function getCurrentMonitoringUserName() {
 
-    if (currentProfile) {
+    let bestScore =
+        0;
 
-        return (
-            currentProfile.full_name ||
-            currentProfile.name ||
-            currentProfile.display_name ||
-            ""
-        );
 
-    }
+    values.forEach(
+        (row, index) => {
 
+            if (
+                !Array.isArray(row)
+            ) {
 
-    if (currentUser) {
+                return;
 
-        return (
-            currentUser.user_metadata?.full_name ||
-            currentUser.user_metadata?.name ||
-            currentUser.email?.split("@")[0] ||
-            ""
-        );
+            }
 
-    }
 
-
-    return "";
-
-}
-
-
-/* =========================================================
-   MONITORING ASSIGNMENT
-========================================================= */
-
-function isMonitoringProjectAssigned(
-    project
-) {
-
-    const userName =
-        normalizeMonitoringText(
-            getCurrentMonitoringUserName()
-        );
-
-
-    if (!userName) {
-
-        return false;
-
-    }
-
-
-    const programUser =
-        normalizeMonitoringText(
-            getMonitoringValue(
-                project,
-                "PROGRAM2"
-            )
-        );
-
-
-    const planUser =
-        normalizeMonitoringText(
-            getMonitoringValue(
-                project,
-                "PLAN"
-            )
-        );
-
-
-    return (
-        userName === programUser ||
-        userName === planUser ||
-        programUser.includes(userName) ||
-        planUser.includes(userName)
-    );
-
-}
-
-
-/* =========================================================
-   MONITORING EDIT PERMISSION
-========================================================= */
-
-function canEditMonitoringProject(
-    project
-) {
-
-    if (!currentUser) {
-
-        return false;
-
-    }
-
-
-    if (
-        !isMonitoringProjectAssigned(
-            project
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    const status =
-        normalizeMonitoringText(
-            getMonitoringValue(
-                project,
-                "OVERALL STATUS"
-            )
-        );
-
-
-    if (
-        status.includes(
-            "completed"
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    return true;
-
-}
-
-
-/* =========================================================
-   MONITORING STATUS CLASS
-========================================================= */
-
-function getMonitoringStatusClass(
-    status
-) {
-
-    const normalized =
-        normalizeMonitoringText(
-            status
-        );
-
-
-    if (
-        normalized.includes(
-            "completed"
-        )
-    ) {
-
-        return "completed";
-
-    }
-
-
-    if (
-        normalized.includes(
-            "hold"
-        )
-    ) {
-
-        return "hold";
-
-    }
-
-
-    if (
-        normalized.includes(
-            "signature"
-        ) ||
-        normalized.includes(
-            "completion"
-        )
-    ) {
-
-        return "bidding";
-
-    }
-
-
-    return "ongoing";
-
-}
-
-
-/* =========================================================
-   LOAD PROJECT MONITORING
-========================================================= */
-
-async function loadProjectMonitoring() {
-
-    const list =
-        $("monitoringList");
-
-
-    if (!list) {
-
-        return;
-
-    }
-
-
-    list.innerHTML = `
-        <div class="monitoring-loading">
-            Loading project monitoring data...
-        </div>
-    `;
-
-
-    /*
-     * TEMPORARY LOCAL TEST DATA
-     *
-     * OneDrive connection can be added later.
-     */
-
-    cachedMonitoringProjects =
-        [...monitoringTestData];
-
-
-    applyMonitoringFilters();
-
-}
-
-
-/* =========================================================
-   APPLY MONITORING FILTERS
-========================================================= */
-
-function applyMonitoringFilters() {
-
-    const search =
-        $("monitoringSearch");
-
-    const statusFilter =
-        $("monitoringStatusFilter");
-
-    const myProjectsFilter =
-        $("myProjectsFilter");
-
-
-    const query =
-        normalizeMonitoringText(
-            search?.value || ""
-        );
-
-
-    const selectedStatus =
-        statusFilter?.value ||
-        "all";
-
-
-    const myProjectsOnly =
-        myProjectsFilter?.checked ??
-        true;
-
-
-    let projects =
-        [...cachedMonitoringProjects];
-
-
-    if (query) {
-
-        projects =
-            projects.filter(
-                project => {
-
-                    const text = [
-
-                        getMonitoringValue(
-                            project,
-                            "CONTRACT ID"
-                        ),
-
-                        getMonitoringValue(
-                            project,
-                            "PROJECT TITLE AS PER GAA"
-                        ),
-
-                        getMonitoringValue(
-                            project,
-                            "MUNICIPALITY"
-                        ),
-
-                        getMonitoringValue(
-                            project,
-                            "PROGRAM2"
-                        ),
-
-                        getMonitoringValue(
-                            project,
-                            "PLAN"
-                        ),
-
-                        getMonitoringValue(
-                            project,
-                            "ADVERTISEMENT BATCH"
+            const normalized =
+                row.map(
+                    value =>
+                        String(
+                            value ??
+                            ""
                         )
-
-                    ]
-                        .filter(Boolean)
-                        .join(" ");
-
-
-                    return normalizeMonitoringText(
-                        text
-                    ).includes(
-                        query
-                    );
-
-                }
-            );
-
-    }
+                            .trim()
+                            .toLowerCase()
+                );
 
 
-    if (
-        selectedStatus !==
-        "all"
-    ) {
-
-        projects =
-            projects.filter(
-                project => {
-
-                    const status =
-                        normalizeMonitoringText(
-                            getMonitoringValue(
-                                project,
-                                "OVERALL STATUS"
-                            )
-                        );
+            let score =
+                0;
 
 
-                    return (
-                        status ===
-                        normalizeMonitoringText(
-                            selectedStatus
+            requiredHeaders.forEach(
+                header => {
+
+                    if (
+                        normalized.includes(
+                            header.toLowerCase()
                         )
-                    );
+                    ) {
+
+                        score++;
+
+                    }
 
                 }
             );
-
-    }
-
-
-    if (myProjectsOnly) {
-
-        projects =
-            projects.filter(
-                project =>
-                    isMonitoringProjectAssigned(
-                        project
-                    )
-            );
-
-    }
-
-
-    renderProjectMonitoring(
-        projects
-    );
-
-}
-
-
-/* =========================================================
-   RENDER PROJECT MONITORING
-========================================================= */
-
-function renderProjectMonitoring(
-    projects
-) {
-
-    const list =
-        $("monitoringList");
-
-    const empty =
-        $("monitoringEmpty");
-
-
-    if (!list) {
-
-        return;
-
-    }
-
-
-    if (
-        !projects ||
-        !projects.length
-    ) {
-
-        list.innerHTML =
-            "";
-
-
-        if (empty) {
-
-            empty.style.display =
-                "flex";
-
-        }
-
-
-        updateMonitoringSummary(
-            projects || []
-        );
-
-
-        return;
-
-    }
-
-
-    if (empty) {
-
-        empty.style.display =
-            "none";
-
-    }
-
-
-    list.innerHTML =
-        projects
-            .map(
-                project => {
-
-                    const projectNo =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "CONTRACT ID"
-                            ) ||
-                            "—"
-                        );
-
-
-                    const title =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "PROJECT TITLE AS PER GAA"
-                            ) ||
-                            "Untitled Project"
-                        );
-
-
-                    const municipality =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "MUNICIPALITY"
-                            ) ||
-                            "—"
-                        );
-
-
-                    const programPercent =
-                        monitoringPercent(
-                            getMonitoringValue(
-                                project,
-                                "PROGRAM % COMPLETE"
-                            )
-                        );
-
-
-                    const planPercent =
-                        monitoringPercent(
-                            getMonitoringValue(
-                                project,
-                                "PLAN % COMPLETE"
-                            )
-                        );
-
-
-                    const programStatus =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "PROGRAM STATUS"
-                            ) ||
-                            "—"
-                        );
-
-
-                    const planStatus =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "PLAN STATUS"
-                            ) ||
-                            "—"
-                        );
-
-
-                    const overallStatus =
-                        escapeHTML(
-                            getMonitoringValue(
-                                project,
-                                "OVERALL STATUS"
-                            ) ||
-                            "—"
-                        );
-
-
-                    const editable =
-                        canEditMonitoringProject(
-                            project
-                        );
-
-
-                    const statusClass =
-                        getMonitoringStatusClass(
-                            overallStatus
-                        );
-
-
-                    const encodedProject =
-                        encodeURIComponent(
-                            getMonitoringValue(
-                                project,
-                                "CONTRACT ID"
-                            )
-                        );
-
-
-                    return `
-
-                        <div
-                            class="monitoring-row"
-                            data-project-id="${escapeHTML(
-                                getMonitoringValue(
-                                    project,
-                                    "CONTRACT ID"
-                                )
-                            )}"
-                        >
-
-                            <div
-                                class="monitoring-project-no"
-                                data-label="PROJECT NO."
-                            >
-                                ${projectNo}
-                            </div>
-
-
-                            <div
-                                class="monitoring-project-name"
-                                data-label="PROJECT"
-                            >
-
-                                <strong>
-                                    ${title}
-                                </strong>
-
-                                <span>
-                                    ${municipality}
-                                </span>
-
-                            </div>
-
-
-                            <div
-                                class="monitoring-progress"
-                                data-label="PROGRAM"
-                            >
-
-                                <div class="progress-value">
-                                    ${programPercent.toFixed(2)}%
-                                </div>
-
-                                <div class="progress-track">
-
-                                    <div
-                                        class="progress-fill"
-                                        style="width:${programPercent}%"
-                                    ></div>
-
-                                </div>
-
-                                <small>
-                                    ${programStatus}
-                                </small>
-
-                            </div>
-
-
-                            <div
-                                class="monitoring-progress"
-                                data-label="PLAN"
-                            >
-
-                                <div class="progress-value">
-                                    ${planPercent.toFixed(2)}%
-                                </div>
-
-                                <div class="progress-track">
-
-                                    <div
-                                        class="progress-fill"
-                                        style="width:${planPercent}%"
-                                    ></div>
-
-                                </div>
-
-                                <small>
-                                    ${planStatus}
-                                </small>
-
-                            </div>
-
-
-                            <div
-                                data-label="OVERALL STATUS"
-                            >
-
-                                <span
-                                    class="monitoring-status ${statusClass}"
-                                >
-                                    ${overallStatus}
-                                </span>
-
-                            </div>
-
-
-                            <div
-                                class="monitoring-actions"
-                                data-label="ACTION"
-                            >
-
-                                <button
-                                    type="button"
-                                    class="monitoring-view"
-                                    data-monitoring-action="view"
-                                    data-project-id="${encodedProject}"
-                                >
-                                    VIEW
-                                </button>
-
-                                ${
-                                    editable
-                                        ? `
-                                            <button
-                                                type="button"
-                                                class="monitoring-edit"
-                                                data-monitoring-action="edit"
-                                                data-project-id="${encodedProject}"
-                                            >
-                                                EDIT
-                                            </button>
-                                        `
-                                        : ""
-                                }
-
-                            </div>
-
-                        </div>
-
-                    `;
-
-                }
-            )
-            .join("");
-
-
-    updateMonitoringSummary(
-        projects
-    );
-
-}
-
-
-/* =========================================================
-   MONITORING SUMMARY
-========================================================= */
-
-function updateMonitoringSummary(
-    projects
-) {
-
-    const total =
-        $("monitoringTotal");
-
-    const programAverage =
-        $("monitoringProgramAverage");
-
-    const planAverage =
-        $("monitoringPlanAverage");
-
-    const inProgress =
-        $("monitoringInProgress");
-
-
-    if (
-        !projects ||
-        !projects.length
-    ) {
-
-        if (total) {
-
-            total.textContent =
-                "0";
-
-        }
-
-
-        if (programAverage) {
-
-            programAverage.textContent =
-                "0%";
-
-        }
-
-
-        if (planAverage) {
-
-            planAverage.textContent =
-                "0%";
-
-        }
-
-
-        if (inProgress) {
-
-            inProgress.textContent =
-                "0";
-
-        }
-
-
-        return;
-
-    }
-
-
-    let programTotal =
-        0;
-
-    let planTotal =
-        0;
-
-    let activeCount =
-        0;
-
-
-    projects.forEach(
-        project => {
-
-            programTotal +=
-                monitoringPercent(
-                    getMonitoringValue(
-                        project,
-                        "PROGRAM % COMPLETE"
-                    )
-                );
-
-
-            planTotal +=
-                monitoringPercent(
-                    getMonitoringValue(
-                        project,
-                        "PLAN % COMPLETE"
-                    )
-                );
-
-
-            const status =
-                normalizeMonitoringText(
-                    getMonitoringValue(
-                        project,
-                        "OVERALL STATUS"
-                    )
-                );
 
 
             if (
-                status.includes(
-                    "progress"
-                ) ||
-                status.includes(
-                    "ongoing"
-                )
+                score >
+                bestScore
             ) {
 
-                activeCount++;
+                bestScore =
+                    score;
+
+                bestIndex =
+                    index;
 
             }
 
@@ -5658,46 +1516,342 @@ function updateMonitoringSummary(
     );
 
 
-    const programAverageValue =
-        programTotal /
-        projects.length;
+    return bestIndex;
+
+}
 
 
-    const planAverageValue =
-        planTotal /
-        projects.length;
+/* =========================================================
+   BUILD OBJECT FROM EXCEL ROW
+========================================================= */
+
+function excelRowToObject(
+    headers,
+    row,
+    excelRowNumber
+) {
+
+    const object =
+        {
+
+            __excelRowNumber:
+                excelRowNumber
+
+        };
 
 
-    if (total) {
+    headers.forEach(
+        (header, index) => {
 
-        total.textContent =
-            projects.length;
+            if (
+                !header
+            ) {
+
+                return;
+
+            }
+
+
+            object[header] =
+                normalizeExcelValue(
+                    row?.[index]
+                );
+
+        }
+    );
+
+
+    return object;
+
+}
+
+
+/* =========================================================
+   LOAD OVERALL FROM ONEDRIVE
+========================================================= */
+
+async function loadOverallFromOneDrive() {
+
+    if (
+        !MICROSOFT_CLIENT_ID ||
+        MICROSOFT_CLIENT_ID ===
+            "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
+    ) {
+
+        console.warn(
+            "PDS OneDrive: Client ID not configured."
+        );
+
+        return [];
 
     }
 
 
-    if (programAverage) {
+    try {
 
-        programAverage.textContent =
-            programAverageValue.toFixed(2) +
-            "%";
-
-    }
+        oneDriveAccessToken =
+            oneDriveAccessToken ||
+            await acquireMicrosoftAccessToken();
 
 
-    if (planAverage) {
-
-        planAverage.textContent =
-            planAverageValue.toFixed(2) +
-            "%";
-
-    }
+        const workbook =
+            await getOverallWorkbookItem();
 
 
-    if (inProgress) {
+        /*
+         * Create persistent workbook session.
+         */
 
-        inProgress.textContent =
-            activeCount;
+        try {
+
+            await createWorkbookSession(
+                workbook.id
+            );
+
+        } catch (sessionError) {
+
+            console.warn(
+                "PDS OneDrive: Workbook session could not be created. Continuing without persistent session.",
+                sessionError
+            );
+
+            oneDriveWorkbookSessionId =
+                null;
+
+        }
+
+
+        const usedRange =
+            await getOverallUsedRange(
+                workbook.id
+            );
+
+
+        const values =
+            Array.isArray(
+                usedRange?.values
+            )
+                ? usedRange.values
+                : [];
+
+
+        if (
+            !values.length
+        ) {
+
+            throw new Error(
+                `The "${ONEDRIVE_SHEET_NAME}" worksheet contains no readable values.`
+            );
+
+        }
+
+
+        const headerIndex =
+            findOverallHeaderRow(
+                values
+            );
+
+
+        if (
+            headerIndex <
+            0
+        ) {
+
+            throw new Error(
+                `Could not identify the header row in "${ONEDRIVE_SHEET_NAME}".`
+            );
+
+        }
+
+
+        oneDriveHeaders =
+            values[
+                headerIndex
+            ].map(
+                value =>
+                    String(
+                        value ??
+                        ""
+                    ).trim()
+            );
+
+
+        const rows =
+            [];
+
+
+        for (
+            let i =
+                headerIndex + 1;
+            i <
+                values.length;
+            i++
+        ) {
+
+            const row =
+                values[i];
+
+
+            if (
+                !Array.isArray(row)
+            ) {
+
+                continue;
+
+            }
+
+
+            const titleIndex =
+                oneDriveHeaders.findIndex(
+                    header =>
+                        String(
+                            header
+                        )
+                            .trim()
+                            .toLowerCase() ===
+                        "project title as per gaa"
+                            .toLowerCase()
+                );
+
+
+            const title =
+                titleIndex >= 0
+                    ? row[
+                        titleIndex
+                    ]
+                    : "";
+
+
+            /*
+             * Ignore completely blank rows.
+             */
+
+            const hasAnyValue =
+                row.some(
+                    value =>
+                        String(
+                            value ??
+                            ""
+                        ).trim() !==
+                        ""
+                );
+
+
+            if (
+                !hasAnyValue
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+             * The Excel row number is
+             * Excel's actual 1-based row.
+             */
+
+            const excelRowNumber =
+                i + 1;
+
+
+            /*
+             * Keep rows that contain
+             * project information.
+             */
+
+            if (
+                String(
+                    title ??
+                    ""
+                ).trim() ===
+                "" &&
+                row.every(
+                    value =>
+                        String(
+                            value ??
+                            ""
+                        ).trim() ===
+                        ""
+                )
+            ) {
+
+                continue;
+
+            }
+
+
+            rows.push(
+                excelRowToObject(
+                    oneDriveHeaders,
+                    row,
+                    excelRowNumber
+                )
+            );
+
+        }
+
+
+        oneDriveWorkbookRows =
+            rows;
+
+
+        cachedMonitoringProjects =
+            [...rows];
+
+
+        oneDriveReady =
+            true;
+
+
+        console.log(
+            `PDS OneDrive: Loaded ${rows.length} project rows from OVERALL.`
+        );
+
+
+        /*
+         * Refresh all project-monitoring
+         * UI using the live Excel data.
+         */
+
+        if (
+            typeof applyMonitoringFilters ===
+            "function"
+        ) {
+
+            applyMonitoringFilters();
+
+        }
+
+
+        if (
+            typeof renderProjectsFromOverall ===
+            "function"
+        ) {
+
+            renderProjectsFromOverall(
+                rows
+            );
+
+        }
+
+
+        return rows;
+
+
+    } catch (error) {
+
+        oneDriveReady =
+            false;
+
+
+        console.error(
+            "PDS OneDrive: Unable to load OVERALL:",
+            error
+        );
+
+
+        throw error;
 
     }
 
@@ -5705,7 +1859,434 @@ function updateMonitoringSummary(
 
 
 /* =========================================================
-   VIEW MONITORING PROJECT
+   FIND EXCEL COLUMN INDEX
+========================================================= */
+
+function getOverallColumnIndex(
+    columnName
+) {
+
+    const target =
+        String(
+            columnName ??
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    return oneDriveHeaders.findIndex(
+        header =>
+            String(
+                header ??
+                ""
+            )
+                .trim()
+                .toLowerCase() ===
+            target
+    );
+
+}
+
+
+/* =========================================================
+   CONVERT VALUE FOR EXCEL
+========================================================= */
+
+function prepareExcelValue(
+    value
+) {
+
+    if (
+        value ===
+            null ||
+        value ===
+            undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    if (
+        typeof value ===
+            "number"
+    ) {
+
+        return value;
+
+    }
+
+
+    if (
+        typeof value ===
+            "boolean"
+    ) {
+
+        return value;
+
+    }
+
+
+    return String(
+        value
+    );
+
+}
+
+
+/* =========================================================
+   UPDATE SINGLE OVERALL CELL
+========================================================= */
+
+async function updateOverallCell(
+    excelRowNumber,
+    columnName,
+    value
+) {
+
+    if (
+        !oneDriveReady
+    ) {
+
+        throw new Error(
+            "OneDrive is not connected."
+        );
+
+    }
+
+
+    const columnIndex =
+        getOverallColumnIndex(
+            columnName
+        );
+
+
+    if (
+        columnIndex <
+        0
+    ) {
+
+        throw new Error(
+            `Column "${columnName}" was not found in OVERALL.`
+        );
+
+    }
+
+
+    /*
+     * Excel Graph range addresses use
+     * column letters. Convert zero-based
+     * index to Excel letters.
+     */
+
+    function columnLetters(
+        zeroBasedIndex
+    ) {
+
+        let index =
+            zeroBasedIndex + 1;
+
+        let letters =
+            "";
+
+
+        while (
+            index >
+            0
+        ) {
+
+            const remainder =
+                (
+                    index - 1
+                ) %
+                26;
+
+
+            letters =
+                String.fromCharCode(
+                    65 +
+                    remainder
+                ) +
+                letters;
+
+
+            index =
+                Math.floor(
+                    (
+                        index - 1
+                    ) /
+                    26
+                );
+
+        }
+
+
+        return letters;
+
+    }
+
+
+    const columnLetter =
+        columnLetters(
+            columnIndex
+        );
+
+
+    const workbook =
+        await getOverallWorkbookItem();
+
+
+    const endpoint =
+        workbookEndpoint(
+            workbook.id,
+            `worksheets('${encodeURIComponent(
+                ONEDRIVE_SHEET_NAME
+            )}')/range(address='${columnLetter}${excelRowNumber}')`
+        );
+
+
+    return graphRequest(
+        endpoint,
+        {
+
+            method:
+                "PATCH",
+
+            headers: {
+
+                "Content-Type":
+                    "application/json"
+
+            },
+
+            body:
+                JSON.stringify({
+
+                    values: [
+                        [
+                            prepareExcelValue(
+                                value
+                            )
+                        ]
+                    ]
+
+                })
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   UPDATE MULTIPLE OVERALL CELLS
+========================================================= */
+
+async function updateOverallRow(
+    project,
+    changes
+) {
+
+    if (
+        !project
+    ) {
+
+        throw new Error(
+            "No project was supplied."
+        );
+
+    }
+
+
+    const rowNumber =
+        Number(
+            project.__excelRowNumber
+        );
+
+
+    if (
+        !Number.isFinite(
+            rowNumber
+        ) ||
+        rowNumber <
+            1
+    ) {
+
+        throw new Error(
+            "The project does not contain a valid Excel row number."
+        );
+
+    }
+
+
+    const entries =
+        Object.entries(
+            changes ||
+            {}
+        );
+
+
+    if (
+        !entries.length
+    ) {
+
+        return project;
+
+    }
+
+
+    /*
+     * Update only the cells that
+     * the website actually changed.
+     */
+
+    for (
+        const [
+            columnName,
+            value
+        ]
+        of entries
+    ) {
+
+        await updateOverallCell(
+            rowNumber,
+            columnName,
+            value
+        );
+
+    }
+
+
+    /*
+     * Reload from Excel so that
+     * formulas and calculated fields
+     * are reflected in the website.
+     */
+
+    await loadOverallFromOneDrive();
+
+
+    const updated =
+        oneDriveWorkbookRows.find(
+            row =>
+                Number(
+                    row.__excelRowNumber
+                ) ===
+                rowNumber
+        );
+
+
+    return updated ||
+        project;
+
+}
+
+
+/* =========================================================
+   SAVE PROJECT TO OVERALL
+========================================================= */
+
+async function saveProjectToOverall(
+    project,
+    changes
+) {
+
+    try {
+
+        const updated =
+            await updateOverallRow(
+                project,
+                changes
+            );
+
+
+        console.log(
+            "PDS OneDrive: Project saved to OVERALL.",
+            updated
+        );
+
+
+        return updated;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS OneDrive: Failed to save project:",
+            error
+        );
+
+
+        alert(
+            "Unable to save the project to OneDrive Excel.\n\n" +
+            (
+                error?.message ||
+                "Unknown error."
+            )
+        );
+
+
+        throw error;
+
+    }
+
+}
+
+
+/* =========================================================
+   REFRESH OVERALL
+========================================================= */
+
+async function refreshOverallFromOneDrive() {
+
+    try {
+
+        const rows =
+            await loadOverallFromOneDrive();
+
+
+        if (
+            typeof renderProjectsFromOverall ===
+            "function"
+        ) {
+
+            renderProjectsFromOverall(
+                rows
+            );
+
+        }
+
+
+        if (
+            typeof loadProjectMonitoring ===
+            "function"
+        ) {
+
+            await loadProjectMonitoring();
+
+        }
+
+
+        return rows;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS OneDrive refresh failed:",
+            error
+        );
+
+
+        return [];
+
+    }
+
+}
+/* =========================================================
+   VIEW MONITORING PROJECT — CONTINUATION
 ========================================================= */
 
 function viewMonitoringProject(
@@ -5827,6 +2408,1415 @@ function viewMonitoringProject(
         "—";
 
 
+    const lastUpdated =
+        getMonitoringValue(
+            project,
+            "LAST UPDATED"
+        ) ||
+        "—";
+
+
+    content.innerHTML = `
+
+        <div class="project-modal-header">
+
+            <div>
+
+                <span class="project-modal-kicker">
+                    PROJECT MONITORING
+                </span>
+
+                <h2>
+                    ${escapeHTML(title)}
+                </h2>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                data-modal-close
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="project-modal-meta">
+
+            <div>
+                <span>PROJECT NO.</span>
+                <strong>
+                    ${escapeHTML(projectNo)}
+                </strong>
+            </div>
+
+            <div>
+                <span>MUNICIPALITY</span>
+                <strong>
+                    ${escapeHTML(municipality)}
+                </strong>
+            </div>
+
+            <div>
+                <span>PROGRAM ASSIGNED</span>
+                <strong>
+                    ${escapeHTML(programUser)}
+                </strong>
+            </div>
+
+            <div>
+                <span>PLAN ASSIGNED</span>
+                <strong>
+                    ${escapeHTML(planUser)}
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div class="monitoring-detail-grid">
+
+            <div class="monitoring-detail-card">
+
+                <span>
+                    PROGRAM STATUS
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        getMonitoringValue(
+                            project,
+                            "PROGRAM STATUS"
+                        ) || "—"
+                    )}
+                </strong>
+
+                <div class="progress-track">
+
+                    <div
+                        class="progress-fill"
+                        style="width:${programPercent}%"
+                    ></div>
+
+                </div>
+
+                <b>
+                    ${programPercent.toFixed(2)}%
+                </b>
+
+            </div>
+
+
+            <div class="monitoring-detail-card">
+
+                <span>
+                    PLAN STATUS
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        getMonitoringValue(
+                            project,
+                            "PLAN STATUS"
+                        ) || "—"
+                    )}
+                </strong>
+
+                <div class="progress-track">
+
+                    <div
+                        class="progress-fill"
+                        style="width:${planPercent}%"
+                    ></div>
+
+                </div>
+
+                <b>
+                    ${planPercent.toFixed(2)}%
+                </b>
+
+            </div>
+
+
+            <div class="monitoring-detail-card">
+
+                <span>
+                    OVERALL STATUS
+                </span>
+
+                <strong>
+                    ${escapeHTML(overallStatus)}
+                </strong>
+
+            </div>
+
+
+            <div class="monitoring-detail-card">
+
+                <span>
+                    LAST UPDATED
+                </span>
+
+                <strong>
+                    ${escapeHTML(lastUpdated)}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="project-monitoring-fields">
+
+            ${renderMonitoringField(
+                project,
+                "ADVERTISEMENT BATCH"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "CANVASS"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "MARKET SCOPING"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "CERT OF DED"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "CERT OF CMPD"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "CERT OF VALIDATION"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "PRINTED COMPLETE PROGRAM"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "SUBMITTED EXCEL FILE"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "REMARKS"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "ARCHITECTURAL"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "STRUCTURAL"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "PLUMBING"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "ELECTRICAL"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "MECHANICAL"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "SURVEY"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "PRINTED COMPLETE PLAN"
+            )}
+
+            ${renderMonitoringField(
+                project,
+                "REMARKS2"
+            )}
+
+        </div>
+
+    `;
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+}
+
+
+/* =========================================================
+   RENDER MONITORING FIELD
+========================================================= */
+
+function renderMonitoringField(
+    project,
+    columnName
+) {
+
+    const value =
+        getMonitoringValue(
+            project,
+            columnName
+        );
+
+
+    return `
+
+        <div class="monitoring-field">
+
+            <span>
+                ${escapeHTML(
+                    columnName
+                )}
+            </span>
+
+            <strong>
+                ${escapeHTML(
+                    value || "—"
+                )}
+            </strong>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   CLOSE PROJECT MODAL
+========================================================= */
+
+function closeProjectModal() {
+
+    const modal =
+        $("projectModal");
+
+
+    if (!modal) {
+
+        return;
+
+    }
+
+
+    modal.classList.add(
+        "hidden"
+    );
+
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+}
+
+
+/* =========================================================
+   EDIT MONITORING PROJECT
+========================================================= */
+
+function editMonitoringProject(
+    projectId
+) {
+
+    const decodedId =
+        decodeURIComponent(
+            projectId
+        );
+
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(
+                    getMonitoringValue(
+                        item,
+                        "CONTRACT ID"
+                    )
+                ) ===
+                String(
+                    decodedId
+                )
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !canEditMonitoringProject(
+            project
+        )
+    ) {
+
+        alert(
+            "You are not authorized to edit this project."
+        );
+
+        return;
+
+    }
+
+
+    openMonitoringEditModal(
+        project
+    );
+
+}
+
+
+/* =========================================================
+   OPEN MONITORING EDIT MODAL
+========================================================= */
+
+function openMonitoringEditModal(
+    project
+) {
+
+    const modal =
+        $("projectModal");
+
+    const content =
+        $("projectModalContent");
+
+
+    if (
+        !modal ||
+        !content
+    ) {
+
+        return;
+
+    }
+
+
+    const title =
+        getMonitoringValue(
+            project,
+            "PROJECT TITLE AS PER GAA"
+        ) ||
+        "Untitled Project";
+
+
+    const projectNo =
+        getMonitoringValue(
+            project,
+            "CONTRACT ID"
+        ) ||
+        "—";
+
+
+    const editableFields = [
+
+        "ADVERTISEMENT BATCH",
+
+        "CANVASS",
+
+        "MARKET SCOPING",
+
+        "CERT OF DED",
+
+        "CERT OF CMPD",
+
+        "CERT OF VALIDATION",
+
+        "PRINTED COMPLETE PROGRAM",
+
+        "SUBMITTED EXCEL FILE",
+
+        "REMARKS",
+
+        "ARCHITECTURAL",
+
+        "STRUCTURAL",
+
+        "PLUMBING",
+
+        "ELECTRICAL",
+
+        "MECHANICAL",
+
+        "SURVEY",
+
+        "PRINTED COMPLETE PLAN",
+
+        "REMARKS2",
+
+        "PROGRAM STATUS",
+
+        "PROGRAM % COMPLETE",
+
+        "PLAN STATUS",
+
+        "PLAN % COMPLETE",
+
+        "OVERALL STATUS"
+
+    ];
+
+
+    content.innerHTML = `
+
+        <div class="project-modal-header">
+
+            <div>
+
+                <span class="project-modal-kicker">
+                    EDIT PROJECT MONITORING
+                </span>
+
+                <h2>
+                    ${escapeHTML(title)}
+                </h2>
+
+                <small>
+                    ${escapeHTML(projectNo)}
+                </small>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                data-modal-close
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            id="monitoringEditForm"
+            class="monitoring-edit-form"
+        >
+
+            ${editableFields
+                .map(
+                    field =>
+                        renderMonitoringEditField(
+                            project,
+                            field
+                        )
+                )
+                .join("")}
+
+
+            <div class="monitoring-edit-actions">
+
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    data-modal-close
+                >
+                    CANCEL
+                </button>
+
+                <button
+                    type="submit"
+                    class="btn-primary"
+                >
+                    SAVE TO ONEDRIVE
+                </button>
+
+            </div>
+
+        </form>
+
+    `;
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+
+    const form =
+        $("monitoringEditForm");
+
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            async event => {
+
+                event.preventDefault();
+
+
+                await saveMonitoringEdit(
+                    project,
+                    form
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER EDIT FIELD
+========================================================= */
+
+function renderMonitoringEditField(
+    project,
+    columnName
+) {
+
+    const value =
+        getMonitoringValue(
+            project,
+            columnName
+        );
+
+
+    const normalized =
+        String(
+            columnName
+        )
+            .trim()
+            .toUpperCase();
+
+
+    const isPercent =
+        normalized ===
+            "PROGRAM % COMPLETE" ||
+        normalized ===
+            "PLAN % COMPLETE";
+
+
+    const isLongText =
+        normalized ===
+            "REMARKS" ||
+        normalized ===
+            "REMARKS2";
+
+
+    const isStatus =
+        normalized ===
+            "PROGRAM STATUS" ||
+        normalized ===
+            "PLAN STATUS" ||
+        normalized ===
+            "OVERALL STATUS";
+
+
+    if (isStatus) {
+
+        return `
+
+            <label class="monitoring-edit-field">
+
+                <span>
+                    ${escapeHTML(columnName)}
+                </span>
+
+                <input
+                    type="text"
+                    name="${escapeHTML(columnName)}"
+                    value="${escapeAttribute(value)}"
+                    autocomplete="off"
+                >
+
+            </label>
+
+        `;
+
+    }
+
+
+    if (isPercent) {
+
+        return `
+
+            <label class="monitoring-edit-field">
+
+                <span>
+                    ${escapeHTML(columnName)}
+                </span>
+
+                <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    name="${escapeHTML(columnName)}"
+                    value="${escapeAttribute(
+                        monitoringPercent(value)
+                    )}"
+                >
+
+            </label>
+
+        `;
+
+    }
+
+
+    if (isLongText) {
+
+        return `
+
+            <label class="monitoring-edit-field monitoring-edit-wide">
+
+                <span>
+                    ${escapeHTML(columnName)}
+                </span>
+
+                <textarea
+                    name="${escapeHTML(columnName)}"
+                    rows="3"
+                >${escapeHTML(
+                    value
+                )}</textarea>
+
+            </label>
+
+        `;
+
+    }
+
+
+    return `
+
+        <label class="monitoring-edit-field">
+
+            <span>
+                ${escapeHTML(columnName)}
+            </span>
+
+            <input
+                type="text"
+                name="${escapeHTML(columnName)}"
+                value="${escapeAttribute(value)}"
+                autocomplete="off"
+            >
+
+        </label>
+
+    `;
+
+}
+
+
+/* =========================================================
+   SAVE MONITORING EDIT
+========================================================= */
+
+async function saveMonitoringEdit(
+    project,
+    form
+) {
+
+    if (
+        !form
+    ) {
+
+        return;
+
+    }
+
+
+    const submitButton =
+        form.querySelector(
+            'button[type="submit"]'
+        );
+
+
+    if (submitButton) {
+
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "SAVING...";
+
+    }
+
+
+    try {
+
+        if (
+            !oneDriveReady
+        ) {
+
+            await signInToMicrosoft();
+
+        }
+
+
+        if (
+            !oneDriveReady
+        ) {
+
+            throw new Error(
+                "OneDrive is not connected."
+            );
+
+        }
+
+
+        const changes =
+            {};
+
+
+        const formData =
+            new FormData(
+                form
+            );
+
+
+        formData.forEach(
+            (
+                value,
+                key
+            ) => {
+
+                let finalValue =
+                    value;
+
+
+                if (
+                    key ===
+                        "PROGRAM % COMPLETE" ||
+                    key ===
+                        "PLAN % COMPLETE"
+                ) {
+
+                    finalValue =
+                        monitoringPercent(
+                            value
+                        );
+
+                }
+
+
+                changes[key] =
+                    finalValue;
+
+            }
+        );
+
+
+        /*
+         * LAST UPDATED is maintained
+         * automatically whenever the
+         * website changes a project.
+         */
+
+        changes[
+            "LAST UPDATED"
+        ] =
+            new Date().toISOString();
+
+
+        await saveProjectToOverall(
+            project,
+            changes
+        );
+
+
+        alert(
+            "Project monitoring record successfully saved to OneDrive Excel."
+        );
+
+
+        closeProjectModal();
+
+
+        await refreshOverallFromOneDrive();
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Monitoring save failed:",
+            error
+        );
+
+
+        alert(
+            "Save failed.\n\n" +
+            (
+                error?.message ||
+                "Unable to update OneDrive Excel."
+            )
+        );
+
+
+    } finally {
+
+        if (submitButton) {
+
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "SAVE TO ONEDRIVE";
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   MONITORING EVENT DELEGATION
+========================================================= */
+
+function setupMonitoringEvents() {
+
+    const list =
+        $("monitoringList");
+
+
+    if (
+        list &&
+        !list.dataset.eventsReady
+    ) {
+
+        list.addEventListener(
+            "click",
+            event => {
+
+                const button =
+                    event.target.closest(
+                        "[data-monitoring-action]"
+                    );
+
+
+                if (!button) {
+
+                    return;
+
+                }
+
+
+                const action =
+                    button.dataset.monitoringAction;
+
+
+                const projectId =
+                    button.dataset.projectId;
+
+
+                if (
+                    action ===
+                    "view"
+                ) {
+
+                    viewMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+
+                if (
+                    action ===
+                    "edit"
+                ) {
+
+                    editMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+            }
+        );
+
+
+        list.dataset.eventsReady =
+            "true";
+
+    }
+
+
+    const search =
+        $("monitoringSearch");
+
+
+    if (
+        search &&
+        !search.dataset.eventsReady
+    ) {
+
+        search.addEventListener(
+            "input",
+            applyMonitoringFilters
+        );
+
+
+        search.dataset.eventsReady =
+            "true";
+
+    }
+
+
+    const statusFilter =
+        $("monitoringStatusFilter");
+
+
+    if (
+        statusFilter &&
+        !statusFilter.dataset.eventsReady
+    ) {
+
+        statusFilter.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+
+        statusFilter.dataset.eventsReady =
+            "true";
+
+    }
+
+
+    const myProjectsFilter =
+        $("myProjectsFilter");
+
+
+    if (
+        myProjectsFilter &&
+        !myProjectsFilter.dataset.eventsReady
+    ) {
+
+        myProjectsFilter.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+
+        myProjectsFilter.dataset.eventsReady =
+            "true";
+
+    }
+
+
+    const refreshButton =
+        $("refreshMonitoring");
+
+
+    if (
+        refreshButton &&
+        !refreshButton.dataset.eventsReady
+    ) {
+
+        refreshButton.addEventListener(
+            "click",
+            async () => {
+
+                refreshButton.disabled =
+                    true;
+
+
+                const originalText =
+                    refreshButton.textContent;
+
+
+                refreshButton.textContent =
+                    "REFRESHING...";
+
+
+                try {
+
+                    await refreshOverallFromOneDrive();
+
+                } finally {
+
+                    refreshButton.disabled =
+                        false;
+
+                    refreshButton.textContent =
+                        originalText;
+
+                }
+
+            }
+        );
+
+
+        refreshButton.dataset.eventsReady =
+            "true";
+
+    }
+
+}
+
+
+/* =========================================================
+   MODAL EVENTS
+========================================================= */
+
+function setupProjectModalEvents() {
+
+    const modal =
+        $("projectModal");
+
+
+    if (
+        !modal ||
+        modal.dataset.eventsReady
+    ) {
+
+        return;
+
+    }
+
+
+    modal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                closeProjectModal();
+
+                return;
+
+            }
+
+
+            if (
+                event.target.closest(
+                    "[data-modal-close]"
+                )
+            ) {
+
+                closeProjectModal();
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                closeProjectModal();
+
+            }
+
+        }
+    );
+
+
+    modal.dataset.eventsReady =
+        "true";
+
+}
+
+
+/* =========================================================
+   MONITORING INITIALIZATION
+========================================================= */
+
+async function initializeProjectMonitoring() {
+
+    setupMonitoringEvents();
+
+    setupProjectModalEvents();
+
+
+    /*
+     * If the Microsoft account is
+     * already available, immediately
+     * load the live Excel data.
+     */
+
+    try {
+
+        if (
+            MICROSOFT_CLIENT_ID !==
+            "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
+        ) {
+
+            const ready =
+                await initializeMicrosoftAuth();
+
+
+            if (
+                ready &&
+                microsoftAccount
+            ) {
+
+                oneDriveAccessToken =
+                    await acquireMicrosoftAccessToken();
+
+
+                await loadOverallFromOneDrive();
+
+            }
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: OneDrive automatic initialization was not completed:",
+            error
+        );
+
+    }
+
+
+    /*
+     * If no live data is available,
+     * do not silently replace it with
+     * the old local test dataset.
+     *
+     * This keeps OVERALL as the source
+     * of truth.
+     */
+
+    if (
+        !oneDriveReady
+    ) {
+
+        cachedMonitoringProjects =
+            [];
+
+        renderProjectMonitoring(
+            []
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CONNECT ONEDRIVE BUTTON
+========================================================= */
+
+function setupOneDriveButton() {
+
+    const buttons =
+        document.querySelectorAll(
+            "#connectOneDrive, [data-action='connect-onedrive']"
+        );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.dataset.oneDriveReady
+            ) {
+
+                return;
+
+            }
+
+
+            button.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
+
+                    const originalText =
+                        button.textContent;
+
+
+                    button.disabled =
+                        true;
+
+
+                    button.textContent =
+                        "CONNECTING...";
+
+
+                    try {
+
+                        const connected =
+                            await signInToMicrosoft();
+
+
+                        if (
+                            connected
+                        ) {
+
+                            button.textContent =
+                                "ONEDRIVE CONNECTED";
+
+                        } else {
+
+                            button.textContent =
+                                originalText;
+
+                        }
+
+                    } catch (error) {
+
+                        console.error(
+                            "PDS OneDrive connection failed:",
+                            error
+                        );
+
+
+                        button.textContent =
+                            originalText;
+
+                    } finally {
+
+                        button.disabled =
+                            false;
+
+                    }
+
+                }
+            );
+
+
+            button.dataset.oneDriveReady =
+                "true";
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   MICROSOFT SIGN OUT
+========================================================= */
+
+async function signOutMicrosoft() {
+
+    try {
+
+        if (
+            msalInstance &&
+            microsoftAccount
+        ) {
+
+            await msalInstance.logoutPopup({
+
+                account:
+                    microsoftAccount,
+
+                mainWindowRedirectUri:
+                    window.location.origin +
+                    window.location.pathname
+
+            });
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "PDS OneDrive Microsoft sign-out:",
+            error
+        );
+
+    } finally {
+
+        microsoftAccount =
+            null;
+
+        oneDriveReady =
+            false;
+
+        oneDriveAccessToken =
+            null;
+
+        oneDriveWorkbookRows =
+            [];
+
+        oneDriveHeaders =
+            [];
+
+        oneDriveWorkbookSessionId =
+            null;
+
+        cachedMonitoringProjects =
+            [];
+
+    }
+
+}
     const programStatus =
         getMonitoringValue(
             project,
@@ -5872,80 +3862,127 @@ function viewMonitoringProject(
             <div class="detail-grid">
 
                 <div>
-                    <span>PROJECT NO.</span>
+
+                    <span>
+                        PROJECT NO.
+                    </span>
+
                     <strong>
                         ${escapeHTML(projectNo)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>LOCATION</span>
+
+                    <span>
+                        LOCATION
+                    </span>
+
                     <strong>
                         ${escapeHTML(municipality)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PROGRAM</span>
+
+                    <span>
+                        PROGRAM
+                    </span>
+
                     <strong>
                         ${escapeHTML(programUser)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PLAN</span>
+
+                    <span>
+                        PLAN
+                    </span>
+
                     <strong>
                         ${escapeHTML(planUser)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PROGRAM COMPLETION</span>
+
+                    <span>
+                        PROGRAM COMPLETION
+                    </span>
+
                     <strong>
                         ${programPercent.toFixed(2)}%
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PLAN COMPLETION</span>
+
+                    <span>
+                        PLAN COMPLETION
+                    </span>
+
                     <strong>
                         ${planPercent.toFixed(2)}%
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PROGRAM STATUS</span>
+
+                    <span>
+                        PROGRAM STATUS
+                    </span>
+
                     <strong>
                         ${escapeHTML(programStatus)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>PLAN STATUS</span>
+
+                    <span>
+                        PLAN STATUS
+                    </span>
+
                     <strong>
                         ${escapeHTML(planStatus)}
                     </strong>
+
                 </div>
 
 
                 <div>
-                    <span>OVERALL STATUS</span>
+
+                    <span>
+                        OVERALL STATUS
+                    </span>
+
                     <strong>
                         ${escapeHTML(overallStatus)}
                     </strong>
+
                 </div>
 
             </div>
 
 
-            <div style="margin-top:20px;">
+            <div
+                style="margin-top:20px;"
+            >
 
                 <div class="detail-label">
                     MONITORING REMARKS
@@ -6036,7 +4073,9 @@ function editMonitoringProject(
 
 function setupProjectMonitoringFilters() {
 
-    if (monitoringFiltersReady) {
+    if (
+        monitoringFiltersReady
+    ) {
 
         return;
 
@@ -6050,11 +4089,14 @@ function setupProjectMonitoringFilters() {
     const search =
         $("monitoringSearch");
 
+
     const status =
         $("monitoringStatusFilter");
 
+
     const myProjects =
         $("myProjectsFilter");
+
 
     const refresh =
         $("monitoringRefreshButton");
@@ -6271,7 +4313,9 @@ function escapeJS(
 
 async function initializePDS() {
 
-    if (initialized) {
+    if (
+        initialized
+    ) {
 
         return;
 
@@ -6295,6 +4339,7 @@ async function initializePDS() {
 
     const authScreen =
         $("authScreen");
+
 
     const app =
         $("app");
@@ -6380,9 +4425,7 @@ async function initializePDS() {
 
     setupAuthStateListener();
 
-
     setupAuthForms();
-
 
     setupSignOut();
 
