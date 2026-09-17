@@ -4504,3 +4504,684 @@ if (
     initializePDS();
 
 }
+    const programStatus =
+        getMonitoringValue(
+            project,
+            "PROGRAM STATUS"
+        ) ||
+        "—";
+
+
+    const planStatus =
+        getMonitoringValue(
+            project,
+            "PLAN STATUS"
+        ) ||
+        "—";
+
+
+    const remarks =
+        getMonitoringValue(
+            project,
+            "REMARKS"
+        ) ||
+        getMonitoringValue(
+            project,
+            "REMARKS2"
+        ) ||
+        "No monitoring remarks available.";
+
+
+    content.innerHTML = `
+
+        <div class="project-detail">
+
+            <div class="detail-label">
+                PROJECT MONITORING
+            </div>
+
+
+            <h2>
+                ${escapeHTML(title)}
+            </h2>
+
+
+            <div class="detail-grid">
+
+                <div>
+
+                    <span>
+                        PROJECT NO.
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(projectNo)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        LOCATION
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(municipality)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PROGRAM
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(programUser)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PLAN
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(planUser)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PROGRAM COMPLETION
+                    </span>
+
+                    <strong>
+                        ${programPercent.toFixed(2)}%
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PLAN COMPLETION
+                    </span>
+
+                    <strong>
+                        ${planPercent.toFixed(2)}%
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PROGRAM STATUS
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(programStatus)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        PLAN STATUS
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(planStatus)}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        OVERALL STATUS
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(overallStatus)}
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div style="margin-top:20px;">
+
+                <div class="detail-label">
+                    MONITORING REMARKS
+                </div>
+
+                <p>
+                    ${escapeHTML(remarks)}
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
+   EDIT MONITORING PROJECT
+========================================================= */
+
+function editMonitoringProject(
+    projectId
+) {
+
+    const decodedId =
+        decodeURIComponent(
+            projectId
+        );
+
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(
+                    getMonitoringValue(
+                        item,
+                        "CONTRACT ID"
+                    )
+                ) ===
+                String(
+                    decodedId
+                )
+        );
+
+
+    if (!project) {
+
+        alert(
+            "Project monitoring record not found."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !canEditMonitoringProject(
+            project
+        )
+    ) {
+
+        alert(
+            "You are not authorized to edit this project."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "Project editing will be enabled after the OneDrive monitoring editor is connected."
+    );
+
+}
+
+
+/* =========================================================
+   MONITORING FILTER SETUP
+========================================================= */
+
+function setupProjectMonitoringFilters() {
+
+    if (monitoringFiltersReady) {
+
+        return;
+
+    }
+
+
+    monitoringFiltersReady =
+        true;
+
+
+    const search =
+        $("monitoringSearch");
+
+
+    const status =
+        $("monitoringStatusFilter");
+
+
+    const myProjects =
+        $("myProjectsFilter");
+
+
+    const refresh =
+        $("monitoringRefreshButton");
+
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (status) {
+
+        status.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (myProjects) {
+
+        myProjects.addEventListener(
+            "change",
+            applyMonitoringFilters
+        );
+
+    }
+
+
+    if (refresh) {
+
+        refresh.addEventListener(
+            "click",
+            async () => {
+
+                await loadProjectMonitoring();
+
+            }
+        );
+
+    }
+
+
+    const list =
+        $("monitoringList");
+
+
+    if (list) {
+
+        list.addEventListener(
+            "click",
+            event => {
+
+                const button =
+                    event.target.closest(
+                        "[data-monitoring-action]"
+                    );
+
+
+                if (!button) {
+
+                    return;
+
+                }
+
+
+                event.preventDefault();
+
+
+                const action =
+                    button.dataset.monitoringAction;
+
+
+                const projectId =
+                    button.dataset.projectId;
+
+
+                if (
+                    action ===
+                    "view"
+                ) {
+
+                    viewMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+
+                if (
+                    action ===
+                    "edit"
+                ) {
+
+                    editMonitoringProject(
+                        projectId
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   ESCAPE JAVASCRIPT
+========================================================= */
+
+function escapeJS(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /\\/g,
+            "\\\\"
+        )
+
+        .replace(
+            /'/g,
+            "\\'"
+        )
+
+        .replace(
+            /"/g,
+            '\\"'
+        )
+
+        .replace(
+            /\n/g,
+            "\\n"
+        )
+
+        .replace(
+            /\r/g,
+            "\\r"
+        );
+
+}
+
+
+/* =========================================================
+   INITIALIZE PDS
+========================================================= */
+
+async function initializePDS() {
+
+    if (initialized) {
+
+        return;
+
+    }
+
+
+    initialized =
+        true;
+
+
+    console.log(
+        "PDS — Initializing..."
+    );
+
+
+    /*
+     * START WITH BOTH SCREENS HIDDEN.
+     * This prevents the dashboard/sidebar from
+     * flashing behind the login screen.
+     */
+
+    const authScreen =
+        $("authScreen");
+
+
+    const app =
+        $("app");
+
+
+    if (authScreen) {
+
+        authScreen.style.display =
+            "none";
+
+    }
+
+
+    if (app) {
+
+        app.style.display =
+            "none";
+
+    }
+
+
+    /*
+     * WAIT FOR SUPABASE LIBRARY.
+     */
+
+    const supabaseLoaded =
+        await waitForSupabase();
+
+
+    if (!supabaseLoaded) {
+
+        console.error(
+            "PDS: Supabase library was not loaded."
+        );
+
+
+        showLogin();
+
+
+        authMessage(
+            "Supabase could not be loaded. Please refresh the page.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * INITIALIZE CLIENT.
+     */
+
+    const supabaseReady =
+        initializeSupabase();
+
+
+    if (!supabaseReady) {
+
+        console.error(
+            "PDS: Supabase initialization failed."
+        );
+
+
+        showLogin();
+
+
+        authMessage(
+            "Supabase configuration error. Check the Supabase settings in script.js.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * SETUP AUTHENTICATION FIRST.
+     */
+
+    setupAuthStateListener();
+
+    setupAuthForms();
+
+    setupSignOut();
+
+
+    /*
+     * SETUP APPLICATION UI.
+     */
+
+    setupNavigation();
+
+    setupSectionTargets();
+
+    setupGlobalSearch();
+
+    setupProjectMonitoringFilters();
+
+    setupProjectModal();
+
+    setupDocumentModal();
+
+    setupDocumentForm();
+
+    setupDocumentUpload();
+
+    setupDocumentSearch();
+
+    setupDepartmentOrderFilters();
+
+    setupPDSAI();
+
+    setupNotifications();
+
+    setupRefreshButton();
+
+
+    /*
+     * DEFAULT TO LOGIN WHILE SESSION IS BEING CHECKED.
+     */
+
+    showLogin();
+
+
+    /*
+     * RESTORE SESSION.
+     */
+
+    await restoreSession();
+
+
+    console.log(
+        "PDS — Ready."
+    );
+
+}
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializePDS,
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    initializePDS();
+
+}
