@@ -7238,3 +7238,181 @@ if (
 
     initializeFinalPDSPageState();
 }
+/* =========================================================
+   PDS AUTHENTICATION STARTUP
+========================================================= */
+
+async function startPDSAuthentication() {
+
+    console.log("PDS Auth: Starting authentication...");
+
+    try {
+
+        /*
+         * WAIT FOR SUPABASE
+         */
+        const supabaseLoaded =
+            await waitForSupabase();
+
+        if (!supabaseLoaded) {
+
+            console.error(
+                "PDS Auth: Supabase library was not loaded."
+            );
+
+            showMessage(
+                "Supabase could not be loaded. Please refresh the page.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        /*
+         * INITIALIZE SUPABASE
+         */
+        const supabaseReady =
+            initializeSupabase();
+
+        if (!supabaseReady) {
+
+            console.error(
+                "PDS Auth: Supabase initialization failed."
+            );
+
+            showMessage(
+                "Supabase authentication could not be initialized.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        console.log(
+            "PDS Auth: Supabase initialized."
+        );
+
+
+        /*
+         * START AUTH LISTENER
+         */
+        initializeAuthListener();
+
+
+        /*
+         * CONNECT SIGN-IN / SIGN-OUT FORMS
+         */
+        initializeAuthForms();
+
+
+        /*
+         * CHECK EXISTING SESSION
+         */
+        const session =
+            await getCurrentSession();
+
+
+        if (
+            session &&
+            session.user
+        ) {
+
+            currentUser =
+                session.user;
+
+            console.log(
+                "PDS Auth: Existing session:",
+                currentUser.email
+            );
+
+
+            await loadCurrentProfile(
+                currentUser.id
+            );
+
+
+            updateAuthenticatedUI();
+
+        } else {
+
+            currentUser =
+                null;
+
+            currentProfile =
+                null;
+
+            console.log(
+                "PDS Auth: No active session."
+            );
+
+
+            updateAuthenticatedUI();
+        }
+
+
+        console.log(
+            "PDS Auth: Authentication startup complete."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "PDS Auth: Startup error:",
+            error
+        );
+
+        currentUser =
+            null;
+
+        currentProfile =
+            null;
+
+        updateAuthenticatedUI();
+
+        showMessage(
+            "Authentication could not be started. Please refresh the page.",
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   START AUTH AFTER HTML LOAD
+========================================================= */
+
+if (
+    document.readyState === "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+            startPDSAuthentication();
+        },
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    startPDSAuthentication();
+
+}
+
+
+/* =========================================================
+   AUTH GLOBAL REFERENCES
+========================================================= */
+
+window.startPDSAuthentication =
+    startPDSAuthentication;
+
+window.signInUser =
+    signInUser;
+
+window.signOutUser =
+    signOutUser;
