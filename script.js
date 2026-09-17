@@ -1,4 +1,3 @@
-```javascript
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
    COMPLETE SCRIPT
@@ -10,11 +9,13 @@
    DEPARTMENT ORDERS
    PROJECT MONITORING
    PDS AI
-   ========================================================= */
+
+   AUTHENTICATION-STABLE VERSION
+========================================================= */
 
 
 /* =========================================================
-   SUPABASE
+   SUPABASE CONFIGURATION
 ========================================================= */
 
 const SUPABASE_URL =
@@ -31,80 +32,11 @@ const SUPABASE_ANON_KEY =
 let db = null;
 
 
-function initializeSupabase() {
-
-    if (!window.supabase) {
-
-        console.error(
-            "Supabase library was not loaded."
-        );
-
-        return false;
-    }
-
-
-    if (
-        !SUPABASE_URL ||
-        !SUPABASE_ANON_KEY ||
-        SUPABASE_ANON_KEY.includes(
-            "PASTE_YOUR_CURRENT"
-        )
-    ) {
-
-        console.error(
-            "Supabase Publishable Key is missing."
-        );
-
-        return false;
-    }
-
-
-    try {
-
-        db =
-            window.supabase.createClient(
-                SUPABASE_URL,
-                SUPABASE_ANON_KEY,
-                {
-                    auth: {
-
-                        persistSession: true,
-
-                        autoRefreshToken: true,
-
-                        detectSessionInUrl: true,
-
-                        storageKey:
-                            "pds-supabase-auth"
-
-                    }
-                }
-            );
-
-
-        return true;
-
-
-    } catch (error) {
-
-        console.error(
-            "Supabase initialization failed:",
-            error
-        );
-
-        return false;
-
-    }
-
-}
-
-
 /* =========================================================
    GLOBAL STATE
 ========================================================= */
 
 let currentUser = null;
-
 let currentProfile = null;
 
 let pdsAIHistory = [];
@@ -114,79 +46,13 @@ let cachedDocuments = [];
 let cachedMonitoringProjects = [];
 
 let navigationReady = false;
-
 let authFormsReady = false;
-
 let documentSearchReady = false;
-
 let aiReady = false;
-
 let monitoringFiltersReady = false;
-
 let initialized = false;
 
-
-/* =========================================================
-   DEPARTMENT ORDERS
-========================================================= */
-
-const departmentOrders = [
-
-    {
-        number: "DO 75",
-        year: "2024",
-        title: "Guidelines and Procedures",
-        description:
-            "Department policies, guidelines and procedures.",
-        category: "Guidelines"
-    },
-
-    {
-        number: "DO 159",
-        year: "2022",
-        title: "Infrastructure Guidelines",
-        description:
-            "Policies and procedures related to infrastructure projects.",
-        category: "Infrastructure"
-    },
-
-    {
-        number: "DO 37",
-        year: "2021",
-        title: "Planning and Design",
-        description:
-            "Planning and design implementation guidelines.",
-        category: "Planning & Design"
-    },
-
-    {
-        number: "DO 120",
-        year: "2019",
-        title: "Infrastructure Standards",
-        description:
-            "Standards and procedures for infrastructure implementation.",
-        category: "Standards"
-    },
-
-    {
-        number: "DO 27",
-        year: "2019",
-        title: "Project Development",
-        description:
-            "Project development and implementation guidelines.",
-        category: "Project Development"
-    },
-
-    {
-        number: "DO 28",
-        year: "2019",
-        title: "Cost Estimation Manual",
-        description:
-            "Guidelines for cost estimation and construction costing.",
-        category: "Cost Estimation"
-    }
-
-];
+let authStateSubscription = null;
 
 
 /* =========================================================
@@ -194,8 +60,115 @@ const departmentOrders = [
 ========================================================= */
 
 function $(id) {
-
     return document.getElementById(id);
+}
+
+
+/* =========================================================
+   WAIT FOR SUPABASE
+========================================================= */
+
+async function waitForSupabase(maxAttempts = 50) {
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+
+        if (
+            window.supabase &&
+            typeof window.supabase.createClient === "function"
+        ) {
+            return true;
+        }
+
+        await new Promise(resolve => {
+            setTimeout(resolve, 100);
+        });
+    }
+
+    return false;
+}
+
+
+/* =========================================================
+   INITIALIZE SUPABASE
+========================================================= */
+
+function initializeSupabase() {
+
+    if (
+        !window.supabase ||
+        typeof window.supabase.createClient !== "function"
+    ) {
+
+        console.error(
+            "PDS: Supabase library was not loaded."
+        );
+
+        return false;
+    }
+
+
+    if (!SUPABASE_URL) {
+
+        console.error(
+            "PDS: Supabase URL is missing."
+        );
+
+        return false;
+    }
+
+
+    if (!SUPABASE_ANON_KEY) {
+
+        console.error(
+            "PDS: Supabase Publishable key is missing."
+        );
+
+        return false;
+    }
+
+
+    try {
+
+        db = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY,
+            {
+                auth: {
+
+                    persistSession: true,
+
+                    autoRefreshToken: true,
+
+                    detectSessionInUrl: true,
+
+                    storageKey:
+                        "pds-supabase-auth"
+
+                }
+            }
+        );
+
+
+        console.log(
+            "PDS: Supabase initialized successfully."
+        );
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Supabase initialization failed:",
+            error
+        );
+
+        db = null;
+
+        return false;
+
+    }
 
 }
 
@@ -205,45 +178,158 @@ function $(id) {
 ========================================================= */
 
 function showLogin() {
-    const authScreen = document.getElementById("authScreen");
-    const app = document.getElementById("app");
 
-    document.body.classList.add("auth-active");
-    document.body.classList.remove("app-active");
+    console.log(
+        "PDS: Showing Sign In screen."
+    );
 
-    if (authScreen) {
-        authScreen.style.display = "flex";
-        authScreen.classList.remove("hidden");
-        authScreen.setAttribute("aria-hidden", "false");
-    }
+
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
+
+
+    document.body.classList.add(
+        "auth-active"
+    );
+
+    document.body.classList.remove(
+        "app-active"
+    );
+
+
+    /*
+     * FORCE MAIN APPLICATION OFF
+     */
 
     if (app) {
-        app.style.display = "none";
-        app.classList.remove("active");
-        app.setAttribute("aria-hidden", "true");
+
+        app.classList.remove(
+            "active"
+        );
+
+        app.style.display =
+            "none";
+
+        app.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
     }
+
+
+    /*
+     * SHOW AUTH SCREEN
+     */
+
+    if (authScreen) {
+
+        authScreen.classList.remove(
+            "hidden"
+        );
+
+        authScreen.style.display =
+            "flex";
+
+        authScreen.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+    }
+
+
+    /*
+     * ALWAYS RETURN TO TOP
+     */
+
+    window.scrollTo(
+        0,
+        0
+    );
+
 }
 
+
+/* =========================================================
+   HIDE LOGIN / SHOW APPLICATION
+========================================================= */
 
 function hideLogin() {
-    const authScreen = document.getElementById("authScreen");
-    const app = document.getElementById("app");
 
-    document.body.classList.remove("auth-active");
-    document.body.classList.add("app-active");
+    console.log(
+        "PDS: Showing main application."
+    );
+
+
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
+
+
+    document.body.classList.remove(
+        "auth-active"
+    );
+
+    document.body.classList.add(
+        "app-active"
+    );
+
+
+    /*
+     * HIDE AUTH SCREEN
+     */
 
     if (authScreen) {
-        authScreen.style.display = "none";
-        authScreen.classList.add("hidden");
-        authScreen.setAttribute("aria-hidden", "true");
+
+        authScreen.classList.add(
+            "hidden"
+        );
+
+        authScreen.style.display =
+            "none";
+
+        authScreen.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
     }
 
+
+    /*
+     * SHOW APPLICATION
+     */
+
     if (app) {
-        app.style.display = "flex";
-        app.classList.add("active");
-        app.setAttribute("aria-hidden", "false");
+
+        app.classList.add(
+            "active"
+        );
+
+        app.style.display =
+            "flex";
+
+        app.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
     }
+
+
+    window.scrollTo(
+        0,
+        0
+    );
+
 }
+
 
 /* =========================================================
    AUTH MESSAGE
@@ -260,7 +346,14 @@ function authMessage(
 
     if (!element) {
 
-        console.error(message);
+        if (message) {
+
+            console.log(
+                "PDS Auth:",
+                message
+            );
+
+        }
 
         return;
 
@@ -268,10 +361,11 @@ function authMessage(
 
 
     element.textContent =
-        message;
+        message || "";
+
 
     element.className =
-        `auth-message ${type}`;
+        `auth-message ${type}`.trim();
 
 }
 
@@ -282,22 +376,112 @@ function authMessage(
 
 function clearAuthMessage() {
 
-    const element =
-        $("loginMessage");
+    authMessage(
+        "",
+        ""
+    );
+
+}
 
 
-    if (!element) {
+/* =========================================================
+   AUTH ERROR FORMATTER
+========================================================= */
 
-        return;
+function getAuthErrorMessage(
+    error
+) {
+
+    if (!error) {
+
+        return "Unable to sign in.";
 
     }
 
 
-    element.textContent =
-        "";
+    const raw =
+        String(
+            error.message ||
+            error.error_description ||
+            error.msg ||
+            error
+        );
 
-    element.className =
-        "auth-message";
+
+    const message =
+        raw.toLowerCase();
+
+
+    if (
+        message.includes(
+            "invalid login credentials"
+        )
+    ) {
+
+        return (
+            "Incorrect email or password."
+        );
+
+    }
+
+
+    if (
+        message.includes(
+            "email not confirmed"
+        )
+    ) {
+
+        return (
+            "Your email address has not been confirmed."
+        );
+
+    }
+
+
+    if (
+        message.includes(
+            "invalid api key"
+        )
+    ) {
+
+        return (
+            "Invalid Supabase Publishable key. Check the API key in script.js."
+        );
+
+    }
+
+
+    if (
+        message.includes(
+            "failed to fetch"
+        ) ||
+        message.includes(
+            "network"
+        )
+    ) {
+
+        return (
+            "Unable to connect to Supabase. Please check your internet connection."
+        );
+
+    }
+
+
+    if (
+        message.includes(
+            "too many requests"
+        )
+    ) {
+
+        return (
+            "Too many login attempts. Please wait a moment and try again."
+        );
+
+    }
+
+
+    return raw ||
+        "Unable to sign in. Please try again.";
 
 }
 
@@ -311,9 +495,12 @@ async function createProfile(
     fullName = ""
 ) {
 
-    if (!user || !db) {
+    if (
+        !user ||
+        !db
+    ) {
 
-        return;
+        return null;
 
     }
 
@@ -329,39 +516,69 @@ async function createProfile(
         full_name:
             fullName ||
             user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
             user.email?.split("@")[0] ||
             "PDS User"
 
     };
 
 
-    const {
-        error
-    } =
-        await db
-            .from("profiles")
-            .upsert(
-                profile,
-                {
-                    onConflict: "id"
-                }
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await db
+                .from("profiles")
+                .upsert(
+                    profile,
+                    {
+                        onConflict: "id"
+                    }
+                )
+                .select()
+                .maybeSingle();
+
+
+        if (error) {
+
+            console.warn(
+                "PDS: Profile creation warning:",
+                error
             );
 
+            currentProfile =
+                profile;
 
-    if (error) {
+            return profile;
+
+        }
+
+
+        currentProfile =
+            data ||
+            profile;
+
+
+        return currentProfile;
+
+
+    } catch (error) {
 
         console.warn(
-            "Profile creation warning:",
+            "PDS: Profile creation failed:",
             error
         );
 
-        return;
+
+        currentProfile =
+            profile;
+
+
+        return profile;
 
     }
-
-
-    currentProfile =
-        profile;
 
 }
 
@@ -378,7 +595,32 @@ async function loginUser(
     if (!db) {
 
         authMessage(
-            "Supabase is not initialized. Check your Publishable API key.",
+            "Supabase is not initialized. Please refresh the page.",
+            "error"
+        );
+
+        return {
+            success: false
+        };
+
+    }
+
+
+    const cleanEmail =
+        String(
+            email || ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    if (
+        !cleanEmail ||
+        !password
+    ) {
+
+        authMessage(
+            "Please enter your email and password.",
             "error"
         );
 
@@ -400,6 +642,12 @@ async function loginUser(
         );
 
 
+        console.log(
+            "PDS: Attempting sign in:",
+            cleanEmail
+        );
+
+
         const {
             data,
             error
@@ -407,7 +655,7 @@ async function loginUser(
             await db.auth.signInWithPassword({
 
                 email:
-                    email.trim(),
+                    cleanEmail,
 
                 password:
                     password
@@ -418,7 +666,7 @@ async function loginUser(
         if (error) {
 
             console.error(
-                "Supabase login error:",
+                "PDS: Supabase login error:",
                 error
             );
 
@@ -433,29 +681,59 @@ async function loginUser(
         ) {
 
             throw new Error(
-                "No user account was returned by Supabase."
+                "Supabase did not return a user account."
             );
 
         }
 
 
+        /*
+         * SAVE USER
+         */
+
         currentUser =
             data.user;
 
 
+        console.log(
+            "PDS: Sign in successful:",
+            currentUser.email
+        );
+
+
+        /*
+         * SWITCH SCREEN
+         */
+
         hideLogin();
 
+
+        /*
+         * LOAD PROFILE
+         */
+
+        await loadUserProfile();
+
+
+        /*
+         * UPDATE UI
+         */
+
+        updateUserInterface();
+
+
+        /*
+         * SHOW DASHBOARD
+         */
 
         showPage(
             "dashboard"
         );
 
 
-        await loadUserProfile();
-
-
-        updateUserInterface();
-
+        /*
+         * LOAD DATA
+         */
 
         await Promise.allSettled([
 
@@ -468,17 +746,14 @@ async function loginUser(
         ]);
 
 
-        authMessage(
-            "",
-            "success"
-        );
+        clearAuthMessage();
 
 
         return {
 
             success: true,
 
-            data
+            data: data
 
         };
 
@@ -486,32 +761,29 @@ async function loginUser(
     } catch (error) {
 
         console.error(
-            "Login error:",
+            "PDS: Login failed:",
             error
         );
 
 
-        let message =
-            error?.message ||
-            "Unable to sign in.";
+        /*
+         * MAKE SURE APP DOES NOT REMAIN VISIBLE
+         */
+
+        currentUser =
+            null;
+
+        currentProfile =
+            null;
 
 
-        if (
-            message
-                .toLowerCase()
-                .includes(
-                    "invalid api key"
-                )
-        ) {
-
-            message =
-                "Invalid Supabase API key. Open Supabase → Project Settings → API and replace the Publishable key in script.js.";
-
-        }
+        showLogin();
 
 
         authMessage(
-            message,
+            getAuthErrorMessage(
+                error
+            ),
             "error"
         );
 
@@ -520,11 +792,72 @@ async function loginUser(
 
             success: false,
 
-            error
+            error: error
 
         };
 
     }
+
+}
+
+
+/* =========================================================
+   CLEAR USER STATE
+========================================================= */
+
+function clearUserState() {
+
+    currentUser =
+        null;
+
+    currentProfile =
+        null;
+
+    cachedDocuments =
+        [];
+
+    cachedMonitoringProjects =
+        [];
+
+    pdsAIHistory =
+        [];
+
+
+    /*
+     * Clear application-only UI
+     */
+
+    const aiResponse =
+        $("aiResponse");
+
+    if (aiResponse) {
+
+        aiResponse.innerHTML =
+            "";
+
+    }
+
+
+    /*
+     * Clear login password
+     */
+
+    const password =
+        $("loginPassword");
+
+    if (password) {
+
+        password.value =
+            "";
+
+    }
+
+
+    /*
+     * Reset user interface
+     */
+
+    updateUserInterface();
 
 }
 
@@ -536,128 +869,190 @@ async function loginUser(
 async function signOut() {
 
     console.log(
-        "PDS: Signing out..."
+        "PDS: Sign Out requested."
+    );
+
+
+    /*
+     * Immediately clear application state.
+     */
+
+    clearUserState();
+
+
+    /*
+     * Hide application immediately.
+     */
+
+    showLogin();
+
+
+    authMessage(
+        "Signing out...",
+        "loading"
     );
 
 
     try {
 
-        if (!db) {
+        if (db) {
 
-            console.warn(
-                "PDS: Supabase client is not initialized."
-            );
-
-            currentUser = null;
-
-            currentProfile = null;
-
-            cachedDocuments = [];
-
-            cachedMonitoringProjects = [];
-
-            pdsAIHistory = [];
-
-            showLogin();
-
-            return;
-
-        }
-
-
-        const {
-            error
-        } =
-            await db.auth.signOut({
-                scope: "local"
-            });
-
-
-        if (error) {
-
-            console.error(
-                "PDS SIGN OUT ERROR:",
+            const {
                 error
-            );
+            } =
+                await db.auth.signOut({
+                    scope: "local"
+                });
 
 
-            currentUser = null;
-
-            currentProfile = null;
-
-            cachedDocuments = [];
-
-            cachedMonitoringProjects = [];
-
-            pdsAIHistory = [];
-
-
-            try {
-
-                localStorage.removeItem(
-                    "pds-supabase-auth"
-                );
-
-            } catch (storageError) {
+            if (error) {
 
                 console.warn(
-                    "Unable to clear auth storage:",
-                    storageError
+                    "PDS: Supabase sign out warning:",
+                    error
                 );
 
             }
 
-
-            showLogin();
-
-            return;
-
         }
-
-
-        console.log(
-            "PDS: Supabase sign out successful."
-        );
-
 
     } catch (error) {
 
-        console.error(
-            "PDS SIGN OUT EXCEPTION:",
+        console.warn(
+            "PDS: Sign out exception:",
             error
         );
 
-
-        currentUser = null;
-
-        currentProfile = null;
-
-        cachedDocuments = [];
-
-        cachedMonitoringProjects = [];
-
-        pdsAIHistory = [];
+    }
 
 
-        try {
+    /*
+     * Remove our custom auth storage.
+     */
 
-            localStorage.removeItem(
-                "pds-supabase-auth"
-            );
+    try {
 
-        } catch (storageError) {
+        localStorage.removeItem(
+            "pds-supabase-auth"
+        );
 
-            console.warn(
-                "Auth storage cleanup warning:",
-                storageError
-            );
+    } catch (error) {
+
+        console.warn(
+            "PDS: Unable to remove auth storage:",
+            error
+        );
+
+    }
+
+
+    /*
+     * Remove possible Supabase auth entries
+     * belonging to this project.
+     */
+
+    try {
+
+        const keysToRemove = [];
+
+
+        for (
+            let index = 0;
+            index < localStorage.length;
+            index++
+        ) {
+
+            const key =
+                localStorage.key(
+                    index
+                );
+
+
+            if (
+                key &&
+                (
+                    key ===
+                        "pds-supabase-auth" ||
+                    key.startsWith(
+                        "sb-"
+                    )
+                )
+            ) {
+
+                keysToRemove.push(
+                    key
+                );
+
+            }
 
         }
 
 
-        showLogin();
+        keysToRemove.forEach(
+            key => {
+
+                try {
+
+                    localStorage.removeItem(
+                        key
+                    );
+
+                } catch (error) {
+
+                    console.warn(
+                        "PDS: Could not remove:",
+                        key
+                    );
+
+                }
+
+            }
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Storage cleanup warning:",
+            error
+        );
 
     }
+
+
+    currentUser =
+        null;
+
+    currentProfile =
+        null;
+
+
+    /*
+     * Give the auth state event time to finish.
+     */
+
+    setTimeout(
+        () => {
+
+            showLogin();
+
+            clearAuthMessage();
+
+            const email =
+                $("loginEmail");
+
+            if (email) {
+
+                email.focus();
+
+            }
+
+            console.log(
+                "PDS: Sign Out complete."
+            );
+
+        },
+        50
+    );
 
 }
 
@@ -673,7 +1068,7 @@ async function loadUserProfile() {
         !currentUser
     ) {
 
-        return;
+        return null;
 
     }
 
@@ -697,11 +1092,33 @@ async function loadUserProfile() {
         if (error) {
 
             console.warn(
-                "Profile loading warning:",
+                "PDS: Profile loading warning:",
                 error
             );
 
-            return;
+
+            /*
+             * Keep basic auth user information available.
+             */
+
+            currentProfile = {
+
+                id:
+                    currentUser.id,
+
+                email:
+                    currentUser.email || "",
+
+                full_name:
+                    currentUser.user_metadata?.full_name ||
+                    currentUser.user_metadata?.name ||
+                    currentUser.email?.split("@")[0] ||
+                    "PDS User"
+
+            };
+
+
+            return currentProfile;
 
         }
 
@@ -720,12 +1137,35 @@ async function loadUserProfile() {
         }
 
 
+        return currentProfile;
+
+
     } catch (error) {
 
         console.warn(
-            "Profile loading failed:",
+            "PDS: Profile loading failed:",
             error
         );
+
+
+        currentProfile = {
+
+            id:
+                currentUser.id,
+
+            email:
+                currentUser.email || "",
+
+            full_name:
+                currentUser.user_metadata?.full_name ||
+                currentUser.user_metadata?.name ||
+                currentUser.email?.split("@")[0] ||
+                "PDS User"
+
+        };
+
+
+        return currentProfile;
 
     }
 
@@ -733,178 +1173,7 @@ async function loadUserProfile() {
 
 
 /* =========================================================
-   SESSION RESTORATION
-========================================================= */
-
-async function restoreSession() {
-
-    if (!db) {
-
-        showLogin();
-
-        return false;
-
-    }
-
-
-    try {
-
-        console.log(
-            "PDS: Checking existing session..."
-        );
-
-
-        const {
-            data,
-            error
-        } =
-            await db.auth.getSession();
-
-
-        if (error) {
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-            showLogin();
-
-            return false;
-
-        }
-
-
-        const session =
-            data?.session;
-
-
-        if (
-            !session ||
-            !session.user
-        ) {
-
-            console.log(
-                "PDS: No active session."
-            );
-
-
-            currentUser = null;
-
-            currentProfile = null;
-
-
-            showLogin();
-
-
-            return false;
-
-        }
-
-
-        currentUser =
-            session.user;
-
-
-        console.log(
-            "PDS: Session restored:",
-            currentUser.email
-        );
-
-
-        hideLogin();
-
-
-        showPage(
-            "dashboard"
-        );
-
-
-        await loadUserProfile();
-
-
-        updateUserInterface();
-
-
-        await Promise.allSettled([
-
-            loadProjects(),
-
-            loadDocuments(),
-
-            loadDepartmentOrders()
-
-        ]);
-
-
-        return true;
-
-
-    } catch (error) {
-
-        console.error(
-            "Session restoration error:",
-            error
-        );
-
-
-        try {
-
-            const {
-                data
-            } =
-                await db.auth.getSession();
-
-
-            if (
-                data?.session?.user
-            ) {
-
-                currentUser =
-                    data.session.user;
-
-
-                hideLogin();
-
-
-                showPage(
-                    "dashboard"
-                );
-
-
-                await loadUserProfile();
-
-
-                updateUserInterface();
-
-
-                return true;
-
-            }
-
-
-        } catch (secondError) {
-
-            console.error(
-                "Final session check failed:",
-                secondError
-            );
-
-        }
-
-
-        showLogin();
-
-
-        return false;
-
-    }
-
-}
-
-
-/* =========================================================
-   USER INTERFACE
+   UPDATE USER INTERFACE
 ========================================================= */
 
 function updateUserInterface() {
@@ -918,7 +1187,10 @@ function updateUserInterface() {
 
     const name =
         profile?.full_name ||
+        profile?.name ||
+        profile?.display_name ||
         user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
         user?.email?.split("@")[0] ||
         "PDS User";
 
@@ -987,6 +1259,133 @@ function updateUserInterface() {
 
         sidebarAvatar.textContent =
             initial;
+
+    }
+
+}
+
+
+/* =========================================================
+   SESSION RESTORATION
+========================================================= */
+
+async function restoreSession() {
+
+    if (!db) {
+
+        showLogin();
+
+        return false;
+
+    }
+
+
+    try {
+
+        console.log(
+            "PDS: Checking existing session..."
+        );
+
+
+        const {
+            data,
+            error
+        } =
+            await db.auth.getSession();
+
+
+        if (error) {
+
+            console.error(
+                "PDS: Session error:",
+                error
+            );
+
+
+            clearUserState();
+
+            showLogin();
+
+            return false;
+
+        }
+
+
+        const session =
+            data?.session;
+
+
+        if (
+            !session ||
+            !session.user
+        ) {
+
+            console.log(
+                "PDS: No active session."
+            );
+
+
+            clearUserState();
+
+            showLogin();
+
+            return false;
+
+        }
+
+
+        currentUser =
+            session.user;
+
+
+        console.log(
+            "PDS: Session restored:",
+            currentUser.email
+        );
+
+
+        hideLogin();
+
+
+        await loadUserProfile();
+
+
+        updateUserInterface();
+
+
+        showPage(
+            "dashboard"
+        );
+
+
+        await Promise.allSettled([
+
+            loadProjects(),
+
+            loadDocuments(),
+
+            loadDepartmentOrders()
+
+        ]);
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Session restoration failed:",
+            error
+        );
+
+
+        clearUserState();
+
+        showLogin();
+
+
+        return false;
 
     }
 
@@ -1141,7 +1540,7 @@ function getPDSPages() {
 
 
 /* =========================================================
-   SHOW PAGE
+   SHOW ONLY ONE PAGE
 ========================================================= */
 
 function showPage(
@@ -1162,6 +1561,10 @@ function showPage(
         null;
 
 
+    /*
+     * Hide every page.
+     */
+
     pages.forEach(
         page => {
 
@@ -1172,7 +1575,8 @@ function showPage(
 
 
             if (
-                id === pageId
+                normalizePageId(id) ===
+                pageId
             ) {
 
                 targetPage =
@@ -1193,25 +1597,44 @@ function showPage(
     );
 
 
+    /*
+     * Fallback direct ID.
+     */
+
     if (!targetPage) {
 
-        targetPage =
-            document.getElementById(
-                pageId
-            );
+        const direct =
+            $(pageId);
+
+
+        if (direct) {
+
+            targetPage =
+                direct;
+
+        }
 
     }
 
 
+    /*
+     * Dashboard fallback.
+     */
+
     if (!targetPage) {
 
         targetPage =
-            document.getElementById(
-                "dashboard"
-            );
+            $("dashboard");
+
+        pageId =
+            "dashboard";
 
     }
 
+
+    /*
+     * Show selected page.
+     */
 
     if (targetPage) {
 
@@ -1224,6 +1647,10 @@ function showPage(
 
     }
 
+
+    /*
+     * Sidebar active state.
+     */
 
     document
         .querySelectorAll(
@@ -1246,6 +1673,10 @@ function showPage(
             }
         );
 
+
+    /*
+     * Page titles.
+     */
 
     const titles = {
 
@@ -1301,6 +1732,10 @@ function showPage(
     }
 
 
+    /*
+     * Load page-specific data.
+     */
+
     if (
         pageId ===
         "projects"
@@ -1342,6 +1777,16 @@ function showPage(
 
     }
 
+
+    /*
+     * Always return page to top.
+     */
+
+    window.scrollTo(
+        0,
+        0
+    );
+
 }
 
 
@@ -1382,9 +1827,17 @@ function setupNavigation() {
             event.preventDefault();
 
 
-            showPage(
-                navItem.dataset.section
-            );
+            const page =
+                navItem.dataset.section;
+
+
+            if (page) {
+
+                showPage(
+                    page
+                );
+
+            }
 
         }
     );
@@ -1446,11 +1899,21 @@ function setupGlobalSearch() {
 
 
     search.addEventListener(
-        "input",
+        "keydown",
         event => {
 
+            if (
+                event.key !==
+                "Enter"
+            ) {
+
+                return;
+
+            }
+
+
             const query =
-                event.target.value
+                search.value
                     .trim()
                     .toLowerCase();
 
@@ -1462,21 +1925,9 @@ function setupGlobalSearch() {
             }
 
 
-            const projectMatch =
-                document.querySelectorAll(
-                    ".project-card"
-                );
-
-
-            if (
-                projectMatch.length
-            ) {
-
-                showPage(
-                    "projects"
-                );
-
-            }
+            showPage(
+                "projects"
+            );
 
         }
     );
@@ -1485,7 +1936,7 @@ function setupGlobalSearch() {
 
 
 /* =========================================================
-   REFRESH
+   REFRESH ALL
 ========================================================= */
 
 async function refreshAll() {
@@ -1501,13 +1952,15 @@ async function refreshAll() {
     ]);
 
 
+    const monitoring =
+        $("monitoring");
+
+
     if (
-        document
-            .getElementById(
-                "monitoring"
-            )
-            ?.classList
-            .contains("active")
+        monitoring &&
+        monitoring.classList.contains(
+            "active"
+        )
     ) {
 
         await loadProjectMonitoring();
@@ -1527,7 +1980,10 @@ async function loadProjects() {
         $("projectList");
 
 
-    if (!list || !db) {
+    if (
+        !list ||
+        !db
+    ) {
 
         return;
 
@@ -1578,15 +2034,19 @@ async function loadProjects() {
     } catch (error) {
 
         console.error(
-            "Projects error:",
+            "PDS: Projects error:",
             error
         );
 
 
-        renderProjects([]);
+        renderProjects(
+            []
+        );
 
 
-        updateProjectStats([]);
+        updateProjectStats(
+            []
+        );
 
     }
 
@@ -1907,7 +2367,7 @@ async function openProject(
     } catch (error) {
 
         console.error(
-            "Project open error:",
+            "PDS: Project open error:",
             error
         );
 
@@ -1981,7 +2441,7 @@ async function loadDocuments() {
     } catch (error) {
 
         console.error(
-            "Documents error:",
+            "PDS: Documents error:",
             error
         );
 
@@ -2405,7 +2865,7 @@ async function uploadDocument(
 
 
         console.log(
-            "Document uploaded:",
+            "PDS: Document uploaded:",
             data
         );
 
@@ -2440,7 +2900,7 @@ async function uploadDocument(
     } catch (error) {
 
         console.error(
-            "Document upload error:",
+            "PDS: Document upload error:",
             error
         );
 
@@ -2578,7 +3038,7 @@ async function openDocument(
     } catch (error) {
 
         console.error(
-            "Open document error:",
+            "PDS: Open document error:",
             error
         );
 
@@ -2663,7 +3123,7 @@ async function deleteDocument(
             if (storageError) {
 
                 console.warn(
-                    "Storage delete warning:",
+                    "PDS: Storage delete warning:",
                     storageError
                 );
 
@@ -2698,7 +3158,7 @@ async function deleteDocument(
     } catch (error) {
 
         console.error(
-            "Delete document error:",
+            "PDS: Delete document error:",
             error
         );
 
@@ -2716,6 +3176,65 @@ async function deleteDocument(
 /* =========================================================
    DEPARTMENT ORDERS
 ========================================================= */
+
+const departmentOrders = [
+
+    {
+        number: "DO 75",
+        year: "2024",
+        title: "Guidelines and Procedures",
+        description:
+            "Department policies, guidelines and procedures.",
+        category: "Guidelines"
+    },
+
+    {
+        number: "DO 159",
+        year: "2022",
+        title: "Infrastructure Guidelines",
+        description:
+            "Policies and procedures related to infrastructure projects.",
+        category: "Infrastructure"
+    },
+
+    {
+        number: "DO 37",
+        year: "2021",
+        title: "Planning and Design",
+        description:
+            "Planning and design implementation guidelines.",
+        category: "Planning & Design"
+    },
+
+    {
+        number: "DO 120",
+        year: "2019",
+        title: "Infrastructure Standards",
+        description:
+            "Standards and procedures for infrastructure implementation.",
+        category: "Standards"
+    },
+
+    {
+        number: "DO 27",
+        year: "2019",
+        title: "Project Development",
+        description:
+            "Project development and implementation guidelines.",
+        category: "Project Development"
+    },
+
+    {
+        number: "DO 28",
+        year: "2019",
+        title: "Cost Estimation Manual",
+        description:
+            "Guidelines for cost estimation and construction costing.",
+        category: "Cost Estimation"
+    }
+
+];
+
 
 async function loadDepartmentOrders() {
 
@@ -2967,7 +3486,7 @@ function setupPDSAI() {
 
                 const isHidden =
                     chatbot.style.display ===
-                    "none" ||
+                        "none" ||
                     !chatbot.style.display;
 
 
@@ -3099,6 +3618,48 @@ function appendAIMessage(
 
     response.scrollTop =
         response.scrollHeight;
+
+}
+
+
+/* =========================================================
+   REMOVE AI THINKING
+========================================================= */
+
+function removeThinkingMessage() {
+
+    const response =
+        $("aiResponse");
+
+
+    if (!response) {
+
+        return;
+
+    }
+
+
+    const messages =
+        response.querySelectorAll(
+            ".ai-message.ai"
+        );
+
+
+    const last =
+        messages[
+            messages.length - 1
+        ];
+
+
+    if (
+        last &&
+        last.textContent ===
+            "PDS AI is thinking..."
+    ) {
+
+        last.remove();
+
+    }
 
 }
 
@@ -3266,48 +3827,6 @@ async function askPDSAI() {
 
 
 /* =========================================================
-   REMOVE AI THINKING
-========================================================= */
-
-function removeThinkingMessage() {
-
-    const response =
-        $("aiResponse");
-
-
-    if (!response) {
-
-        return;
-
-    }
-
-
-    const messages =
-        response.querySelectorAll(
-            ".ai-message.ai"
-        );
-
-
-    const last =
-        messages[
-            messages.length - 1
-        ];
-
-
-    if (
-        last &&
-        last.textContent ===
-            "PDS AI is thinking..."
-    ) {
-
-        last.remove();
-
-    }
-
-}
-
-
-/* =========================================================
    NOTIFICATIONS
 ========================================================= */
 
@@ -3397,10 +3916,6 @@ function setupAuthForms() {
     }
 
 
-    authFormsReady =
-        true;
-
-
     const loginForm =
         $("loginForm");
 
@@ -3416,11 +3931,17 @@ function setupAuthForms() {
     }
 
 
+    authFormsReady =
+        true;
+
+
     loginForm.addEventListener(
         "submit",
         async event => {
 
             event.preventDefault();
+
+            event.stopPropagation();
 
 
             const email =
@@ -3467,24 +3988,62 @@ function setupAuthForms() {
             }
 
 
-            await loginUser(
-                email,
-                password
-            );
+            try {
 
+                await loginUser(
+                    email,
+                    password
+                );
 
-            if (button) {
+            } finally {
 
-                button.disabled =
-                    false;
+                if (button) {
 
-                button.textContent =
-                    "SIGN IN";
+                    button.disabled =
+                        false;
+
+                    button.textContent =
+                        "SIGN IN";
+
+                }
 
             }
 
         }
     );
+
+
+    /*
+     * Allow Enter in password field.
+     * The form submit handler handles it.
+     */
+
+    const password =
+        $("loginPassword");
+
+
+    if (password) {
+
+        password.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+
+                    /*
+                     * Browser form submission
+                     * handles the actual login.
+                     */
+
+                }
+
+            }
+        );
+
+    }
 
 }
 
@@ -3538,41 +4097,7 @@ function setupSignOut() {
                     event.stopPropagation();
 
 
-                    console.log(
-                        "PDS: Sign Out button clicked."
-                    );
-
-
                     await signOut();
-
-                }
-            );
-
-
-            button.addEventListener(
-                "keydown",
-                async event => {
-
-                    if (
-                        event.key ===
-                            "Enter" ||
-                        event.key ===
-                            " "
-                    ) {
-
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-
-                        console.log(
-                            "PDS: Sign Out keyboard action."
-                        );
-
-
-                        await signOut();
-
-                    }
 
                 }
             );
@@ -3589,104 +4114,135 @@ function setupSignOut() {
 
 
 /* =========================================================
-   AUTH STATE CHANGE
+   AUTH STATE LISTENER
 ========================================================= */
 
 function setupAuthStateListener() {
 
-    if (!db) {
+    if (
+        !db ||
+        authStateSubscription
+    ) {
 
         return;
 
     }
 
 
-    db.auth.onAuthStateChange(
-        (
-            event,
-            session
-        ) => {
+    const {
+        data
+    } =
+        db.auth.onAuthStateChange(
+            (
+                event,
+                session
+            ) => {
 
-            console.log(
-                "PDS Auth Event:",
-                event
-            );
-
-
-            if (
-                event ===
-                "SIGNED_OUT"
-            ) {
-
-                currentUser =
-                    null;
-
-                currentProfile =
-                    null;
-
-                pdsAIHistory =
-                    [];
-
-                cachedDocuments =
-                    [];
-
-                cachedMonitoringProjects =
-                    [];
+                console.log(
+                    "PDS Auth Event:",
+                    event
+                );
 
 
-                showLogin();
-
-
-                return;
-
-            }
-
-
-            if (
-                session &&
-                session.user
-            ) {
-
-                currentUser =
-                    session.user;
-
-
-                hideLogin();
-
+                /*
+                 * USER SIGNED OUT
+                 */
 
                 if (
                     event ===
-                        "SIGNED_IN" ||
-                    event ===
-                        "INITIAL_SESSION"
+                    "SIGNED_OUT"
                 ) {
 
-                    showPage(
-                        "dashboard"
-                    );
+                    clearUserState();
+
+                    showLogin();
+
+                    return;
 
                 }
 
 
-                updateUserInterface();
+                /*
+                 * VALID SESSION
+                 */
+
+                if (
+                    session?.user
+                ) {
+
+                    currentUser =
+                        session.user;
+
+
+                    hideLogin();
+
+
+                    updateUserInterface();
+
+
+                    /*
+                     * Do not repeatedly perform
+                     * database queries during token refresh.
+                     */
+
+                    if (
+                        event ===
+                            "SIGNED_IN" ||
+                        event ===
+                            "INITIAL_SESSION"
+                    ) {
+
+                        showPage(
+                            "dashboard"
+                        );
+
+
+                        /*
+                         * Load profile asynchronously.
+                         */
+
+                        setTimeout(
+                            async () => {
+
+                                if (
+                                    !currentUser
+                                ) {
+
+                                    return;
+
+                                }
+
+
+                                await loadUserProfile();
+
+                                updateUserInterface();
+
+                            },
+                            0
+                        );
+
+                    }
+
+                }
 
             }
+        );
 
-        }
+
+    authStateSubscription =
+        data?.subscription ||
+        null;
+
+
+    console.log(
+        "PDS: Auth state listener ready."
     );
 
 }
 
 
 /* =========================================================
-   PROJECT MONITORING
-   TEMPORARY LOCAL DATA
-
-   This is intentionally NOT loaded from Supabase.
-
-   This allows us to verify the monitoring UI using
-   the actual monitoring records before connecting
-   OneDrive / Excel.
+   PROJECT MONITORING TEST DATA
 ========================================================= */
 
 const monitoringTestData = [
@@ -3729,7 +4285,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -3767,7 +4322,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -3807,7 +4361,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -3845,7 +4398,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -3885,7 +4437,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -3923,7 +4474,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -3963,7 +4513,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -4001,7 +4550,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -4041,7 +4589,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -4079,7 +4626,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -4119,7 +4665,6 @@ const monitoringTestData = [
         "OVERALL STATUS": "In Progress"
     },
 
-
     {
         "CATEGORY": "Infrastructure",
         "PROGRAM": "Infrastructure Program",
@@ -4157,7 +4702,6 @@ const monitoringTestData = [
         "DAYS SINCE UPDATE": 0,
         "OVERALL STATUS": "In Progress"
     },
-
 
     {
         "CATEGORY": "Infrastructure",
@@ -4201,7 +4745,7 @@ const monitoringTestData = [
 
 
 /* =========================================================
-   MONITORING TEXT NORMALIZER
+   MONITORING HELPERS
 ========================================================= */
 
 function normalizeMonitoringText(
@@ -4220,10 +4764,6 @@ function normalizeMonitoringText(
 
 }
 
-
-/* =========================================================
-   MONITORING COLUMN HELPER
-========================================================= */
 
 function getMonitoringValue(
     row,
@@ -4271,10 +4811,6 @@ function getMonitoringValue(
 
 }
 
-
-/* =========================================================
-   MONITORING PERCENTAGE
-========================================================= */
 
 function monitoringPercent(
     value
@@ -4325,7 +4861,7 @@ function monitoringPercent(
 
 
 /* =========================================================
-   CURRENT USER NAME
+   CURRENT MONITORING USER
 ========================================================= */
 
 function getCurrentMonitoringUserName() {
@@ -4539,9 +5075,9 @@ async function loadProjectMonitoring() {
 
 
     /*
-     * TEMPORARY TEST SOURCE
+     * TEMPORARY LOCAL TEST DATA
      *
-     * Actual OneDrive connection comes later.
+     * OneDrive connection can be added later.
      */
 
     cachedMonitoringProjects =
@@ -4588,10 +5124,6 @@ function applyMonitoringFilters() {
     let projects =
         [...cachedMonitoringProjects];
 
-
-    /*
-     * SEARCH
-     */
 
     if (query) {
 
@@ -4648,12 +5180,9 @@ function applyMonitoringFilters() {
     }
 
 
-    /*
-     * STATUS
-     */
-
     if (
-        selectedStatus !== "all"
+        selectedStatus !==
+        "all"
     ) {
 
         projects =
@@ -4681,10 +5210,6 @@ function applyMonitoringFilters() {
 
     }
 
-
-    /*
-     * MY PROJECTS
-     */
 
     if (myProjectsOnly) {
 
@@ -4733,7 +5258,8 @@ function renderProjectMonitoring(
         !projects.length
     ) {
 
-        list.innerHTML = "";
+        list.innerHTML =
+            "";
 
 
         if (empty) {
@@ -5497,11 +6023,6 @@ function editMonitoringProject(
     }
 
 
-    /*
-     * Editing will be connected to OneDrive
-     * in the next implementation step.
-     */
-
     alert(
         "Project editing will be enabled after the OneDrive monitoring editor is connected."
     );
@@ -5745,7 +6266,7 @@ function escapeJS(
 
 
 /* =========================================================
-   INITIALIZATION
+   INITIALIZE PDS
 ========================================================= */
 
 async function initializePDS() {
@@ -5765,6 +6286,12 @@ async function initializePDS() {
         "PDS — Initializing..."
     );
 
+
+    /*
+     * START WITH BOTH SCREENS HIDDEN.
+     * This prevents the dashboard/sidebar from
+     * flashing behind the login screen.
+     */
 
     const authScreen =
         $("authScreen");
@@ -5789,6 +6316,39 @@ async function initializePDS() {
     }
 
 
+    /*
+     * WAIT FOR SUPABASE LIBRARY.
+     */
+
+    const supabaseLoaded =
+        await waitForSupabase();
+
+
+    if (!supabaseLoaded) {
+
+        console.error(
+            "PDS: Supabase library was not loaded."
+        );
+
+
+        showLogin();
+
+
+        authMessage(
+            "Supabase could not be loaded. Please refresh the page.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * INITIALIZE CLIENT.
+     */
+
     const supabaseReady =
         initializeSupabase();
 
@@ -5804,7 +6364,7 @@ async function initializePDS() {
 
 
         authMessage(
-            "Supabase configuration error. Check your Publishable API key in script.js.",
+            "Supabase configuration error. Check the Supabase settings in script.js.",
             "error"
         );
 
@@ -5815,7 +6375,20 @@ async function initializePDS() {
 
 
     /*
-     * SETUP UI
+     * SETUP AUTHENTICATION FIRST.
+     */
+
+    setupAuthStateListener();
+
+
+    setupAuthForms();
+
+
+    setupSignOut();
+
+
+    /*
+     * SETUP APPLICATION UI.
      */
 
     setupNavigation();
@@ -5825,10 +6398,6 @@ async function initializePDS() {
     setupGlobalSearch();
 
     setupProjectMonitoringFilters();
-
-    setupAuthForms();
-
-    setupSignOut();
 
     setupProjectModal();
 
@@ -5848,11 +6417,16 @@ async function initializePDS() {
 
     setupRefreshButton();
 
-    setupAuthStateListener();
+
+    /*
+     * DEFAULT TO LOGIN WHILE SESSION IS BEING CHECKED.
+     */
+
+    showLogin();
 
 
     /*
-     * RESTORE SESSION
+     * RESTORE SESSION.
      */
 
     await restoreSession();
@@ -5866,7 +6440,7 @@ async function initializePDS() {
 
 
 /* =========================================================
-   START
+   START APPLICATION
 ========================================================= */
 
 if (
@@ -5876,7 +6450,10 @@ if (
 
     document.addEventListener(
         "DOMContentLoaded",
-        initializePDS
+        initializePDS,
+        {
+            once: true
+        }
     );
 
 } else {
@@ -5884,4 +6461,3 @@ if (
     initializePDS();
 
 }
-```
