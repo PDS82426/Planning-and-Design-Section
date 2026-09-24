@@ -1637,170 +1637,104 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
 }
 /* =========================================================
-   PDS AUTHENTICATION / MAIN APP VISIBILITY
-   FINAL FIX
+   PDS AUTH / MAIN APP — FINAL
 ========================================================= */
-
-/* ---------------------------------------------------------
-   RESET
---------------------------------------------------------- */
 
 html,
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100%;
+body{
+    margin:0;
+    padding:0;
+    width:100%;
 }
 
-
-/* =========================================================
-   SIGN IN PAGE
-========================================================= */
-
-#signInPage {
-    position: fixed;
-    inset: 0;
-
-    width: 100%;
-    height: 100vh;
-
-    display: block;
-
-    z-index: 99999;
-
-    overflow: hidden;
-
-    background: #f3f5f8;
+#signInPage{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100vh;
+    display:block;
+    z-index:99999;
+    overflow:hidden;
+    background:#f3f5f8;
 }
 
-
-/* =========================================================
-   MAIN APPLICATION
-========================================================= */
-
-#mainApp {
-    display: none;
-
-    width: 100%;
-    min-height: 100vh;
+#mainApp{
+    display:none;
+    width:100%;
+    min-height:100vh;
 }
 
-
-/* =========================================================
-   WHEN USER IS NOT AUTHENTICATED
-========================================================= */
-
-body.pds-unauthenticated {
-    width: 100%;
-    height: 100vh;
-
-    overflow: hidden !important;
+/* NOT LOGGED IN */
+body.pds-unauthenticated{
+    width:100%;
+    height:100vh;
+    overflow:hidden !important;
 }
 
-body.pds-unauthenticated #signInPage {
-    display: block !important;
-
-    position: fixed;
-    inset: 0;
-
-    width: 100%;
-    height: 100vh;
-
-    z-index: 99999;
-
-    overflow: hidden;
+body.pds-unauthenticated #signInPage{
+    display:block !important;
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100vh;
+    z-index:99999;
+    overflow:hidden;
 }
 
-body.pds-unauthenticated #mainApp {
-    display: none !important;
+body.pds-unauthenticated #mainApp{
+    display:none !important;
 }
 
-
-/* ---------------------------------------------------------
-   ABSOLUTE PROTECTION AGAINST SIDEBAR OVERLAP
---------------------------------------------------------- */
-
-body.pds-unauthenticated #mainApp,
-body.pds-unauthenticated #mainApp .sidebar,
-body.pds-unauthenticated #mainApp .main,
-body.pds-unauthenticated #mainApp .topbar {
-    display: none !important;
+/* LOGGED IN */
+body.pds-authenticated{
+    width:100%;
+    min-height:100vh;
+    overflow:auto;
 }
 
-
-/* =========================================================
-   WHEN USER IS AUTHENTICATED
-========================================================= */
-
-body.pds-authenticated {
-    width: 100%;
-    min-height: 100vh;
-
-    overflow: auto;
+body.pds-authenticated #signInPage{
+    display:none !important;
 }
 
-body.pds-authenticated #signInPage {
-    display: none !important;
+body.pds-authenticated #mainApp{
+    display:flex !important;
+    width:100%;
+    min-height:100vh;
 }
 
-body.pds-authenticated #mainApp {
-    display: flex !important;
-
-    width: 100%;
-    min-height: 100vh;
+/* AUTH PAGE */
+#signInPage .auth-page{
+    width:100%;
+    height:100vh;
+    display:grid;
+    grid-template-columns:48% 52%;
 }
 
+/* MOBILE */
+@media(max-width:900px){
 
-/* =========================================================
-   AUTH PAGE LAYOUT
-========================================================= */
-
-#signInPage .auth-page {
-    width: 100%;
-    height: 100vh;
-
-    display: grid;
-
-    grid-template-columns: 48% 52%;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 900px) {
-
-    #signInPage .auth-page {
-        grid-template-columns: 1fr;
+    #signInPage .auth-page{
+        grid-template-columns:1fr;
     }
 
-    #signInPage .auth-brand-panel {
-        display: none;
+    #signInPage .auth-brand-panel{
+        display:none;
     }
 
-    #signInPage .auth-login-panel {
-        width: 100%;
-        min-height: 100vh;
+    #signInPage .auth-login-panel{
+        width:100%;
+        min-height:100vh;
     }
-
 }
 
+@media(max-width:520px){
 
-/* =========================================================
-   SMALL MOBILE
-========================================================= */
-
-@media (max-width: 520px) {
-
-    #signInPage .auth-login-panel {
-        padding: 24px 16px;
+    #signInPage .auth-login-panel{
+        padding:24px 16px;
     }
 
-    #signInPage .auth-login-box {
-        width: 100%;
-        max-width: 100%;
+    #signInPage .auth-login-box{
+        width:100%;
+        max-width:100%;
     }
-
 }
