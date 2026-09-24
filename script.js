@@ -49,11 +49,16 @@ let oneDriveInitializationPromise = null;
 let excelRefreshTimer = null;
 
 let monitoringState = {
-    selectedProjectId: null,
     search: "",
-    status: "",
+    category: "",
     municipality: "",
-    program: ""
+    status: "",
+    program: "",
+    sortBy: "projectTitle",
+    sortDirection: "asc",
+    currentPage: 1,
+    pageSize: 25,
+    selectedProjectId: null
 };
 
 
@@ -787,17 +792,13 @@ function initializeAuthForms() {
     document.getElementById("loginForm") ||
     document.getElementById("signInForm");
 
-    const signInButton =
-        document.getElementById(
-            "signInButton"
-        ) ||
-        document.getElementById(
-            "loginButton"
-        ) ||
-        document.getElementById(
-            "signInBtn"
-        );
-
+const signInButton =
+    document.getElementById("signInButton") ||
+    document.getElementById("loginButton") ||
+    document.getElementById("signInBtn") ||
+    signInForm?.querySelector(
+        "button[type='submit']"
+    );
     const getEmailInput = () =>
         document.getElementById("email") ||
         document.getElementById("loginEmail") ||
@@ -2892,21 +2893,6 @@ function getFilteredMonitoringProjects() {
         }
     );
 }
-/* =========================================================
-   PROJECT MONITORING STATE
-========================================================= */
-
-let monitoringState = {
-    search: "",
-    category: "",
-    municipality: "",
-    status: "",
-    sortBy: "projectTitle",
-    sortDirection: "asc",
-    currentPage: 1,
-    pageSize: 25,
-    selectedProjectId: null
-};
 
 
 /* =========================================================
