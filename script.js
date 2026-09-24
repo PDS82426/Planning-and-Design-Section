@@ -5661,32 +5661,7 @@ window.previousMonitoringPage =
 
 window.sortMonitoringProjects =
     sortMonitoringProjects;
-/* =========================================================
-   CONTINUE MONITORING SUMMARY
-========================================================= */
 
-    if (elements.allocation) {
-
-        elements.allocation.textContent =
-            formatCurrency(
-                totalAllocation
-            );
-    }
-
-
-    if (elements.program) {
-
-        elements.program.textContent =
-            `${programAverage.toFixed(1)}%`;
-    }
-
-
-    if (elements.plan) {
-
-        elements.plan.textContent =
-            `${planAverage.toFixed(1)}%`;
-    }
-}
 /* =========================================================
    EDIT MONITORING PROJECT
 ========================================================= */
