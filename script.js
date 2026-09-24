@@ -784,9 +784,8 @@ function initializeAuthForms() {
     );
 
     const signInForm =
-        document.getElementById(
-            "signInForm"
-        );
+    document.getElementById("loginForm") ||
+    document.getElementById("signInForm");
 
     const signInButton =
         document.getElementById(
