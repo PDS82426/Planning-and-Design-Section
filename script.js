@@ -5687,8 +5687,6 @@ window.sortMonitoringProjects =
             `${planAverage.toFixed(1)}%`;
     }
 }
-
-
 /* =========================================================
    EDIT MONITORING PROJECT
 ========================================================= */
