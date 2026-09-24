@@ -1637,128 +1637,170 @@ a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 
 }
 /* =========================================================
-   PDS AUTH / MAIN APP VISIBILITY — FINAL FIX
+   PDS AUTHENTICATION / MAIN APP VISIBILITY
+   FINAL FIX
 ========================================================= */
 
 /* ---------------------------------------------------------
-   SIGN-IN PAGE
+   RESET
 --------------------------------------------------------- */
 
-#signInPage{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100vh;
-    z-index:99999;
-
-    display:block;
-
-    overflow:hidden;
-    background:#f3f5f8;
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
 }
 
-/* Sign-in layout */
-#signInPage .auth-page{
-    width:100%;
-    height:100vh;
 
-    display:grid;
-    grid-template-columns:48% 52%;
+/* =========================================================
+   SIGN IN PAGE
+========================================================= */
+
+#signInPage {
+    position: fixed;
+    inset: 0;
+
+    width: 100%;
+    height: 100vh;
+
+    display: block;
+
+    z-index: 99999;
+
+    overflow: hidden;
+
+    background: #f3f5f8;
 }
 
-/* ---------------------------------------------------------
+
+/* =========================================================
    MAIN APPLICATION
---------------------------------------------------------- */
+========================================================= */
 
-/* IMPORTANT:
-   Main application must NOT appear while signed out.
-*/
-#mainApp{
-    display:none;
-    min-height:100vh;
-    width:100%;
+#mainApp {
+    display: none;
+
+    width: 100%;
+    min-height: 100vh;
 }
+
+
+/* =========================================================
+   WHEN USER IS NOT AUTHENTICATED
+========================================================= */
+
+body.pds-unauthenticated {
+    width: 100%;
+    height: 100vh;
+
+    overflow: hidden !important;
+}
+
+body.pds-unauthenticated #signInPage {
+    display: block !important;
+
+    position: fixed;
+    inset: 0;
+
+    width: 100%;
+    height: 100vh;
+
+    z-index: 99999;
+
+    overflow: hidden;
+}
+
+body.pds-unauthenticated #mainApp {
+    display: none !important;
+}
+
 
 /* ---------------------------------------------------------
-   AUTHENTICATED STATE
+   ABSOLUTE PROTECTION AGAINST SIDEBAR OVERLAP
 --------------------------------------------------------- */
 
-body.pds-authenticated{
-    overflow:auto;
+body.pds-unauthenticated #mainApp,
+body.pds-unauthenticated #mainApp .sidebar,
+body.pds-unauthenticated #mainApp .main,
+body.pds-unauthenticated #mainApp .topbar {
+    display: none !important;
 }
 
-body.pds-authenticated #signInPage{
-    display:none !important;
+
+/* =========================================================
+   WHEN USER IS AUTHENTICATED
+========================================================= */
+
+body.pds-authenticated {
+    width: 100%;
+    min-height: 100vh;
+
+    overflow: auto;
 }
 
-body.pds-authenticated #mainApp{
-    display:flex !important;
+body.pds-authenticated #signInPage {
+    display: none !important;
 }
 
-/* ---------------------------------------------------------
-   UNAUTHENTICATED STATE
---------------------------------------------------------- */
+body.pds-authenticated #mainApp {
+    display: flex !important;
 
-body.pds-unauthenticated{
-    overflow:hidden !important;
-    width:100%;
-    height:100vh;
+    width: 100%;
+    min-height: 100vh;
 }
 
-body.pds-unauthenticated #signInPage{
-    display:block !important;
-    position:fixed;
-    inset:0;
-    z-index:99999;
+
+/* =========================================================
+   AUTH PAGE LAYOUT
+========================================================= */
+
+#signInPage .auth-page {
+    width: 100%;
+    height: 100vh;
+
+    display: grid;
+
+    grid-template-columns: 48% 52%;
 }
 
-body.pds-unauthenticated #mainApp{
-    display:none !important;
-}
 
-/* ---------------------------------------------------------
-   EXTRA PROTECTION
---------------------------------------------------------- */
-
-/* Never allow sidebar to appear on Sign In */
-body.pds-unauthenticated .sidebar{
-    display:none !important;
-}
-
-/* Never allow topbar/main content to appear on Sign In */
-body.pds-unauthenticated .main{
-    display:none !important;
-}
-
-/* ---------------------------------------------------------
+/* =========================================================
    MOBILE
---------------------------------------------------------- */
+========================================================= */
 
-@media(max-width:900px){
+@media (max-width: 900px) {
 
-    #signInPage .auth-page{
-        grid-template-columns:1fr;
+    #signInPage .auth-page {
+        grid-template-columns: 1fr;
     }
 
-    #signInPage .auth-brand-panel{
-        display:none;
+    #signInPage .auth-brand-panel {
+        display: none;
     }
 
-    #signInPage .auth-login-panel{
-        min-height:100vh;
-        padding:30px 20px;
+    #signInPage .auth-login-panel {
+        width: 100%;
+        min-height: 100vh;
     }
 
 }
 
-@media(max-width:520px){
 
-    #signInPage .auth-login-panel{
-        padding:24px 16px;
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+
+    #signInPage .auth-login-panel {
+        padding: 24px 16px;
     }
 
-    #signInPage .auth-login-box{
-        width:100%;
+    #signInPage .auth-login-box {
+        width: 100%;
+        max-width: 100%;
     }
 
 }
