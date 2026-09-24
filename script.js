@@ -5754,11 +5754,6 @@ async function editMonitoringProject(
         project.id;
 
 
-    /*
-     * Use the existing monitoring edit
-     * modal from the application.
-     */
-
     const modal =
         document.querySelector(
             "#monitoringEditModal"
@@ -5769,11 +5764,6 @@ async function editMonitoringProject(
 
 
     if (!modal) {
-
-        /*
-         * If the main application already has
-         * an edit function, use it.
-         */
 
         if (
             typeof openProjectEditModal ===
@@ -5866,8 +5856,6 @@ async function editMonitoringProject(
     modal.style.display =
         "flex";
 }
-
-
 /* =========================================================
    CLOSE MONITORING EDITOR
 ========================================================= */
