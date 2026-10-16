@@ -6389,56 +6389,53 @@ function loadSavedPageState() {
    GET ALL PAGE/SECTION ELEMENTS
 ========================================================= */
 
+
 function getPDSPageElements() {
+    const elements = new Set();
 
-    const selectors = [
-
-        "[data-page]",
-
-        "[data-section]",
-
-        ".page-section",
-
-        ".content-section",
-
-        ".dashboard-section",
-
-        "main section"
-
+    // Collect page containers identified by their IDs.
+    const pageIds = [
+        "dashboard",
+        "projects",
+        "monitoring",
+        "project-monitoring",
+        "documents",
+        "standards",
+        "standards-guidelines",
+        "department-orders",
+        "forms",
+        "forms-templates",
+        "announcements",
+        "news-announcements",
+        "pds-ai",
+        "about",
+        "contact",
+        "profile"
     ];
 
+    pageIds.forEach(id => {
+        const element = document.getElementById(id);
 
-    const elements = [];
-
-
-    selectors.forEach(
-        selector => {
-
-            document
-                .querySelectorAll(
-                    selector
-                )
-                .forEach(
-                    element => {
-
-                        if (
-                            !elements.includes(
-                                element
-                            )
-                        ) {
-
-                            elements.push(
-                                element
-                            );
-                        }
-                    }
-                );
+        if (
+            element &&
+            element.matches(
+                "main > section, main > div, section.page-section, section.content-section, section.dashboard-section"
+            )
+        ) {
+            elements.add(element);
         }
-    );
+    });
 
+    // Collect explicitly marked page containers only.
+    document.querySelectorAll(
+        "main > [data-page], main > [data-section], main > .page-section, main > .content-section, main > .dashboard-section"
+    ).forEach(element => {
+        elements.add(element);
+    });
 
-    return elements;
+    return [...elements];
 }
+
 
 
 /* =========================================================
