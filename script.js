@@ -304,61 +304,56 @@ async function loadCurrentProfile(userId) {
    UPDATE USER INTERFACE AFTER AUTH
 ========================================================= */
 
+
 function updateAuthenticatedUI() {
+    const signInPage = document.getElementById("signInPage");
+    const mainApp = document.getElementById("mainApp");
 
-    const signInPage =
-        $("signInPage");
+    const authenticated = Boolean(currentUser);
 
-    const mainApp =
-        $("mainApp");
-
-    const userEmailElements =
-        document.querySelectorAll(
-            "[data-user-email], .user-email"
-        );
-
-
-    if (currentUser) {
-
-        if (signInPage) {
+    if (signInPage) {
+        if (authenticated) {
             signInPage.classList.add("hidden");
-        }
-
-        if (mainApp) {
-            mainApp.classList.remove("hidden");
-        }
-
-
-        userEmailElements.forEach(
-            element => {
-
-                element.textContent =
-                    currentUser.email || "";
-
-            }
-        );
-
-
-    } else {
-
-        if (signInPage) {
+            signInPage.style.setProperty("display", "none", "important");
+        } else {
             signInPage.classList.remove("hidden");
+            signInPage.style.removeProperty("display");
         }
-
-        if (mainApp) {
-            mainApp.classList.add("hidden");
-        }
-
-
-        userEmailElements.forEach(
-            element => {
-
-                element.textContent = "";
-
-            }
-        );
     }
+
+    if (mainApp) {
+        if (authenticated) {
+            mainApp.classList.remove("hidden");
+            mainApp.style.removeProperty("display");
+        } else {
+            mainApp.classList.add("hidden");
+            mainApp.style.setProperty("display", "none", "important");
+        }
+    }
+
+    document.querySelectorAll("[data-user-email], .user-email")
+        .forEach(element => {
+            element.textContent = authenticated
+                ? (currentUser.email || "")
+                : "";
+        });
+
+    document.body.classList.toggle(
+        "pds-authenticated",
+        authenticated
+    );
+
+    document.body.classList.toggle(
+        "pds-unauthenticated",
+        !authenticated
+    );
+
+    console.log(
+        "PDS: Authentication UI updated.",
+        authenticated ? "APP" : "SIGN IN"
+    );
 }
+
 
 
 /* =========================================================
