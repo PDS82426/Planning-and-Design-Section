@@ -919,7 +919,11 @@ async function initializeAfterLogin() {
 
     try {
 
-        await initializeDocuments();
+        if (typeof initializeDocuments === "function") {
+            await initializeDocuments();
+        } else {
+            console.warn("PDS: Documents initializer is not present in this script version.");
+        }
 
     } catch (error) {
 
@@ -945,7 +949,11 @@ async function initializeAfterLogin() {
 
     try {
 
-        await initializeDepartmentOrders();
+        if (typeof initializeDepartmentOrders === "function") {
+            await initializeDepartmentOrders();
+        } else {
+            console.warn("PDS: Department Orders initializer is not present in this script version.");
+        }
 
     } catch (error) {
 
@@ -958,7 +966,11 @@ async function initializeAfterLogin() {
 
     try {
 
-        await initializePDSAI();
+        if (typeof initializePDSAI === "function") {
+            await initializePDSAI();
+        } else {
+            console.warn("PDS: PDS AI initializer is not present in this script version.");
+        }
 
     } catch (error) {
 
@@ -10189,7 +10201,7 @@ function initializeDashboardData() {
      */
 
     if (
-        oneDriveInitialized
+        oneDriveReady
     ) {
 
         refreshDashboardFromOneDrive();
@@ -10434,7 +10446,7 @@ function handlePDSAuthenticatedState() {
      */
 
     if (
-        oneDriveInitialized
+        oneDriveReady
     ) {
 
         refreshMonitoringFromOneDrive()
@@ -10829,7 +10841,7 @@ function startPDSExcelRefresh() {
             async () => {
 
                 if (
-                    !oneDriveInitialized
+                    !oneDriveReady
                 ) {
 
                     return;
@@ -11927,7 +11939,7 @@ async function synchronizeProjectToOverall(
      */
 
     if (
-        !oneDriveInitialized
+        !oneDriveReady
     ) {
 
         throw new Error(
@@ -12329,7 +12341,7 @@ async function saveProjectAndSync(
 function isExcelSourceAvailable() {
 
     return (
-        oneDriveInitialized ===
+        oneDriveReady ===
         true
     );
 }
@@ -12836,7 +12848,7 @@ function refreshOneDriveStatus() {
 
 
     if (
-        oneDriveInitialized
+        oneDriveReady
     ) {
 
         startPDSExcelRefresh();
@@ -12973,8 +12985,8 @@ window.PDS_DIAGNOSTIC =
             currentPage:
                 getCurrentPDSPage(),
 
-            oneDriveInitialized:
-                oneDriveInitialized,
+            oneDriveReady:
+                oneDriveReady,
 
             monitoringProjects:
                 Array.isArray(
