@@ -1,69 +1,106 @@
 /* =========================================================
    PDS — PLANNING & DESIGN SECTION
-   OPTIMIZED SCRIPT
-   AUTH + SESSION + DASHBOARD + PROJECTS + DOCUMENTS
-   DEPARTMENT ORDERS + PDS AI
-   ONEDRIVE + EXCEL OVERALL
+   COMPLETE SCRIPT
+
+   AUTH + SESSION
+   DASHBOARD
+   PROJECTS
+   DOCUMENTS
+   DEPARTMENT ORDERS
+   PROJECT MONITORING
+   PDS AI
+
+   AUTHENTICATION-STABLE VERSION
 ========================================================= */
 
 
 /* =========================================================
-   GLOBAL CONFIGURATION
+   SUPABASE CONFIGURATION
 ========================================================= */
 
 const SUPABASE_URL =
     "https://zvwghoabsqfyakbqzhil.supabase.co";
 
 const SUPABASE_ANON_KEY =
-    "sb_publishable_oJ3Zc3TplfYgePQEmTrEm8J";
+    "sb_publishable_oJ3Zc3TplfYgePQEmTrJ8Q_qycxR0jQ";
+
+
+/* =========================================================
+   MICROSOFT / ONEDRIVE CONFIGURATION
+
+   IMPORTANT:
+   1. Register this website as a SPA in Microsoft Entra ID.
+   2. Add the exact GitHub Pages URL as a redirect URI.
+   3. Add delegated Microsoft Graph permissions:
+      - User.Read
+      - Files.ReadWrite
+   4. Replace the placeholder client ID below.
+========================================================= */
+
+const MICROSOFT_CLIENT_ID =
+    "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE";
+
+const MICROSOFT_AUTHORITY =
+    "https://login.microsoftonline.com/consumers/";
+
+const MICROSOFT_SCOPES = [
+    "User.Read",
+    "Files.ReadWrite"
+];
+
+const ONEDRIVE_FILE_NAME =
+    "trial for website.xlsx";
+
+const ONEDRIVE_SHEET_NAME =
+    "OVERALL";
+
+const ONEDRIVE_GRAPH_ROOT =
+    "https://graph.microsoft.com/v1.0";
+
+let msalInstance = null;
+let microsoftAccount = null;
+let oneDriveReady = false;
+let oneDriveAccessToken = null;
+let oneDriveWorkbookRows = [];
+let oneDriveHeaders = [];
+let oneDriveWorkbookSessionId = null;
+let oneDriveScriptLoading = null;
+
+
+/* =========================================================
+   SUPABASE CLIENT
+========================================================= */
+
+let db = null;
 
 
 /* =========================================================
    GLOBAL STATE
 ========================================================= */
 
-let db = null;
-
 let currentUser = null;
 let currentProfile = null;
 
-let authStateSubscription = null;
-let authFormsReady = false;
-let authStartupPromise = null;
-let workspaceInitialized = false;
+let pdsAIHistory = [];
 
-let pdsCurrentPage =
-    localStorage.getItem("pdsCurrentPage") ||
-    "dashboard";
+let cachedDocuments = [];
 
 let cachedMonitoringProjects = [];
 
-let currentEditingMonitoringProject = null;
+let navigationReady = false;
+let authFormsReady = false;
+let documentSearchReady = false;
+let aiReady = false;
+let monitoringFiltersReady = false;
+let initialized = false;
 
-let oneDriveInitialized = false;
-let oneDriveReady = false;
-
-let oneDriveScriptLoading = null;
-let oneDriveInitializationPromise = null;
-
-let excelRefreshTimer = null;
-
-let monitoringState = {
-    search: "",
-    category: "",
-    municipality: "",
-    status: "",
-    program: "",
-    sortBy: "projectTitle",
-    sortDirection: "asc",
-    currentPage: 1,
-    pageSize: 25,
-    selectedProjectId: null
-};
+let authStateSubscription = null;
+let authStartupPromise = null;
+let workspaceInitializationPromise = null;
 
 
 /* =========================================================
-   BASIC DOM HELPER
+   DOM HELPER
 ========================================================= */
 
 function $(id) {
@@ -72,301 +109,26 @@ function $(id) {
 
 
 /* =========================================================
-   SAFE STRING HELPERS
+   WAIT FOR SUPABASE
 ========================================================= */
 
-function safeString(value) {
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return "";
-    }
+async function waitForSupabase(maxAttempts = 50) {
 
-    return String(value);
-}
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
 
-
-function escapeHTML(value) {
-    return safeString(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-
-/* =========================================================
-   NUMBER HELPERS
-========================================================= */
-
-function toNumber(value, fallback = 0) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return fallback;
-    }
-
-    if (
-        typeof value === "number" &&
-        Number.isFinite(value)
-    ) {
-        return value;
-    }
-
-    const cleaned =
-        String(value)
-            .replace(/,/g, "")
-            .replace(/₱/g, "")
-            .replace(/%/g, "")
-            .trim();
-
-    const number =
-        Number(cleaned);
-
-    return Number.isFinite(number)
-        ? number
-        : fallback;
-}
-
-
-function clampPercent(value) {
-
-    const number =
-        toNumber(value, 0);
-
-    return Math.max(
-        0,
-        Math.min(
-            100,
-            number
-        )
-    );
-}
-
-
-/* =========================================================
-   CURRENCY
-========================================================= */
-
-function formatCurrency(value) {
-
-    const amount =
-        toNumber(value, 0);
-
-    return new Intl.NumberFormat(
-        "en-PH",
-        {
-            style: "currency",
-            currency: "PHP",
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+        if (
+            window.supabase &&
+            typeof window.supabase.createClient === "function"
+        ) {
+            return true;
         }
-    ).format(amount);
-}
 
-
-/* =========================================================
-   DATE HELPERS
-========================================================= */
-
-function formatDate(value) {
-
-    if (!value) {
-        return "";
+        await new Promise(resolve => {
+            setTimeout(resolve, 100);
+        });
     }
 
-    const date =
-        new Date(value);
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return safeString(value);
-    }
-
-    return date.toLocaleDateString(
-        "en-PH",
-        {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-        }
-    );
-}
-
-
-/* =========================================================
-   MESSAGE SYSTEM
-========================================================= */
-
-function showMessage(
-    message,
-    type = "info"
-) {
-
-    const text =
-        safeString(message);
-
-    console.log(
-        `PDS MESSAGE [${type}]:`,
-        text
-    );
-
-    let container =
-        document.getElementById(
-            "pdsMessageContainer"
-        );
-
-    if (!container) {
-
-        container =
-            document.createElement(
-                "div"
-            );
-
-        container.id =
-            "pdsMessageContainer";
-
-        container.style.position =
-            "fixed";
-
-        container.style.top =
-            "20px";
-
-        container.style.right =
-            "20px";
-
-        container.style.zIndex =
-            "99999";
-
-        container.style.maxWidth =
-            "420px";
-
-        document.body.appendChild(
-            container
-        );
-    }
-
-    const messageElement =
-        document.createElement(
-            "div"
-        );
-
-    messageElement.className =
-        `pds-message pds-message-${type}`;
-
-    messageElement.textContent =
-        text;
-
-    messageElement.style.padding =
-        "12px 16px";
-
-    messageElement.style.marginBottom =
-        "8px";
-
-    messageElement.style.borderRadius =
-        "8px";
-
-    messageElement.style.background =
-        "#ffffff";
-
-    messageElement.style.boxShadow =
-        "0 4px 18px rgba(0,0,0,.15)";
-
-    messageElement.style.border =
-        "1px solid #d9e0ea";
-
-    container.appendChild(
-        messageElement
-    );
-
-    window.setTimeout(
-        () => {
-
-            messageElement.style.opacity =
-                "0";
-
-            messageElement.style.transition =
-                "opacity .25s ease";
-
-            window.setTimeout(
-                () => {
-                    messageElement.remove();
-                },
-                300
-            );
-
-        },
-        4000
-    );
-}
-
-
-/* =========================================================
-   SUPABASE LIBRARY
-========================================================= */
-
-function waitForSupabase(
-    timeout = 10000
-) {
-
-    return new Promise(
-        resolve => {
-
-            if (
-                window.supabase &&
-                typeof window.supabase.createClient ===
-                    "function"
-            ) {
-                resolve(true);
-                return;
-            }
-
-            const start =
-                Date.now();
-
-            const timer =
-                window.setInterval(
-                    () => {
-
-                        if (
-                            window.supabase &&
-                            typeof window.supabase.createClient ===
-                                "function"
-                        ) {
-
-                            window.clearInterval(
-                                timer
-                            );
-
-                            resolve(true);
-                            return;
-                        }
-
-                        if (
-                            Date.now() - start >=
-                            timeout
-                        ) {
-
-                            window.clearInterval(
-                                timer
-                            );
-
-                            resolve(false);
-                        }
-
-                    },
-                    100
-                );
-        }
-    );
+    return false;
 }
 
 
@@ -376,60 +138,80 @@ function waitForSupabase(
 
 function initializeSupabase() {
 
-    if (db) {
-        return true;
-    }
-
     if (
         !window.supabase ||
-        typeof window.supabase.createClient !==
-            "function"
+        typeof window.supabase.createClient !== "function"
     ) {
 
         console.error(
-            "PDS Auth: Supabase library unavailable."
+            "PDS: Supabase library was not loaded."
         );
 
         return false;
     }
 
+
+    if (!SUPABASE_URL) {
+
+        console.error(
+            "PDS: Supabase URL is missing."
+        );
+
+        return false;
+    }
+
+
+    if (!SUPABASE_ANON_KEY) {
+
+        console.error(
+            "PDS: Supabase Publishable key is missing."
+        );
+
+        return false;
+    }
+
+
     try {
 
-        db =
-            window.supabase.createClient(
-                SUPABASE_URL,
-                SUPABASE_ANON_KEY,
-                {
-                    auth: {
-                        persistSession: true,
-                        autoRefreshToken: true,
-                        detectSessionInUrl: true
-                    }
+        db = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY,
+            {
+                auth: {
+
+                    persistSession: true,
+
+                    autoRefreshToken: true,
+
+                    detectSessionInUrl: true,
+
+                    storageKey:
+                        "pds-supabase-auth"
+
                 }
-            );
+            }
+        );
+
 
         console.log(
-            "PDS Auth: Supabase client initialized."
+            "PDS: Supabase initialized successfully."
         );
+
 
         return true;
 
     } catch (error) {
 
         console.error(
-            "PDS Auth: Supabase initialization failed:",
+            "PDS: Failed to initialize Supabase:",
             error
         );
-
-        db = null;
 
         return false;
     }
 }
-
-
 /* =========================================================
-   CURRENT SESSION
+   GET CURRENT SUPABASE SESSION
 ========================================================= */
 
 async function getCurrentSession() {
@@ -443,22 +225,24 @@ async function getCurrentSession() {
         const {
             data,
             error
-        } =
-            await db.auth.getSession();
+        } = await db.auth.getSession();
 
         if (error) {
-            throw error;
+
+            console.error(
+                "PDS: Failed to get session:",
+                error
+            );
+
+            return null;
         }
 
-        return (
-            data?.session ||
-            null
-        );
+        return data?.session || null;
 
     } catch (error) {
 
         console.error(
-            "PDS Auth: Unable to get session:",
+            "PDS: Session error:",
             error
         );
 
@@ -468,19 +252,12 @@ async function getCurrentSession() {
 
 
 /* =========================================================
-   LOAD CURRENT PROFILE
+   LOAD SUPABASE PROFILE
 ========================================================= */
 
-async function loadCurrentProfile(
-    userId
-) {
+async function loadCurrentProfile(userId) {
 
-    currentProfile = null;
-
-    if (
-        !db ||
-        !userId
-    ) {
+    if (!db || !userId) {
         return null;
     }
 
@@ -489,35 +266,32 @@ async function loadCurrentProfile(
         const {
             data,
             error
-        } =
-            await db
-                .from("profiles")
-                .select("*")
-                .eq(
-                    "id",
-                    userId
-                )
-                .maybeSingle();
+        } = await db
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+
 
         if (error) {
 
             console.warn(
-                "PDS Auth: Profile load warning:",
+                "PDS: Profile lookup failed:",
                 error
             );
 
             return null;
         }
 
-        currentProfile =
-            data || null;
+
+        currentProfile = data || null;
 
         return currentProfile;
 
     } catch (error) {
 
         console.error(
-            "PDS Auth: Profile load failed:",
+            "PDS: Profile error:",
             error
         );
 
@@ -527,61 +301,217 @@ async function loadCurrentProfile(
 
 
 /* =========================================================
-   AUTHENTICATED UI
+   UPDATE USER INTERFACE AFTER AUTH
 ========================================================= */
 
 function updateAuthenticatedUI() {
 
     const signInPage =
-        document.getElementById(
-            "signInPage"
-        );
+        $("signInPage");
 
     const mainApp =
-        document.getElementById(
-            "mainApp"
+        $("mainApp");
+
+    const userEmailElements =
+        document.querySelectorAll(
+            "[data-user-email], .user-email"
         );
 
-    const authenticated =
-        !!currentUser;
 
-    if (signInPage) {
+    if (currentUser) {
 
-        signInPage.style.display =
-            authenticated
-                ? "none"
-                : "";
-    }
+        if (signInPage) {
+            signInPage.classList.add("hidden");
+        }
 
-    if (mainApp) {
+        if (mainApp) {
+            mainApp.classList.remove("hidden");
+        }
 
-        mainApp.style.display =
-            authenticated
-                ? ""
-                : "none";
-    }
 
-    document.body.classList.toggle(
-        "pds-authenticated",
-        authenticated
-    );
+        userEmailElements.forEach(
+            element => {
 
-    document.body.classList.toggle(
-        "pds-unauthenticated",
-        !authenticated
-    );
+                element.textContent =
+                    currentUser.email || "";
 
-    document.dispatchEvent(
-        new CustomEvent(
-            "pds:auth-ui-updated",
-            {
-                detail: {
-                    authenticated,
-                    user: currentUser
-                }
             }
-        )
+        );
+
+
+    } else {
+
+        if (signInPage) {
+            signInPage.classList.remove("hidden");
+        }
+
+        if (mainApp) {
+            mainApp.classList.add("hidden");
+        }
+
+
+        userEmailElements.forEach(
+            element => {
+
+                element.textContent = "";
+
+            }
+        );
+    }
+}
+
+
+/* =========================================================
+   SHOW MESSAGE
+========================================================= */
+
+function showMessage(
+    message,
+    type = "info"
+) {
+
+    let container =
+        $("pdsToastContainer");
+
+
+    if (!container) {
+
+        container =
+            document.createElement("div");
+
+        container.id =
+            "pdsToastContainer";
+
+        container.style.position =
+            "fixed";
+
+        container.style.top =
+            "20px";
+
+        container.style.right =
+            "20px";
+
+        container.style.zIndex =
+            "99999";
+
+        container.style.display =
+            "flex";
+
+        container.style.flexDirection =
+            "column";
+
+        container.style.gap =
+            "10px";
+
+        document.body.appendChild(
+            container
+        );
+    }
+
+
+    const toast =
+        document.createElement("div");
+
+
+    toast.textContent =
+        message;
+
+
+    toast.className =
+        `pds-toast pds-toast-${type}`;
+
+
+    toast.style.padding =
+        "12px 16px";
+
+    toast.style.borderRadius =
+        "8px";
+
+    toast.style.background =
+        "#ffffff";
+
+    toast.style.border =
+        "1px solid #d1d5db";
+
+    toast.style.boxShadow =
+        "0 8px 24px rgba(0,0,0,.12)";
+
+    toast.style.fontSize =
+        "14px";
+
+    toast.style.maxWidth =
+        "360px";
+
+
+    container.appendChild(
+        toast
     );
+
+
+    setTimeout(() => {
+
+        toast.remove();
+
+    }, 4000);
+}
+
+
+/* =========================================================
+   AUTH ERROR MESSAGE
+========================================================= */
+
+function getAuthErrorMessage(error) {
+
+    if (!error) {
+        return "Authentication failed.";
+    }
+
+
+    const message =
+        String(
+            error.message ||
+            error.error_description ||
+            error
+        );
+
+
+    const lower =
+        message.toLowerCase();
+
+
+    if (
+        lower.includes("invalid login credentials")
+    ) {
+
+        return "Invalid email or password.";
+    }
+
+
+    if (
+        lower.includes("email not confirmed")
+    ) {
+
+        return "Please confirm your email address before signing in.";
+    }
+
+
+    if (
+        lower.includes("user already registered")
+    ) {
+
+        return "This email is already registered.";
+    }
+
+
+    if (
+        lower.includes("password")
+    ) {
+
+        return message;
+    }
+
+
+    return message;
 }
 
 
@@ -597,116 +527,98 @@ async function signInUser(
     if (!db) {
 
         showMessage(
-            "Authentication is not ready. Please refresh the page.",
+            "Supabase is not initialized.",
             "error"
         );
 
         return false;
     }
 
-    email =
-        safeString(email).trim();
 
-    password =
-        safeString(password);
-
-    if (!email) {
+    if (!email || !password) {
 
         showMessage(
-            "Please enter your email.",
+            "Please enter your email and password.",
             "warning"
         );
 
         return false;
     }
 
-    if (!password) {
-
-        showMessage(
-            "Please enter your password.",
-            "warning"
-        );
-
-        return false;
-    }
 
     try {
 
         console.log(
-            "PDS Auth: Signing in:",
+            "PDS: Signing in:",
             email
         );
+
 
         const {
             data,
             error
-        } =
-            await db.auth.signInWithPassword(
-                {
-                    email,
-                    password
-                }
-            );
+        } = await db.auth.signInWithPassword({
+            email: email.trim(),
+            password: password
+        });
+
 
         if (error) {
-            throw error;
+
+            console.error(
+                "PDS: Sign-in failed:",
+                error
+            );
+
+            showMessage(
+                getAuthErrorMessage(error),
+                "error"
+            );
+
+            return false;
         }
+
 
         currentUser =
-            data?.user ||
-            null;
+            data?.user || null;
 
-        if (!currentUser) {
 
-            throw new Error(
-                "Supabase did not return a user session."
+        if (currentUser) {
+
+            await loadCurrentProfile(
+                currentUser.id
             );
+
+            updateAuthenticatedUI();
+
+            // SIGNED_IN is handled by initializeAuthListener().
+            // Do not initialize the workspace a second time here.
+
+            showMessage(
+                "Signed in successfully.",
+                "success"
+            );
+
+            return true;
         }
 
-        await loadCurrentProfile(
-            currentUser.id
-        );
-
-        updateAuthenticatedUI();
 
         showMessage(
-            "Sign in successful.",
-            "success"
+            "Sign-in completed but no user session was returned.",
+            "error"
         );
 
-        await initializeAfterLogin();
-
-        return true;
+        return false;
 
     } catch (error) {
 
         console.error(
-            "PDS Auth: Sign in failed:",
+            "PDS: Unexpected sign-in error:",
             error
         );
 
-        currentUser = null;
-        currentProfile = null;
-
-        updateAuthenticatedUI();
-
-        let message =
-            error?.message ||
-            "Unable to sign in.";
-
-        if (
-            message.toLowerCase()
-                .includes(
-                    "invalid login credentials"
-                )
-        ) {
-
-            message =
-                "Invalid email or password.";
-        }
-
         showMessage(
-            message,
+            getAuthErrorMessage(error),
             "error"
         );
 
@@ -722,48 +634,71 @@ async function signInUser(
 async function signOutUser() {
 
     if (!db) {
-        return false;
+        return;
     }
+
 
     try {
 
         console.log(
-            "PDS Auth: Signing out..."
+            "PDS: Signing out..."
         );
+
 
         const {
             error
-        } =
-            await db.auth.signOut();
+        } = await db.auth.signOut();
+
 
         if (error) {
-            throw error;
+
+            console.error(
+                "PDS: Sign-out failed:",
+                error
+            );
+
+            showMessage(
+                "Unable to sign out: " +
+                error.message,
+                "error"
+            );
+
+            return false;
         }
+
 
         currentUser = null;
         currentProfile = null;
 
-        workspaceInitialized = false;
+
+        if (oneDriveAccessToken) {
+            oneDriveAccessToken = null;
+        }
+
+        microsoftAccount = null;
+        oneDriveReady = false;
+
 
         updateAuthenticatedUI();
 
+
         showMessage(
-            "You have been signed out.",
+            "Signed out successfully.",
             "success"
         );
+
 
         return true;
 
     } catch (error) {
 
         console.error(
-            "PDS Auth: Sign out failed:",
+            "PDS: Sign-out error:",
             error
         );
 
         showMessage(
-            error?.message ||
-                "Unable to sign out.",
+            "Sign-out failed.",
             "error"
         );
 
@@ -779,43 +714,25 @@ async function signOutUser() {
 function initializeAuthForms() {
 
     if (authFormsReady) {
-        console.log(
-            "PDS Auth: Forms already initialized."
-        );
-
         return;
     }
 
-    console.log(
-        "PDS Auth: Initializing Sign In form..."
-    );
 
     const signInForm =
-        document.getElementById("loginForm") ||
-        document.getElementById("signInForm");
-
-    const signInButton =
-        document.getElementById("signInButton") ||
-        document.getElementById("loginButton") ||
-        document.getElementById("signInBtn") ||
-        signInForm?.querySelector(
-            "button[type='submit']"
-        );
-
-    const getEmailInput = () =>
-        document.getElementById("email") ||
-        document.getElementById("loginEmail") ||
-        document.getElementById("signInEmail");
-
-    const getPasswordInput = () =>
-        document.getElementById("password") ||
-        document.getElementById("loginPassword") ||
-        document.getElementById("signInPassword");
+        $("signInForm");
 
 
-    /* ---------------------------------------------------------
-       SIGN IN FORM
-    --------------------------------------------------------- */
+    const emailInput =
+        $("email") ||
+        $("loginEmail") ||
+        $("signInEmail");
+
+
+    const passwordInput =
+        $("password") ||
+        $("loginPassword") ||
+        $("signInPassword");
+
 
     if (signInForm) {
 
@@ -824,17 +741,7 @@ function initializeAuthForms() {
             async event => {
 
                 event.preventDefault();
-                event.stopPropagation();
 
-                console.log(
-                    "PDS Auth: Sign In form submitted."
-                );
-
-                const emailInput =
-                    getEmailInput();
-
-                const passwordInput =
-                    getPasswordInput();
 
                 const email =
                     emailInput?.value?.trim() ||
@@ -844,115 +751,6 @@ function initializeAuthForms() {
                     passwordInput?.value ||
                     "";
 
-                console.log(
-                    "PDS Auth: Email entered:",
-                    email
-                );
-
-                if (!email) {
-
-                    showMessage(
-                        "Please enter your email.",
-                        "warning"
-                    );
-
-                    return;
-                }
-
-                if (!password) {
-
-                    showMessage(
-                        "Please enter your password.",
-                        "warning"
-                    );
-
-                    return;
-                }
-
-                if (signInButton) {
-
-                    signInButton.disabled =
-                        true;
-
-                    signInButton.dataset.originalText =
-                        signInButton.textContent;
-
-                    signInButton.textContent =
-                        "Signing In...";
-                }
-
-                try {
-
-                    await signInUser(
-                        email,
-                        password
-                    );
-
-                } finally {
-
-                    if (signInButton) {
-
-                        signInButton.disabled =
-                            false;
-
-                        const originalText =
-                            signInButton.dataset.originalText;
-
-                        if (originalText) {
-
-                            signInButton.textContent =
-                                originalText;
-                        }
-                    }
-                }
-            }
-        );
-
-        console.log(
-            "PDS Auth: Sign In form listener attached."
-        );
-
-    } else {
-
-        console.warn(
-            "PDS Auth: #signInForm was not found."
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       FALLBACK SIGN IN BUTTON
-    --------------------------------------------------------- */
-
-    if (
-        !signInForm &&
-        signInButton
-    ) {
-
-        signInButton.addEventListener(
-            "click",
-            async event => {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                console.log(
-                    "PDS Auth: Sign In button clicked."
-                );
-
-                const emailInput =
-                    getEmailInput();
-
-                const passwordInput =
-                    getPasswordInput();
-
-                const email =
-                    emailInput?.value?.trim() ||
-                    "";
-
-                const password =
-                    passwordInput?.value ||
-                    "";
 
                 await signInUser(
                     email,
@@ -961,57 +759,66 @@ function initializeAuthForms() {
             }
         );
 
-        console.log(
-            "PDS Auth: Fallback Sign In button listener attached."
-        );
+    } else {
+
+        const signInButton =
+            $("signInButton") ||
+            $("loginButton") ||
+            $("signInBtn");
+
+
+        if (signInButton) {
+
+            signInButton.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
+
+                    const email =
+                        emailInput?.value?.trim() ||
+                        "";
+
+                    const password =
+                        passwordInput?.value ||
+                        "";
+
+
+                    await signInUser(
+                        email,
+                        password
+                    );
+                }
+            );
+        }
     }
 
 
-    /* ---------------------------------------------------------
-       SIGN OUT BUTTONS
-    --------------------------------------------------------- */
-
     const signOutButtons =
         document.querySelectorAll(
-            [
-                "#signOutButton",
-                "#logoutButton",
-                ".sign-out-button",
-                "[data-action='sign-out']"
-            ].join(",")
+            "#signOutButton, #logoutButton, .sign-out-button, [data-action='sign-out']"
         );
+
 
     signOutButtons.forEach(
         button => {
-
-            if (
-                button.dataset.authBound ===
-                "true"
-            ) {
-                return;
-            }
-
-            button.dataset.authBound =
-                "true";
 
             button.addEventListener(
                 "click",
                 async event => {
 
                     event.preventDefault();
-                    event.stopPropagation();
 
                     await signOutUser();
+
                 }
             );
         }
     );
 
-    authFormsReady = true;
 
-    console.log(
-        "PDS Auth: Authentication forms ready."
-    );
+    authFormsReady = true;
 }
 
 
@@ -1025,13 +832,9 @@ function initializeAuthListener() {
         !db ||
         authStateSubscription
     ) {
-
         return;
     }
 
-    console.log(
-        "PDS Auth: Installing auth state listener..."
-    );
 
     const result =
         db.auth.onAuthStateChange(
@@ -1045,9 +848,10 @@ function initializeAuthListener() {
                     event
                 );
 
+
                 currentUser =
-                    session?.user ||
-                    null;
+                    session?.user || null;
+
 
                 if (currentUser) {
 
@@ -1056,6 +860,7 @@ function initializeAuthListener() {
                     );
 
                     updateAuthenticatedUI();
+
 
                     if (
                         event === "SIGNED_IN" ||
@@ -1070,21 +875,15 @@ function initializeAuthListener() {
                     currentProfile =
                         null;
 
-                    workspaceInitialized =
-                        false;
-
                     updateAuthenticatedUI();
                 }
             }
         );
 
+
     authStateSubscription =
         result?.data?.subscription ||
         null;
-
-    console.log(
-        "PDS Auth: Auth listener ready."
-    );
 }
 
 
@@ -1094,47 +893,20 @@ function initializeAuthListener() {
 
 async function initializeAfterLogin() {
 
-    if (
-        workspaceInitialized
-    ) {
+    if (workspaceInitializationPromise) {
+        return workspaceInitializationPromise;
+    }
+
+    workspaceInitializationPromise = (async () => {
 
         console.log(
-            "PDS: Workspace already initialized."
+            "PDS: Initializing authenticated workspace..."
         );
 
-        return;
-    }
-
-    if (!currentUser) {
-
-        console.warn(
-            "PDS: Cannot initialize workspace without a user."
-        );
-
-        return;
-    }
-
-    workspaceInitialized =
-        true;
-
-    console.log(
-        "PDS: Initializing authenticated workspace..."
-    );
-
-
-    /* ---------------------------------------------------------
-       NAVIGATION
-    --------------------------------------------------------- */
 
     try {
 
-        if (
-            typeof initializeNavigation ===
-            "function"
-        ) {
-
-            await initializeNavigation();
-        }
+        await initializeNavigation();
 
     } catch (error) {
 
@@ -1145,19 +917,9 @@ async function initializeAfterLogin() {
     }
 
 
-    /* ---------------------------------------------------------
-       DOCUMENTS
-    --------------------------------------------------------- */
-
     try {
 
-        if (
-            typeof initializeDocuments ===
-            "function"
-        ) {
-
-            await initializeDocuments();
-        }
+        await initializeDocuments();
 
     } catch (error) {
 
@@ -1168,19 +930,9 @@ async function initializeAfterLogin() {
     }
 
 
-    /* ---------------------------------------------------------
-       PROJECT MONITORING
-    --------------------------------------------------------- */
-
     try {
 
-        if (
-            typeof initializeProjectMonitoring ===
-            "function"
-        ) {
-
-            await initializeProjectMonitoring();
-        }
+        await initializeProjectMonitoring();
 
     } catch (error) {
 
@@ -1191,19 +943,9 @@ async function initializeAfterLogin() {
     }
 
 
-    /* ---------------------------------------------------------
-       DEPARTMENT ORDERS
-    --------------------------------------------------------- */
-
     try {
 
-        if (
-            typeof initializeDepartmentOrders ===
-            "function"
-        ) {
-
-            await initializeDepartmentOrders();
-        }
+        await initializeDepartmentOrders();
 
     } catch (error) {
 
@@ -1214,19 +956,9 @@ async function initializeAfterLogin() {
     }
 
 
-    /* ---------------------------------------------------------
-       PDS AI
-    --------------------------------------------------------- */
-
     try {
 
-        if (
-            typeof initializePDSAI ===
-            "function"
-        ) {
-
-            await initializePDSAI();
-        }
+        await initializePDSAI();
 
     } catch (error) {
 
@@ -1237,25 +969,17 @@ async function initializeAfterLogin() {
     }
 
 
-    /* ---------------------------------------------------------
-       ONEDRIVE
-
-       OneDrive authentication is separate from
-       Supabase authentication.
-
-       Project Monitoring uses Excel OVERALL
-       as its source of truth.
-    --------------------------------------------------------- */
+    /*
+     * OneDrive initialization is intentionally
+     * separated from Supabase authentication.
+     *
+     * Project Monitoring uses OneDrive Excel
+     * as its data source.
+     */
 
     try {
 
-        if (
-            typeof initializeOneDrive ===
-            "function"
-        ) {
-
-            await initializeOneDrive();
-        }
+        await initializeOneDrive();
 
     } catch (error) {
 
@@ -1265,38 +989,15 @@ async function initializeAfterLogin() {
         );
     }
 
+    })().catch(error => {
+        workspaceInitializationPromise = null;
+        throw error;
+    });
 
-    /* ---------------------------------------------------------
-       FINAL UI
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeFinalPDSUI ===
-            "function"
-        ) {
-
-            initializeFinalPDSUI();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Final UI initialization failed:",
-            error
-        );
-    }
-
-
-    console.log(
-        "PDS: Authenticated workspace ready."
-    );
+    return workspaceInitializationPromise;
 }
-
-
 /* =========================================================
-   MSAL — LOAD MICROSOFT AUTHENTICATION LIBRARY
+   LOAD MSAL BROWSER LIBRARY
 ========================================================= */
 
 function loadMSAL() {
@@ -1306,4477 +1007,463 @@ function loadMSAL() {
         typeof window.msal.PublicClientApplication ===
             "function"
     ) {
-
-        return Promise.resolve(
-            true
-        );
+        return Promise.resolve(true);
     }
 
-    if (
-        oneDriveScriptLoading
-    ) {
 
+    if (oneDriveScriptLoading) {
         return oneDriveScriptLoading;
     }
 
+
     oneDriveScriptLoading =
-        new Promise(
-            resolve => {
+        new Promise((resolve, reject) => {
 
-                const existing =
-                    document.querySelector(
-                        "script[data-pds-msal='true']"
-                    );
-
-                if (existing) {
-
-                    existing.addEventListener(
-                        "load",
-                        () => resolve(true),
-                        {
-                            once: true
-                        }
-                    );
-
-                    existing.addEventListener(
-                        "error",
-                        () => resolve(false),
-                        {
-                            once: true
-                        }
-                    );
-
-                    return;
-                }
-
-
-                const script =
-                    document.createElement(
-                        "script"
-                    );
-
-                script.src =
-                    "https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js";
-
-                script.async =
-                    true;
-
-                script.defer =
-                    true;
-
-                script.dataset.pdsMsal =
-                    "true";
-
-
-                script.onload =
-                    () => {
-
-                        console.log(
-                            "PDS OneDrive: MSAL loaded."
-                        );
-
-                        resolve(true);
-                    };
-
-
-                script.onerror =
-                    error => {
-
-                        console.error(
-                            "PDS OneDrive: Failed to load MSAL.",
-                            error
-                        );
-
-                        resolve(false);
-                    };
-
-
-                document.head.appendChild(
-                    script
+            const existing =
+                document.querySelector(
+                    "script[data-pds-msal]"
                 );
+
+
+            if (existing) {
+
+                existing.addEventListener(
+                    "load",
+                    () => resolve(true)
+                );
+
+                existing.addEventListener(
+                    "error",
+                    () => reject(
+                        new Error(
+                            "Unable to load Microsoft MSAL."
+                        )
+                    )
+                );
+
+                return;
             }
-        );
+
+
+            const script =
+                document.createElement("script");
+
+
+            script.src =
+                "https://alcdn.msauth.net/browser/2.38.2/js/msal-browser.min.js";
+
+
+            script.async = true;
+
+
+            script.dataset.pdsMsal =
+                "true";
+
+
+            script.onload = () => {
+
+                console.log(
+                    "PDS: Microsoft MSAL loaded."
+                );
+
+                resolve(true);
+            };
+
+
+            script.onerror = () => {
+
+                reject(
+                    new Error(
+                        "Microsoft MSAL failed to load."
+                    )
+                );
+            };
+
+
+            document.head.appendChild(
+                script
+            );
+        });
+
 
     return oneDriveScriptLoading;
 }
 
 
 /* =========================================================
-   ONEDRIVE CONFIGURATION
-========================================================= */
-
-const PDS_ONEDRIVE_CONFIG = {
-
-    clientId:
-        window.PDS_ONEDRIVE_CLIENT_ID ||
-        "",
-
-    authority:
-        "https://login.microsoftonline.com/common",
-
-    scopes: [
-        "Files.ReadWrite",
-        "User.Read"
-    ],
-
-    workbookName:
-        "trial for website.xlsx",
-
-    worksheetName:
-        "OVERALL"
-};
-
-
-/* =========================================================
-   ONEDRIVE STATE
-========================================================= */
-
-let msalInstance =
-    null;
-
-let oneDriveAccount =
-    null;
-
-let oneDriveAccessToken =
-    null;
-
-let oneDriveWorkbookId =
-    null;
-
-
-/* =========================================================
-   CREATE MSAL INSTANCE
-========================================================= */
-
-async function initializeMSAL() {
-
-    if (msalInstance) {
-
-        return msalInstance;
-    }
-
-    const loaded =
-        await loadMSAL();
-
-    if (!loaded) {
-
-        throw new Error(
-            "Microsoft authentication library could not be loaded."
-        );
-    }
-
-    if (
-        !window.msal ||
-        typeof window.msal.PublicClientApplication !==
-            "function"
-    ) {
-
-        throw new Error(
-            "MSAL browser library is unavailable."
-        );
-    }
-
-    if (
-        !PDS_ONEDRIVE_CONFIG.clientId
-    ) {
-
-        console.warn(
-            "PDS OneDrive: Client ID has not been configured."
-        );
-
-        return null;
-    }
-
-    msalInstance =
-        new window.msal.PublicClientApplication(
-            {
-                auth: {
-                    clientId:
-                        PDS_ONEDRIVE_CONFIG.clientId,
-
-                    authority:
-                        PDS_ONEDRIVE_CONFIG.authority,
-
-                    redirectUri:
-                        window.location.origin +
-                        window.location.pathname
-                },
-
-                cache: {
-                    cacheLocation:
-                        "localStorage",
-
-                    storeAuthStateInCookie:
-                        false
-                }
-            }
-        );
-
-    return msalInstance;
-}
-
-
-/* =========================================================
-   ONEDRIVE ACCOUNT
-========================================================= */
-
-function getOneDriveAccount() {
-
-    if (
-        oneDriveAccount
-    ) {
-
-        return oneDriveAccount;
-    }
-
-    if (
-        !msalInstance
-    ) {
-
-        return null;
-    }
-
-    const accounts =
-        msalInstance.getAllAccounts();
-
-    oneDriveAccount =
-        accounts[0] ||
-        null;
-
-    return oneDriveAccount;
-}
-
-
-/* =========================================================
-   ONEDRIVE STATUS
-========================================================= */
-
-function isOneDriveConnected() {
-
-    return (
-        oneDriveInitialized === true ||
-        oneDriveReady === true
-    );
-}
-
-
-function updateOneDriveStatusUI() {
-
-    const statusElements =
-        document.querySelectorAll(
-            [
-                "#oneDriveStatus",
-                "#onedriveStatus",
-                "[data-onedrive-status]"
-            ].join(",")
-        );
-
-    const connected =
-        isOneDriveConnected();
-
-    statusElements.forEach(
-        element => {
-
-            if (connected) {
-
-                element.textContent =
-                    "OneDrive Excel Connected";
-
-                element.classList.remove(
-                    "offline",
-                    "disconnected",
-                    "error"
-                );
-
-                element.classList.add(
-                    "connected"
-                );
-
-            } else {
-
-                element.textContent =
-                    "OneDrive Excel Not Connected";
-
-                element.classList.remove(
-                    "connected"
-                );
-
-                element.classList.add(
-                    "disconnected"
-                );
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   ONEDRIVE SIGN IN
-========================================================= */
-
-async function signInToOneDrive() {
-
-    const msal =
-        await initializeMSAL();
-
-    if (!msal) {
-
-        throw new Error(
-            "OneDrive Client ID is not configured."
-        );
-    }
-
-    let account =
-        getOneDriveAccount();
-
-    if (!account) {
-
-        const loginResponse =
-            await msal.loginPopup(
-                {
-                    scopes:
-                        PDS_ONEDRIVE_CONFIG.scopes
-                }
-            );
-
-        account =
-            loginResponse?.account ||
-            null;
-
-        oneDriveAccount =
-            account;
-    }
-
-    if (!account) {
-
-        throw new Error(
-            "Microsoft account sign in did not return an account."
-        );
-    }
-
-    const tokenResponse =
-        await msal.acquireTokenSilent(
-            {
-                scopes:
-                    PDS_ONEDRIVE_CONFIG.scopes,
-
-                account
-            }
-        );
-
-    oneDriveAccessToken =
-        tokenResponse.accessToken;
-
-    oneDriveInitialized =
-        true;
-
-    oneDriveReady =
-        true;
-
-    updateOneDriveStatusUI();
-
-    return true;
-}
-
-
-/* =========================================================
-   ONEDRIVE INITIALIZATION
+   INITIALIZE ONEDRIVE
 ========================================================= */
 
 async function initializeOneDrive() {
 
-    if (
-        oneDriveInitializationPromise
-    ) {
-
-        return oneDriveInitializationPromise;
-    }
-
-    oneDriveInitializationPromise =
-        (async () => {
-
-            try {
-
-                const msal =
-                    await initializeMSAL();
-
-                if (!msal) {
-
-                    updateOneDriveStatusUI();
-
-                    return false;
-                }
-
-                let account =
-                    getOneDriveAccount();
-
-                if (!account) {
-
-                    updateOneDriveStatusUI();
-
-                    return false;
-                }
-
-                const tokenResponse =
-                    await msal.acquireTokenSilent(
-                        {
-                            scopes:
-                                PDS_ONEDRIVE_CONFIG.scopes,
-
-                            account
-                        }
-                    );
-
-                oneDriveAccessToken =
-                    tokenResponse.accessToken;
-
-                oneDriveAccount =
-                    account;
-
-                oneDriveInitialized =
-                    true;
-
-                oneDriveReady =
-                    true;
-
-                updateOneDriveStatusUI();
-
-                console.log(
-                    "PDS OneDrive: Existing Microsoft session restored."
-                );
-
-                return true;
-
-            } catch (error) {
-
-                console.warn(
-                    "PDS OneDrive: Initialization failed:",
-                    error
-                );
-
-                oneDriveInitialized =
-                    false;
-
-                oneDriveReady =
-                    false;
-
-                updateOneDriveStatusUI();
-
-                return false;
-
-            } finally {
-
-                oneDriveInitializationPromise =
-                    null;
-            }
-
-        })();
-
-    return oneDriveInitializationPromise;
-}
-
-
-/* =========================================================
-   GRAPH API REQUEST
-========================================================= */
-
-async function graphRequest(
-    endpoint,
-    options = {}
-) {
-
-    if (
-        !oneDriveAccessToken
-    ) {
-
-        throw new Error(
-            "OneDrive is not authenticated."
-        );
-    }
-
-    const response =
-        await fetch(
-            "https://graph.microsoft.com/v1.0" +
-            endpoint,
-            {
-                ...options,
-
-                headers: {
-                    Authorization:
-                        `Bearer ${oneDriveAccessToken}`,
-
-                    Accept:
-                        "application/json",
-
-                    ...(options.body
-                        ? {
-                            "Content-Type":
-                                "application/json"
-                        }
-                        : {}),
-
-                    ...(options.headers ||
-                        {})
-                }
-            }
-        );
-
-    const text =
-        await response.text();
-
-    let data =
-        null;
-
-    if (text) {
-
-        try {
-
-            data =
-                JSON.parse(text);
-
-        } catch {
-
-            data =
-                text;
-        }
-    }
-
-    if (
-        !response.ok
-    ) {
-
-        const message =
-            data?.error?.message ||
-            data?.message ||
-            text ||
-            `Microsoft Graph request failed with status ${response.status}.`;
-
-        throw new Error(
-            message
-        );
-    }
-
-    return data;
-}
-
-
-/* =========================================================
-   FIND ONEDRIVE WORKBOOK
-========================================================= */
-
-async function findOneDriveWorkbook() {
-
-    if (
-        oneDriveWorkbookId
-    ) {
-
-        return oneDriveWorkbookId;
-    }
-
-    const response =
-        await graphRequest(
-            "/me/drive/root/search" +
-            `?q=${encodeURIComponent(
-                PDS_ONEDRIVE_CONFIG.workbookName
-            )}`
-        );
-
-    const items =
-        response?.value ||
-        [];
-
-    const workbook =
-        items.find(
-            item =>
-                item.name?.toLowerCase() ===
-                PDS_ONEDRIVE_CONFIG.workbookName.toLowerCase()
-        ) ||
-        items.find(
-            item =>
-                item.file &&
-                item.name
-                    ?.toLowerCase()
-                    .endsWith(".xlsx")
-        );
-
-    if (!workbook) {
-
-        throw new Error(
-            `OneDrive workbook "${PDS_ONEDRIVE_CONFIG.workbookName}" was not found.`
-        );
-    }
-
-    oneDriveWorkbookId =
-        workbook.id;
-
-    return oneDriveWorkbookId;
-}
-
-
-/* =========================================================
-   GET WORKBOOK
-========================================================= */
-
-async function getOneDriveWorkbook() {
-
-    const workbookId =
-        await findOneDriveWorkbook();
-
-    return workbookId;
-}
-
-
-/* =========================================================
-   EXCEL GRAPH REQUEST
-========================================================= */
-
-async function excelRequest(
-    endpoint,
-    options = {}
-) {
-
-    const workbookId =
-        await getOneDriveWorkbook();
-
-    return graphRequest(
-        `/me/drive/items/${encodeURIComponent(
-            workbookId
-        )}/workbook${endpoint}`,
-        options
-    );
-}
-
-
-/* =========================================================
-   GET WORKSHEET
-========================================================= */
-
-async function getOneDriveWorksheet() {
-
-    const worksheetName =
-        PDS_ONEDRIVE_CONFIG.worksheetName;
-
-    return excelRequest(
-        `/worksheets('${encodeURIComponent(
-            worksheetName
-        )}')`
-    );
-}
-
-
-/* =========================================================
-   GET USED RANGE
-========================================================= */
-
-async function getOneDriveUsedRange() {
-
-    const worksheetName =
-        PDS_ONEDRIVE_CONFIG.worksheetName;
-
-    return excelRequest(
-        `/worksheets('${encodeURIComponent(
-            worksheetName
-        )}')/usedRange`
-    );
-}
-
-
-/* =========================================================
-   READ ONEDRIVE EXCEL DATA
-========================================================= */
-
-async function readOneDriveExcelData() {
-
-    if (
-        !isOneDriveConnected()
-    ) {
-
-        const connected =
-            await initializeOneDrive();
-
-        if (!connected) {
-
-            throw new Error(
-                "OneDrive is not connected."
-            );
-        }
-    }
-
-    const range =
-        await getOneDriveUsedRange();
-
-    const values =
-        range?.values ||
-        [];
-
-    return values;
-}
-
-
-/* =========================================================
-   CONVERT EXCEL ROWS TO OBJECTS
-========================================================= */
-
-function convertExcelRowsToObjects(
-    values
-) {
-
-    if (
-        !Array.isArray(values) ||
-        values.length === 0
-    ) {
-
-        return [];
-    }
-
-    const headers =
-        values[0].map(
-            header =>
-                String(
-                    header ??
-                    ""
-                ).trim()
-        );
-
-    return values
-        .slice(1)
-        .map(
-            row => {
-
-                const object =
-                    {};
-
-                headers.forEach(
-                    (
-                        header,
-                        index
-                    ) => {
-
-                        if (!header) {
-                            return;
-                        }
-
-                        object[header] =
-                            row[index] ??
-                            "";
-                    }
-                );
-
-                return object;
-            }
-        )
-        .filter(
-            row =>
-                Object.values(
-                    row
-                ).some(
-                    value =>
-                        String(
-                            value ??
-                            ""
-                        ).trim() !==
-                        ""
-                )
-        );
-}
-
-
-/* =========================================================
-   NORMALIZE PROJECT OBJECT
-========================================================= */
-
-function normalizeMonitoringProject(
-    project,
-    index = 0
-) {
-
-    const get =
-        (...keys) => {
-
-            for (
-                const key of keys
-            ) {
-
-                if (
-                    project &&
-                    Object.prototype.hasOwnProperty.call(
-                        project,
-                        key
-                    )
-                ) {
-
-                    const value =
-                        project[key];
-
-                    if (
-                        value !==
-                            null &&
-                        value !==
-                            undefined &&
-                        String(value)
-                            .trim() !==
-                            ""
-                    ) {
-
-                        return value;
-                    }
-                }
-            }
-
-            return "";
-        };
-
-
-    const projectTitle =
-        get(
-            "PROJECT TITLE AS PER GAA",
-            "PROJECT TITLE",
-            "Project Title",
-            "projectTitle",
-            "Title"
-        );
-
-    const projectNumber =
-        get(
-            "PROJECT ID",
-            "PROJECT NO.",
-            "PROJECT NUMBER",
-            "Project No.",
-            "projectNumber"
-        );
-
-    const municipality =
-        get(
-            "MUNICIPALITY",
-            "Municipality",
-            "municipality"
-        );
-
-    const program =
-        get(
-            "PROGRAM2",
-            "PROGRAM",
-            "Program",
-            "program"
-        );
-
-    const allocation =
-        get(
-            "ALLOCATION",
-            "Allocation",
-            "allocation"
-        );
-
-    const status =
-        get(
-            "STATUS",
-            "Status",
-            "status"
-        );
-
-    const remarks =
-        get(
-            "REMARKS",
-            "Remarks",
-            "remarks"
-        );
-
-
-    return {
-        ...project,
-
-        _index:
-            index,
-
-        projectTitle:
-            String(
-                projectTitle ||
-                ""
-            ).trim(),
-
-        projectNumber:
-            String(
-                projectNumber ||
-                ""
-            ).trim(),
-
-        municipality:
-            String(
-                municipality ||
-                ""
-            ).trim(),
-
-        program:
-            String(
-                program ||
-                ""
-            ).trim(),
-
-        allocation:
-            allocation,
-
-        status:
-            String(
-                status ||
-                ""
-            ).trim(),
-
-        remarks:
-            String(
-                remarks ||
-                ""
-            ).trim()
-    };
-}
-
-
-/* =========================================================
-   LOAD MONITORING DATA FROM ONEDRIVE
-========================================================= */
-
-async function loadMonitoringDataFromOneDrive(
-    forceRefresh = false
-) {
-
-    if (
-        monitoringDataLoaded &&
-        !forceRefresh &&
-        Array.isArray(
-            monitoringProjects
-        )
-    ) {
-
-        return monitoringProjects;
-    }
-
-    if (
-        monitoringDataLoadingPromise
-    ) {
-
-        return monitoringDataLoadingPromise;
-    }
-
-    monitoringDataLoadingPromise =
-        (async () => {
-
-            try {
-
-                if (
-                    !isOneDriveConnected()
-                ) {
-
-                    const connected =
-                        await initializeOneDrive();
-
-                    if (!connected) {
-
-                        console.warn(
-                            "PDS Monitoring: OneDrive is not connected."
-                        );
-
-                        monitoringProjects =
-                            [];
-
-                        monitoringDataLoaded =
-                            false;
-
-                        return [];
-                    }
-                }
-
-                const values =
-                    await readOneDriveExcelData();
-
-                const rows =
-                    convertExcelRowsToObjects(
-                        values
-                    );
-
-                monitoringProjects =
-                    rows.map(
-                        (
-                            row,
-                            index
-                        ) =>
-                            normalizeMonitoringProject(
-                                row,
-                                index
-                            )
-                    );
-
-                monitoringDataLoaded =
-                    true;
-
-                console.log(
-                    "PDS Monitoring: Loaded",
-                    monitoringProjects.length,
-                    "projects from OneDrive Excel."
-                );
-
-                return monitoringProjects;
-
-            } catch (error) {
-
-                console.error(
-                    "PDS Monitoring: Failed to load OneDrive Excel data:",
-                    error
-                );
-
-                monitoringProjects =
-                    [];
-
-                monitoringDataLoaded =
-                    false;
-
-                throw error;
-
-            } finally {
-
-                monitoringDataLoadingPromise =
-                    null;
-            }
-
-        })();
-
-    return monitoringDataLoadingPromise;
-}
-
-
-/* =========================================================
-   PROJECT MONITORING INITIALIZATION
-========================================================= */
-
-async function initializeProjectMonitoring() {
-
-    if (
-        projectMonitoringInitialized
-    ) {
-
-        return;
-    }
-
-    projectMonitoringInitialized =
-        true;
-
     console.log(
-        "PDS Monitoring: Initializing..."
-    );
-
-    try {
-
-        setupMonitoringControls();
-
-        await loadMonitoringDataFromOneDrive();
-
-        renderProjectMonitoring();
-
-    } catch (error) {
-
-        console.error(
-            "PDS Monitoring: Initialization failed:",
-            error
-        );
-
-        renderProjectMonitoringError(
-            error
-        );
-    }
-}
-
-
-/* =========================================================
-   MONITORING FILTER CONTROLS
-========================================================= */
-
-function setupMonitoringControls() {
-
-    const searchInput =
-        document.querySelector(
-            [
-                "#projectSearch",
-                "#monitoringSearch",
-                "#projectMonitoringSearch",
-                "[data-monitoring-search]"
-            ].join(",")
-        );
-
-    const categorySelect =
-        document.querySelector(
-            [
-                "#monitoringCategory",
-                "#projectCategory",
-                "[data-monitoring-category]"
-            ].join(",")
-        );
-
-    const municipalitySelect =
-        document.querySelector(
-            [
-                "#monitoringMunicipality",
-                "#projectMunicipality",
-                "[data-monitoring-municipality]"
-            ].join(",")
-        );
-
-    const statusSelect =
-        document.querySelector(
-            [
-                "#monitoringStatus",
-                "#projectStatus",
-                "[data-monitoring-status]"
-            ].join(",")
-        );
-
-    const programSelect =
-        document.querySelector(
-            [
-                "#monitoringProgram",
-                "#projectProgram",
-                "[data-monitoring-program]"
-            ].join(",")
-        );
-
-
-    if (searchInput) {
-
-        searchInput.addEventListener(
-            "input",
-            event => {
-
-                monitoringState.search =
-                    event.target.value
-                        .trim()
-                        .toLowerCase();
-
-                monitoringState.currentPage =
-                    1;
-
-                renderProjectMonitoring();
-            }
-        );
-    }
-
-
-    if (categorySelect) {
-
-        categorySelect.addEventListener(
-            "change",
-            event => {
-
-                monitoringState.category =
-                    event.target.value;
-
-                monitoringState.currentPage =
-                    1;
-
-                renderProjectMonitoring();
-            }
-        );
-    }
-
-
-    if (municipalitySelect) {
-
-        municipalitySelect.addEventListener(
-            "change",
-            event => {
-
-                monitoringState.municipality =
-                    event.target.value;
-
-                monitoringState.currentPage =
-                    1;
-
-                renderProjectMonitoring();
-            }
-        );
-    }
-
-
-    if (statusSelect) {
-
-        statusSelect.addEventListener(
-            "change",
-            event => {
-
-                monitoringState.status =
-                    event.target.value;
-
-                monitoringState.currentPage =
-                    1;
-
-                renderProjectMonitoring();
-            }
-        );
-    }
-
-
-    if (programSelect) {
-
-        programSelect.addEventListener(
-            "change",
-            event => {
-
-                monitoringState.program =
-                    event.target.value;
-
-                monitoringState.currentPage =
-                    1;
-
-                renderProjectMonitoring();
-            }
-        );
-    }
-
-
-    setupMonitoringSortControls();
-
-    setupMonitoringPaginationControls();
-}
-
-
-/* =========================================================
-   MONITORING SORT CONTROLS
-========================================================= */
-
-function setupMonitoringSortControls() {
-
-    const sortableHeaders =
-        document.querySelectorAll(
-            "[data-monitoring-sort]"
-        );
-
-    sortableHeaders.forEach(
-        header => {
-
-            if (
-                header.dataset.sortBound ===
-                "true"
-            ) {
-
-                return;
-            }
-
-            header.dataset.sortBound =
-                "true";
-
-            header.addEventListener(
-                "click",
-                () => {
-
-                    const sortBy =
-                        header.dataset.monitoringSort;
-
-                    if (!sortBy) {
-                        return;
-                    }
-
-                    if (
-                        monitoringState.sortBy ===
-                        sortBy
-                    ) {
-
-                        monitoringState.sortDirection =
-                            monitoringState.sortDirection ===
-                            "asc"
-                                ? "desc"
-                                : "asc";
-
-                    } else {
-
-                        monitoringState.sortBy =
-                            sortBy;
-
-                        monitoringState.sortDirection =
-                            "asc";
-                    }
-
-                    monitoringState.currentPage =
-                        1;
-
-                    renderProjectMonitoring();
-                }
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   MONITORING PAGINATION CONTROLS
-========================================================= */
-
-function setupMonitoringPaginationControls() {
-
-    const previousButton =
-        document.querySelector(
-            [
-                "#monitoringPrevious",
-                "#projectPrevious",
-                "[data-monitoring-prev]"
-            ].join(",")
-        );
-
-    const nextButton =
-        document.querySelector(
-            [
-                "#monitoringNext",
-                "#projectNext",
-                "[data-monitoring-next]"
-            ].join(",")
-        );
-
-    const pageSizeSelect =
-        document.querySelector(
-            [
-                "#monitoringPageSize",
-                "#projectPageSize",
-                "[data-monitoring-page-size]"
-            ].join(",")
-        );
-
-
-    if (previousButton) {
-
-        previousButton.addEventListener(
-            "click",
-            () => {
-
-                if (
-                    monitoringState.currentPage >
-                    1
-                ) {
-
-                    monitoringState.currentPage--;
-
-                    renderProjectMonitoring();
-                }
-            }
-        );
-    }
-
-
-    if (nextButton) {
-
-        nextButton.addEventListener(
-            "click",
-            () => {
-
-                const filtered =
-                    getFilteredMonitoringProjects();
-
-                const totalPages =
-                    Math.max(
-                        1,
-                        Math.ceil(
-                            filtered.length /
-                            monitoringState.pageSize
-                        )
-                    );
-
-                if (
-                    monitoringState.currentPage <
-                    totalPages
-                ) {
-
-                    monitoringState.currentPage++;
-
-                    renderProjectMonitoring();
-                }
-            }
-        );
-    }
-
-
-    if (pageSizeSelect) {
-
-        pageSizeSelect.addEventListener(
-            "change",
-            event => {
-
-                const size =
-                    Number(
-                        event.target.value
-                    );
-
-                if (
-                    Number.isFinite(size) &&
-                    size > 0
-                ) {
-
-                    monitoringState.pageSize =
-                        size;
-
-                    monitoringState.currentPage =
-                        1;
-
-                    renderProjectMonitoring();
-                }
-            }
-        );
-    }
-}
-
-
-/* =========================================================
-   MONITORING FILTER OPTIONS
-========================================================= */
-
-function populateMonitoringFilterOptions() {
-
-    const projects =
-        Array.isArray(
-            monitoringProjects
-        )
-            ? monitoringProjects
-            : [];
-
-
-    const uniqueValues =
-        key =>
-            [
-                ...new Set(
-                    projects
-                        .map(
-                            project =>
-                                String(
-                                    project?.[key] ??
-                                    ""
-                                ).trim()
-                        )
-                        .filter(Boolean)
-                )
-            ].sort(
-                (a, b) =>
-                    a.localeCompare(
-                        b
-                    )
-            );
-
-
-    const categoryValues =
-        uniqueValues(
-            "category"
-        );
-
-    const municipalityValues =
-        uniqueValues(
-            "municipality"
-        );
-
-    const statusValues =
-        uniqueValues(
-            "status"
-        );
-
-    const programValues =
-        uniqueValues(
-            "program"
-        );
-
-
-    populateSelectOptions(
-        [
-            "#monitoringCategory",
-            "#projectCategory",
-            "[data-monitoring-category]"
-        ],
-        categoryValues,
-        "All Categories"
-    );
-
-
-    populateSelectOptions(
-        [
-            "#monitoringMunicipality",
-            "#projectMunicipality",
-            "[data-monitoring-municipality]"
-        ],
-        municipalityValues,
-        "All Municipalities"
-    );
-
-
-    populateSelectOptions(
-        [
-            "#monitoringStatus",
-            "#projectStatus",
-            "[data-monitoring-status]"
-        ],
-        statusValues,
-        "All Statuses"
-    );
-
-
-    populateSelectOptions(
-        [
-            "#monitoringProgram",
-            "#projectProgram",
-            "[data-monitoring-program]"
-        ],
-        programValues,
-        "All Programs"
-    );
-}
-
-
-/* =========================================================
-   POPULATE SELECT
-========================================================= */
-
-function populateSelectOptions(
-    selectors,
-    values,
-    defaultLabel
-) {
-
-    let select =
-        null;
-
-    for (
-        const selector of selectors
-    ) {
-
-        select =
-            document.querySelector(
-                selector
-            );
-
-        if (select) {
-            break;
-        }
-    }
-
-    if (!select) {
-        return;
-    }
-
-    const currentValue =
-        select.value;
-
-    select.innerHTML =
-        "";
-
-    const defaultOption =
-        document.createElement(
-            "option"
-        );
-
-    defaultOption.value =
-        "";
-
-    defaultOption.textContent =
-        defaultLabel;
-
-    select.appendChild(
-        defaultOption
-    );
-
-
-    values.forEach(
-        value => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value =
-                value;
-
-            option.textContent =
-                value;
-
-            select.appendChild(
-                option
-            );
-        }
+        "PDS: Initializing OneDrive..."
     );
 
 
     if (
-        values.includes(
-            currentValue
-        )
+        !MICROSOFT_CLIENT_ID ||
+        MICROSOFT_CLIENT_ID ===
+            "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
     ) {
 
-        select.value =
-            currentValue;
-
-    } else {
-
-        select.value =
-            "";
-    }
-}
-
-
-/* =========================================================
-   FILTER MONITORING PROJECTS
-========================================================= */
-
-function getFilteredMonitoringProjects() {
-
-    const search =
-        monitoringState.search
-            .trim()
-            .toLowerCase();
-
-    const category =
-        monitoringState.category
-            .trim()
-            .toLowerCase();
-
-    const municipality =
-        monitoringState.municipality
-            .trim()
-            .toLowerCase();
-
-    const status =
-        monitoringState.status
-            .trim()
-            .toLowerCase();
-
-    const program =
-        monitoringState.program
-            .trim()
-            .toLowerCase();
-
-
-    return (
-        Array.isArray(
-            monitoringProjects
-        )
-            ? monitoringProjects
-            : []
-    ).filter(
-        project => {
-
-            if (
-                search
-            ) {
-
-                const searchableText =
-                    [
-                        project.projectTitle,
-                        project.projectNumber,
-                        project.municipality,
-                        project.program,
-                        project.status,
-                        project.remarks,
-                        project.category
-                    ]
-                        .map(
-                            value =>
-                                String(
-                                    value ??
-                                    ""
-                                )
-                        )
-                        .join(" ")
-                        .toLowerCase();
-
-                if (
-                    !searchableText.includes(
-                        search
-                    )
-                ) {
-
-                    return false;
-                }
-            }
-
-
-            if (
-                category &&
-                String(
-                    project.category ??
-                    ""
-                )
-                    .trim()
-                    .toLowerCase() !==
-                    category
-            ) {
-
-                return false;
-            }
-
-
-            if (
-                municipality &&
-                String(
-                    project.municipality ??
-                    ""
-                )
-                    .trim()
-                    .toLowerCase() !==
-                    municipality
-            ) {
-
-                return false;
-            }
-
-
-            if (
-                status &&
-                String(
-                    project.status ??
-                    ""
-                )
-                    .trim()
-                    .toLowerCase() !==
-                    status
-            ) {
-
-                return false;
-            }
-
-
-            if (
-                program &&
-                String(
-                    project.program ??
-                    ""
-                )
-                    .trim()
-                    .toLowerCase() !==
-                    program
-            ) {
-
-                return false;
-            }
-
-
-            return true;
-        }
-    );
-}
-
-
-/* =========================================================
-   SORT MONITORING PROJECTS
-========================================================= */
-
-function sortMonitoringProjects(
-    projects
-) {
-
-    const sortBy =
-        monitoringState.sortBy;
-
-    const direction =
-        monitoringState.sortDirection ===
-        "desc"
-            ? -1
-            : 1;
-
-
-    return [
-        ...projects
-    ].sort(
-        (
-            a,
-            b
-        ) => {
-
-            let valueA =
-                a?.[sortBy];
-
-            let valueB =
-                b?.[sortBy];
-
-
-            if (
-                valueA ===
-                null ||
-                valueA ===
-                undefined
-            ) {
-
-                valueA =
-                    "";
-            }
-
-            if (
-                valueB ===
-                null ||
-                valueB ===
-                undefined
-            ) {
-
-                valueB =
-                    "";
-            }
-
-
-            if (
-                typeof valueA ===
-                    "number" &&
-                typeof valueB ===
-                    "number"
-            ) {
-
-                return (
-                    valueA -
-                    valueB
-                ) *
-                direction;
-            }
-
-
-            return String(
-                valueA
-            )
-                .localeCompare(
-                    String(
-                        valueB
-                    ),
-                    undefined,
-                    {
-                        numeric:
-                            true,
-                        sensitivity:
-                            "base"
-                    }
-                ) *
-                direction;
-        }
-    );
-}
-
-
-/* =========================================================
-   PAGINATE MONITORING PROJECTS
-========================================================= */
-
-function paginateMonitoringProjects(
-    projects
-) {
-
-    const pageSize =
-        Math.max(
-            1,
-            Number(
-                monitoringState.pageSize
-            ) || 25
-        );
-
-    const totalPages =
-        Math.max(
-            1,
-            Math.ceil(
-                projects.length /
-                pageSize
-            )
+        console.warn(
+            "PDS: Microsoft Client ID has not been configured."
         );
 
 
-    if (
-        monitoringState.currentPage >
-        totalPages
-    ) {
-
-        monitoringState.currentPage =
-            totalPages;
-    }
+        oneDriveReady =
+            false;
 
 
-    const currentPage =
-        Math.max(
-            1,
-            monitoringState.currentPage
+        updateOneDriveStatus(
+            "Microsoft account connection required."
         );
 
-    const start =
-        (
-            currentPage -
-            1
-        ) *
-        pageSize;
-
-
-    return {
-        rows:
-            projects.slice(
-                start,
-                start +
-                pageSize
-            ),
-
-        currentPage,
-
-        pageSize,
-
-        totalPages,
-
-        totalRows:
-            projects.length
-    };
-}
-
-
-/* =========================================================
-   RENDER PROJECT MONITORING
-========================================================= */
-
-function renderProjectMonitoring() {
-
-    const container =
-        document.querySelector(
-            [
-                "#projectMonitoringTable",
-                "#monitoringTable",
-                "[data-monitoring-table]"
-            ].join(",")
-        );
-
-    if (!container) {
-
-        return;
-    }
-
-
-    populateMonitoringFilterOptions();
-
-
-    const filtered =
-        getFilteredMonitoringProjects();
-
-    const sorted =
-        sortMonitoringProjects(
-            filtered
-        );
-
-    const page =
-        paginateMonitoringProjects(
-            sorted
-        );
-
-
-    renderMonitoringTableRows(
-        container,
-        page.rows
-    );
-
-    updateMonitoringPaginationUI(
-        page
-    );
-
-    updateMonitoringSummaryUI(
-        page,
-        filtered
-    );
-}
-
-
-/* =========================================================
-   RENDER MONITORING TABLE ROWS
-========================================================= */
-
-function renderMonitoringTableRows(
-    container,
-    rows
-) {
-
-    const tbody =
-        container.tagName?.toLowerCase() ===
-        "tbody"
-            ? container
-            : container.querySelector(
-                "tbody"
-            );
-
-
-    if (!tbody) {
-
-        return;
-    }
-
-
-    tbody.innerHTML =
-        "";
-
-
-    if (
-        !rows.length
-    ) {
-
-        const tr =
-            document.createElement(
-                "tr"
-            );
-
-        const td =
-            document.createElement(
-                "td"
-            );
-
-        td.colSpan =
-            20;
-
-        td.className =
-            "monitoring-empty";
-
-        td.textContent =
-            "No project records found.";
-
-        tr.appendChild(
-            td
-        );
-
-        tbody.appendChild(
-            tr
-        );
-
-        return;
-    }
-
-
-    rows.forEach(
-        (
-            project,
-            index
-        ) => {
-
-            const tr =
-                document.createElement(
-                    "tr"
-                );
-
-            tr.dataset.projectId =
-                getMonitoringProjectId(
-                    project,
-                    index
-                );
-
-
-            const cells = [
-                project.projectNumber,
-                project.projectTitle,
-                project.municipality,
-                project.program,
-                project.allocation,
-                project.status,
-                project.remarks
-            ];
-
-
-            cells.forEach(
-                (
-                    value,
-                    cellIndex
-                ) => {
-
-                    const td =
-                        document.createElement(
-                            "td"
-                        );
-
-                    td.textContent =
-                        formatMonitoringCellValue(
-                            value,
-                            cellIndex
-                        );
-
-                    tr.appendChild(
-                        td
-                    );
-                }
-            );
-
-
-            const actionTd =
-                document.createElement(
-                    "td"
-                );
-
-            actionTd.className =
-                "monitoring-actions";
-
-
-            const viewButton =
-                document.createElement(
-                    "button"
-                );
-
-            viewButton.type =
-                "button";
-
-            viewButton.className =
-                "monitoring-action-btn view";
-
-            viewButton.textContent =
-                "View";
-
-            viewButton.addEventListener(
-                "click",
-                () => {
-
-                    viewMonitoringProject(
-                        getMonitoringProjectId(
-                            project,
-                            index
-                        )
-                    );
-                }
-            );
-
-
-            actionTd.appendChild(
-                viewButton
-            );
-
-
-            if (
-                canEditMonitoringProject(
-                    project
-                )
-            ) {
-
-                const editButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                editButton.type =
-                    "button";
-
-                editButton.className =
-                    "monitoring-action-btn edit";
-
-                editButton.textContent =
-                    "Edit";
-
-                editButton.addEventListener(
-                    "click",
-                    () => {
-
-                        editMonitoringProject(
-                            getMonitoringProjectId(
-                                project,
-                                index
-                            )
-                        );
-                    }
-                );
-
-                actionTd.appendChild(
-                    editButton
-                );
-            }
-
-
-            tr.appendChild(
-                actionTd
-            );
-
-            tbody.appendChild(
-                tr
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   MONITORING PROJECT ID
-========================================================= */
-
-function getMonitoringProjectId(
-    project,
-    index = 0
-) {
-
-    return String(
-        project?.id ||
-        project?.projectId ||
-        project?.projectNumber ||
-        project?.["PROJECT ID"] ||
-        `monitoring-${project?._index ?? index}`
-    );
-}
-
-
-/* =========================================================
-   FORMAT MONITORING CELL
-========================================================= */
-
-function formatMonitoringCellValue(
-    value,
-    index
-) {
-
-    if (
-        value ===
-        null ||
-        value ===
-        undefined ||
-        value ===
-        ""
-    ) {
-
-        return "—";
-    }
-
-
-    if (
-        index ===
-        4
-    ) {
-
-        return formatMonitoringCurrency(
-            value
-        );
-    }
-
-
-    return String(
-        value
-    );
-}
-
-
-/* =========================================================
-   FORMAT CURRENCY
-========================================================= */
-
-function formatMonitoringCurrency(
-    value
-) {
-
-    if (
-        value ===
-        null ||
-        value ===
-        undefined ||
-        value ===
-        ""
-    ) {
-
-        return "—";
-    }
-
-
-    const numeric =
-        Number(
-            String(
-                value
-            )
-                .replace(
-                    /[₱,\s]/g,
-                    ""
-                )
-        );
-
-
-    if (
-        Number.isFinite(
-            numeric
-        )
-    ) {
-
-        return new Intl.NumberFormat(
-            "en-PH",
-            {
-                style:
-                    "currency",
-
-                currency:
-                    "PHP",
-
-                minimumFractionDigits:
-                    2
-            }
-        ).format(
-            numeric
-        );
-    }
-
-
-    return String(
-        value
-    );
-}
-
-
-/* =========================================================
-   MONITORING PAGINATION UI
-========================================================= */
-
-function updateMonitoringPaginationUI(
-    page
-) {
-
-    const previousButton =
-        document.querySelector(
-            [
-                "#monitoringPrevious",
-                "#projectPrevious",
-                "[data-monitoring-prev]"
-            ].join(",")
-        );
-
-    const nextButton =
-        document.querySelector(
-            [
-                "#monitoringNext",
-                "#projectNext",
-                "[data-monitoring-next]"
-            ].join(",")
-        );
-
-    const pageIndicator =
-        document.querySelector(
-            [
-                "#monitoringPageIndicator",
-                "#projectPageIndicator",
-                "[data-monitoring-page]"
-            ].join(",")
-        );
-
-
-    if (previousButton) {
-
-        previousButton.disabled =
-            page.currentPage <=
-            1;
-    }
-
-
-    if (nextButton) {
-
-        nextButton.disabled =
-            page.currentPage >=
-            page.totalPages;
-    }
-
-
-    if (pageIndicator) {
-
-        pageIndicator.textContent =
-            `Page ${page.currentPage} of ${page.totalPages}`;
-    }
-}
-
-
-/* =========================================================
-   MONITORING SUMMARY UI
-========================================================= */
-
-function updateMonitoringSummaryUI(
-    page,
-    filtered
-) {
-
-    const totalElement =
-        document.querySelector(
-            [
-                "#monitoringTotal",
-                "#projectMonitoringTotal",
-                "[data-monitoring-total]"
-            ].join(",")
-        );
-
-    const shownElement =
-        document.querySelector(
-            [
-                "#monitoringShown",
-                "#projectMonitoringShown",
-                "[data-monitoring-shown]"
-            ].join(",")
-        );
-
-
-    if (totalElement) {
-
-        totalElement.textContent =
-            String(
-                filtered.length
-            );
-    }
-
-
-    if (shownElement) {
-
-        shownElement.textContent =
-            String(
-                page.rows.length
-            );
-    }
-}
-
-
-/* =========================================================
-   MONITORING ERROR
-========================================================= */
-
-function renderProjectMonitoringError(
-    error
-) {
-
-    const container =
-        document.querySelector(
-            [
-                "#projectMonitoringTable",
-                "#monitoringTable",
-                "[data-monitoring-table]"
-            ].join(",")
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    const tbody =
-        container.tagName?.toLowerCase() ===
-        "tbody"
-            ? container
-            : container.querySelector(
-                "tbody"
-            );
-
-
-    if (!tbody) {
-        return;
-    }
-
-
-    tbody.innerHTML =
-        "";
-
-
-    const tr =
-        document.createElement(
-            "tr"
-        );
-
-    const td =
-        document.createElement(
-            "td"
-        );
-
-    td.colSpan =
-        20;
-
-    td.className =
-        "monitoring-error";
-
-    td.textContent =
-        error?.message ||
-        "Unable to load project monitoring data.";
-
-    tr.appendChild(
-        td
-    );
-
-    tbody.appendChild(
-        tr
-    );
-}
-
-
-/* =========================================================
-   CHECK MONITORING EDIT PERMISSION
-========================================================= */
-
-function canEditMonitoringProject(
-    project
-) {
-
-    if (!currentUser) {
 
         return false;
     }
 
 
-    if (
-        currentProfile?.role ===
-            "admin" ||
-        currentProfile?.role ===
-            "administrator"
-    ) {
+    try {
 
-        return true;
-    }
+        await loadMSAL();
 
 
-    const assignedTo =
-        String(
-            project?.assignedTo ||
-            project?.assigned_to ||
-            project?.["ASSIGNED TO"] ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
+        if (
+            !window.msal ||
+            typeof window.msal.PublicClientApplication !==
+                "function"
+        ) {
 
-
-    const userEmail =
-        String(
-            currentUser.email ||
-            ""
-        )
-            .trim()
-            .toLowerCase();
-
-
-    if (
-        assignedTo &&
-        userEmail &&
-        assignedTo ===
-        userEmail
-    ) {
-
-        return true;
-    }
-
-
-    const assignedUserId =
-        String(
-            project?.assignedUserId ||
-            project?.assigned_user_id ||
-            project?.["ASSIGNED USER ID"] ||
-            ""
-        ).trim();
-
-
-    if (
-        assignedUserId &&
-        assignedUserId ===
-        currentUser.id
-    ) {
-
-        return true;
-    }
-
-
-    return false;
-}
-
-
-/* =========================================================
-   VIEW MONITORING PROJECT
-========================================================= */
-
-function viewMonitoringProject(
-    projectId
-) {
-
-    const project =
-        findMonitoringProjectById(
-            projectId
-        );
-
-    if (!project) {
-
-        showPDSNotification(
-            "Project record not found.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    monitoringState.selectedProjectId =
-        projectId;
-
-
-    const modal =
-        document.querySelector(
-            [
-                "#monitoringViewModal",
-                "#projectViewModal",
-                "[data-monitoring-view-modal]"
-            ].join(",")
-        );
-
-
-    if (!modal) {
-
-        console.log(
-            "PDS Monitoring Project:",
-            project
-        );
-
-        return;
-    }
-
-
-    populateMonitoringViewModal(
-        modal,
-        project
-    );
-
-
-    modal.classList.add(
-        "active",
-        "show",
-        "open"
-    );
-
-    modal.removeAttribute(
-        "hidden"
-    );
-}
-
-
-/* =========================================================
-   FIND MONITORING PROJECT
-========================================================= */
-
-function findMonitoringProjectById(
-    projectId
-) {
-
-    return (
-        Array.isArray(
-            monitoringProjects
-        )
-            ? monitoringProjects
-            : []
-    ).find(
-        (
-            project,
-            index
-        ) =>
-            getMonitoringProjectId(
-                project,
-                index
-            ) ===
-            String(
-                projectId
-            )
-    );
-}
-
-
-/* =========================================================
-   POPULATE MONITORING VIEW MODAL
-========================================================= */
-
-function populateMonitoringViewModal(
-    modal,
-    project
-) {
-
-    const mappings = {
-        projectTitle:
-            project.projectTitle,
-
-        projectNumber:
-            project.projectNumber,
-
-        municipality:
-            project.municipality,
-
-        program:
-            project.program,
-
-        allocation:
-            formatMonitoringCurrency(
-                project.allocation
-            ),
-
-        status:
-            project.status,
-
-        remarks:
-            project.remarks
-    };
-
-
-    Object.entries(
-        mappings
-    ).forEach(
-        (
-            [
-                key,
-                value
-            ]
-        ) => {
-
-            const element =
-                modal.querySelector(
-                    `[data-monitoring-field="${key}"]`
-                );
-
-            if (element) {
-
-                element.textContent =
-                    value ||
-                    "—";
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   CLOSE MONITORING MODAL
-========================================================= */
-
-function closeMonitoringModal() {
-
-    const modals =
-        document.querySelectorAll(
-            [
-                "#monitoringViewModal",
-                "#projectViewModal",
-                "#monitoringEditModal",
-                "#projectEditModal",
-                "[data-monitoring-modal]"
-            ].join(",")
-        );
-
-
-    modals.forEach(
-        modal => {
-
-            modal.classList.remove(
-                "active",
-                "show",
-                "open"
-            );
-
-            modal.setAttribute(
-                "hidden",
-                ""
+            throw new Error(
+                "MSAL browser library is unavailable."
             );
         }
-    );
 
 
-    monitoringState.selectedProjectId =
-        null;
-}
+        const msalConfig = {
 
+            auth: {
 
-/* =========================================================
-   MONITORING EDIT
-========================================================= */
+                clientId:
+                    MICROSOFT_CLIENT_ID,
 
-async function editMonitoringProject(
-    projectId
-) {
+                authority:
+                    MICROSOFT_AUTHORITY,
 
-    const project =
-        findMonitoringProjectById(
-            projectId
-        );
+                redirectUri:
+                    window.location.origin +
+                    window.location.pathname
 
-    if (!project) {
+            },
 
-        showPDSNotification(
-            "Project record not found.",
-            "error"
-        );
+            cache: {
 
-        return;
-    }
+                cacheLocation:
+                    "localStorage",
 
-
-    if (
-        !canEditMonitoringProject(
-            project
-        )
-    ) {
-
-        showPDSNotification(
-            "You are not authorized to edit this project.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    monitoringState.selectedProjectId =
-        projectId;
-
-
-    const modal =
-        document.querySelector(
-            [
-                "#monitoringEditModal",
-                "#projectEditModal",
-                "[data-monitoring-edit-modal]"
-            ].join(",")
-        );
-
-
-    if (!modal) {
-
-        console.warn(
-            "PDS Monitoring: Edit modal was not found."
-        );
-
-        return;
-    }
-
-
-    populateMonitoringEditModal(
-        modal,
-        project
-    );
-
-
-    modal.classList.add(
-        "active",
-        "show",
-        "open"
-    );
-
-    modal.removeAttribute(
-        "hidden"
-    );
-}
-
-
-/* =========================================================
-   POPULATE MONITORING EDIT MODAL
-========================================================= */
-
-function populateMonitoringEditModal(
-    modal,
-    project
-) {
-
-    const fields = {
-        projectTitle:
-            project.projectTitle,
-
-        projectNumber:
-            project.projectNumber,
-
-        municipality:
-            project.municipality,
-
-        program:
-            project.program,
-
-        allocation:
-            project.allocation,
-
-        status:
-            project.status,
-
-        remarks:
-            project.remarks
-    };
-
-
-    Object.entries(
-        fields
-    ).forEach(
-        (
-            [
-                key,
-                value
-            ]
-        ) => {
-
-            const element =
-                modal.querySelector(
-                    `[data-monitoring-input="${key}"]`
-                ) ||
-                modal.querySelector(
-                    `#${key}`
-                );
-
-
-            if (!element) {
-                return;
+                storeAuthStateInCookie:
+                    false
             }
-
-
-            element.value =
-                value ??
-                "";
-        }
-    );
-}
-
-
-/* =========================================================
-   MONITORING EDIT FORM
-========================================================= */
-
-function initializeMonitoringEditForm() {
-
-    const form =
-        document.querySelector(
-            [
-                "#monitoringEditForm",
-                "#projectEditForm",
-                "[data-monitoring-edit-form]"
-            ].join(",")
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    if (
-        form.dataset.monitoringBound ===
-        "true"
-    ) {
-
-        return;
-    }
-
-
-    form.dataset.monitoringBound =
-        "true";
-
-
-    form.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            await submitMonitoringEditForm(
-                form
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   MONITORING EDIT INITIALIZATION
-========================================================= */
-
-function initializeMonitoringEditing() {
-
-    initializeMonitoringEditForm();
-
-
-    document
-        .querySelectorAll(
-            [
-                "#monitoringCloseModal",
-                "#projectCloseModal",
-                "[data-monitoring-close]"
-            ].join(",")
-        )
-        .forEach(
-            button => {
-
-                if (
-                    button.dataset.closeBound ===
-                    "true"
-                ) {
-
-                    return;
-                }
-
-                button.dataset.closeBound =
-                    "true";
-
-                button.addEventListener(
-                    "click",
-                    event => {
-
-                        event.preventDefault();
-
-                        closeMonitoringModal();
-                    }
-                );
-            }
-        );
-}
-
-
-/* =========================================================
-   SUBMIT MONITORING EDIT
-========================================================= */
-
-async function submitMonitoringEditForm(
-    form
-) {
-
-    if (
-        !currentUser
-    ) {
-
-        showPDSNotification(
-            "Please sign in first.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const projectId =
-        monitoringState.selectedProjectId;
-
-
-    if (!projectId) {
-
-        showPDSNotification(
-            "No project selected.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const project =
-        findMonitoringProjectById(
-            projectId
-        );
-
-
-    if (!project) {
-
-        showPDSNotification(
-            "Project record not found.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (
-        !canEditMonitoringProject(
-            project
-        )
-    ) {
-
-        showPDSNotification(
-            "You are not authorized to edit this project.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const getValue =
-        key => {
-
-            const element =
-                form.querySelector(
-                    `[data-monitoring-input="${key}"]`
-                ) ||
-                form.querySelector(
-                    `#${key}`
-                ) ||
-                form.querySelector(
-                    `[name="${key}"]`
-                );
-
-            return (
-                element?.value ??
-                ""
-            ).trim();
         };
 
 
-    const changes = {
-        projectTitle:
-            getValue(
-                "projectTitle"
-            ),
-
-        projectNumber:
-            getValue(
-                "projectNumber"
-            ),
-
-        municipality:
-            getValue(
-                "municipality"
-            ),
-
-        program:
-            getValue(
-                "program"
-            ),
-
-        allocation:
-            getValue(
-                "allocation"
-            ),
-
-        status:
-            getValue(
-                "status"
-            ),
-
-        remarks:
-            getValue(
-                "remarks"
-            )
-    };
+        msalInstance =
+            new window.msal.PublicClientApplication(
+                msalConfig
+            );
 
 
-    const saveButton =
-        form.querySelector(
-            [
-                "button[type='submit']",
-                "[data-monitoring-save]"
-            ].join(",")
+        await msalInstance.initialize();
+
+
+        const accounts =
+            msalInstance.getAllAccounts();
+
+
+        if (accounts.length > 0) {
+
+            microsoftAccount =
+                accounts[0];
+
+            console.log(
+                "PDS: Microsoft account found:",
+                microsoftAccount.username
+            );
+
+
+            oneDriveReady =
+                true;
+
+
+            updateOneDriveStatus(
+                "Microsoft account connected."
+            );
+
+
+            return true;
+        }
+
+
+        oneDriveReady =
+            false;
+
+
+        updateOneDriveStatus(
+            "Connect OneDrive to load Excel data."
         );
 
 
-    const originalText =
-        saveButton?.textContent ||
-        "";
-
-
-    if (saveButton) {
-
-        saveButton.disabled =
-            true;
-
-        saveButton.textContent =
-            "Saving...";
-    }
-
-
-    try {
-
-        const result =
-            await saveMonitoringProject(
-                projectId,
-                changes
-            );
-
-
-        if (
-            result
-        ) {
-
-            showPDSNotification(
-                "Project monitoring record updated successfully.",
-                "success"
-            );
-
-            closeMonitoringModal();
-
-            await loadMonitoringDataFromOneDrive(
-                true
-            );
-
-            renderProjectMonitoring();
-        }
+        return false;
 
     } catch (error) {
 
         console.error(
-            "PDS Monitoring: Save failed:",
+            "PDS: OneDrive initialization error:",
             error
         );
 
-        showPDSNotification(
-            error?.message ||
-            "Unable to save project monitoring record.",
-            "error"
+
+        oneDriveReady =
+            false;
+
+
+        updateOneDriveStatus(
+            "OneDrive connection unavailable."
         );
 
-    } finally {
 
-        if (saveButton) {
-
-            saveButton.disabled =
-                false;
-
-            saveButton.textContent =
-                originalText;
-        }
+        return false;
     }
 }
 
 
 /* =========================================================
-   SAVE MONITORING PROJECT
+   ONEDRIVE STATUS UI
 ========================================================= */
 
-async function saveMonitoringProject(
-    projectId,
-    changes
+function updateOneDriveStatus(
+    message
 ) {
 
-    if (
-        !isOneDriveConnected()
-    ) {
+    const elements =
+        document.querySelectorAll(
+            "[data-onedrive-status], #oneDriveStatus"
+        );
 
-        const connected =
-            await signInToOneDrive();
 
-        if (!connected) {
+    elements.forEach(
+        element => {
 
-            throw new Error(
-                "OneDrive connection is required to save monitoring data."
-            );
+            element.textContent =
+                message;
+
         }
-    }
-
-
-    const project =
-        findMonitoringProjectById(
-            projectId
-        );
-
-
-    if (!project) {
-
-        throw new Error(
-            "Project record not found."
-        );
-    }
-
-
-    const rowIndex =
-        Number(
-            project._index
-        );
-
-
-    if (
-        !Number.isInteger(
-            rowIndex
-        ) ||
-        rowIndex <
-        0
-    ) {
-
-        throw new Error(
-            "Project row index is invalid."
-        );
-    }
-
-
-    const worksheet =
-        PDS_ONEDRIVE_CONFIG.worksheetName;
-
-
-    const excelRow =
-        rowIndex +
-        2;
-
-
-    const updateMap = {
-        "PROJECT TITLE AS PER GAA":
-            changes.projectTitle,
-
-        "PROJECT ID":
-            changes.projectNumber,
-
-        "MUNICIPALITY":
-            changes.municipality,
-
-        "PROGRAM2":
-            changes.program,
-
-        "ALLOCATION":
-            changes.allocation,
-
-        "STATUS":
-            changes.status,
-
-        "REMARKS":
-            changes.remarks
-    };
-
-
-    const headerRange =
-        await excelRequest(
-            `/worksheets('${encodeURIComponent(
-                worksheet
-            )}')/usedRange`
-        );
-
-
-    const headers =
-        headerRange?.values?.[0] ||
-        [];
-
-
-    if (
-        !headers.length
-    ) {
-
-        throw new Error(
-            "The OneDrive worksheet does not contain a header row."
-        );
-    }
-
-
-    for (
-        const [
-            header,
-            value
-        ]
-        of Object.entries(
-            updateMap
-        )
-    ) {
-
-        const columnIndex =
-            headers.findIndex(
-                cell =>
-                    String(
-                        cell ??
-                        ""
-                    )
-                        .trim()
-                        .toLowerCase() ===
-                    header
-                        .trim()
-                        .toLowerCase()
-            );
-
-
-        if (
-            columnIndex <
-            0
-        ) {
-
-            continue;
-        }
-
-
-        const columnLetter =
-            getExcelColumnLetter(
-                columnIndex +
-                1
-            );
-
-
-        await excelRequest(
-            `/worksheets('${encodeURIComponent(
-                worksheet
-            )}')/range(address='${columnLetter}${excelRow}')`,
-            {
-                method:
-                    "PATCH",
-
-                body:
-                    JSON.stringify(
-                        {
-                            values: [
-                                [
-                                    value
-                                ]
-                            ]
-                        }
-                    )
-            }
-        );
-    }
-
-
-    return true;
+    );
 }
 
 
 /* =========================================================
-   EXCEL COLUMN LETTER
+   MICROSOFT SIGN-IN
 ========================================================= */
 
-function getExcelColumnLetter(
-    columnNumber
-) {
+async function signInToMicrosoft() {
 
-    let number =
-        Number(
-            columnNumber
-        );
+    if (!msalInstance) {
 
-    let letters =
-        "";
+        const initialized =
+            await initializeOneDrive();
 
 
-    while (
-        number >
-        0
-    ) {
+        if (!initialized) {
 
-        const remainder =
-            (
-                number -
-                1
-            ) %
-            26;
-
-        letters =
-            String.fromCharCode(
-                65 +
-                remainder
-            ) +
-            letters;
-
-        number =
-            Math.floor(
-                (
-                    number -
-                    1
-                ) /
-                26
+            showMessage(
+                "Microsoft OneDrive is not configured yet.",
+                "warning"
             );
+
+            return false;
+        }
     }
 
-
-    return letters;
-}
-
-
-/* =========================================================
-   MONITORING REFRESH
-========================================================= */
-
-async function refreshProjectMonitoring() {
 
     try {
 
-        await loadMonitoringDataFromOneDrive(
-            true
+        const loginRequest = {
+
+            scopes:
+                MICROSOFT_SCOPES
+
+        };
+
+
+        const response =
+            await msalInstance.loginPopup(
+                loginRequest
+            );
+
+
+        if (!response) {
+
+            throw new Error(
+                "Microsoft sign-in returned no response."
+            );
+        }
+
+
+        microsoftAccount =
+            response.account;
+
+
+        msalInstance.setActiveAccount(
+            microsoftAccount
         );
 
-        populateMonitoringFilterOptions();
 
-        renderProjectMonitoring();
+        oneDriveReady =
+            true;
 
-        showPDSNotification(
-            "Project monitoring data refreshed.",
+
+        updateOneDriveStatus(
+            `Connected: ${microsoftAccount.username}`
+        );
+
+
+        showMessage(
+            "OneDrive connected successfully.",
             "success"
         );
 
+
+        return true;
+
     } catch (error) {
 
         console.error(
-            "PDS Monitoring: Refresh failed:",
+            "PDS: Microsoft sign-in failed:",
             error
         );
 
-        showPDSNotification(
-            error?.message ||
-            "Unable to refresh project monitoring data.",
+
+        showMessage(
+            "Unable to connect to OneDrive: " +
+            (error.message || error),
             "error"
         );
+
+
+        return false;
     }
 }
 
 
 /* =========================================================
-   MONITORING REFRESH BUTTON
+   GET ONEDRIVE ACCESS TOKEN
 ========================================================= */
 
-function initializeMonitoringRefreshButton() {
+async function getOneDriveAccessToken() {
 
-    const buttons =
-        document.querySelectorAll(
-            [
-                "#refreshMonitoring",
-                "#refreshProjectMonitoring",
-                "[data-refresh-monitoring]"
-            ].join(",")
-        );
+    if (!msalInstance) {
 
-
-    buttons.forEach(
-        button => {
-
-            if (
-                button.dataset.refreshBound ===
-                "true"
-            ) {
-
-                return;
-            }
-
-
-            button.dataset.refreshBound =
-                "true";
-
-
-            button.addEventListener(
-                "click",
-                async event => {
-
-                    event.preventDefault();
-
-                    await refreshProjectMonitoring();
-                }
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   MONITORING PROGRAMS
-========================================================= */
-
-function getMonitoringPrograms() {
-
-    return [
-        ...new Set(
-            (
-                Array.isArray(
-                    monitoringProjects
-                )
-                    ? monitoringProjects
-                    : []
-            )
-                .map(
-                    project =>
-                        project.program
-                )
-                .filter(
-                    Boolean
-                )
-        )
-    ].sort(
-        (
-            a,
-            b
-        ) =>
-            String(a).localeCompare(
-                String(b)
-            )
-    );
-}
-                    showMessage(
-                        "Please enter your email.",
-                        "warning"
-                    );
-
-                    emailInput?.focus();
-
-                    return;
-                }
-
-                if (!password) {
-
-                    showMessage(
-                        "Please enter your password.",
-                        "warning"
-                    );
-
-                    passwordInput?.focus();
-
-                    return;
-                }
-
-                const submitButton =
-                    signInForm.querySelector(
-                        "button[type='submit'], input[type='submit']"
-                    ) ||
-                    signInButton;
-
-                const originalText =
-                    submitButton?.textContent ||
-                    "";
-
-                if (submitButton) {
-
-                    submitButton.disabled =
-                        true;
-
-                    submitButton.textContent =
-                        "Signing in...";
-                }
-
-                try {
-
-                    await signInUser(
-                        email,
-                        password
-                    );
-
-                } finally {
-
-                    if (submitButton) {
-
-                        submitButton.disabled =
-                            false;
-
-                        if (originalText) {
-
-                            submitButton.textContent =
-                                originalText;
-                        }
-                    }
-                }
-            }
-        );
-
-        console.log(
-            "PDS Auth: Sign In form listener attached."
-        );
-
-    } else {
-
-        console.warn(
-            "PDS Auth: #signInForm was not found."
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       FALLBACK SIGN IN BUTTON
-    --------------------------------------------------------- */
-
-    if (
-        !signInForm &&
-        signInButton
-    ) {
-
-        signInButton.addEventListener(
-            "click",
-            async event => {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                console.log(
-                    "PDS Auth: Sign In button clicked."
-                );
-
-                const emailInput =
-                    getEmailInput();
-
-                const passwordInput =
-                    getPasswordInput();
-
-                const email =
-                    emailInput?.value?.trim() ||
-                    "";
-
-                const password =
-                    passwordInput?.value ||
-                    "";
-
-                await signInUser(
-                    email,
-                    password
-                );
-            }
-        );
-
-        console.log(
-            "PDS Auth: Fallback Sign In button listener attached."
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       SIGN OUT BUTTONS
-    --------------------------------------------------------- */
-
-    const signOutButtons =
-        document.querySelectorAll(
-            [
-                "#signOutButton",
-                "#logoutButton",
-                ".sign-out-button",
-                "[data-action='sign-out']"
-            ].join(",")
-        );
-
-    signOutButtons.forEach(
-        button => {
-
-            if (
-                button.dataset.authBound ===
-                "true"
-            ) {
-                return;
-            }
-
-            button.dataset.authBound =
-                "true";
-
-            button.addEventListener(
-                "click",
-                async event => {
-
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    await signOutUser();
-                }
-            );
-        }
-    );
-
-    authFormsReady = true;
-
-    console.log(
-        "PDS Auth: Authentication forms ready."
-    );
-}
-
-
-/* =========================================================
-   AUTH STATE LISTENER
-========================================================= */
-
-function initializeAuthListener() {
-
-    if (
-        !db ||
-        authStateSubscription
-    ) {
-
-        return;
-    }
-
-    console.log(
-        "PDS Auth: Installing auth state listener..."
-    );
-
-    const result =
-        db.auth.onAuthStateChange(
-            async (
-                event,
-                session
-            ) => {
-
-                console.log(
-                    "PDS Auth Event:",
-                    event
-                );
-
-                currentUser =
-                    session?.user ||
-                    null;
-
-                if (currentUser) {
-
-                    await loadCurrentProfile(
-                        currentUser.id
-                    );
-
-                    updateAuthenticatedUI();
-
-                    if (
-                        event === "SIGNED_IN" ||
-                        event === "INITIAL_SESSION"
-                    ) {
-
-                        await initializeAfterLogin();
-                    }
-
-                } else {
-
-                    currentProfile =
-                        null;
-
-                    workspaceInitialized =
-                        false;
-
-                    updateAuthenticatedUI();
-                }
-            }
-        );
-
-    authStateSubscription =
-        result?.data?.subscription ||
-        null;
-
-    console.log(
-        "PDS Auth: Auth listener ready."
-    );
-}
-
-
-/* =========================================================
-   INITIALIZE AFTER LOGIN
-========================================================= */
-
-async function initializeAfterLogin() {
-
-    if (
-        workspaceInitialized
-    ) {
-
-        console.log(
-            "PDS: Workspace already initialized."
-        );
-
-        return;
-    }
-
-    if (!currentUser) {
-
-        console.warn(
-            "PDS: Cannot initialize workspace without a user."
-        );
-
-        return;
-    }
-
-    workspaceInitialized =
-        true;
-
-    console.log(
-        "PDS: Initializing authenticated workspace..."
-    );
-
-
-    /* ---------------------------------------------------------
-       NAVIGATION
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeNavigation ===
-            "function"
-        ) {
-
-            await initializeNavigation();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Navigation initialization failed:",
-            error
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       DOCUMENTS
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeDocuments ===
-            "function"
-        ) {
-
-            await initializeDocuments();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Document initialization failed:",
-            error
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       PROJECT MONITORING
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeProjectMonitoring ===
-            "function"
-        ) {
-
-            await initializeProjectMonitoring();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Project Monitoring initialization failed:",
-            error
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       DEPARTMENT ORDERS
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeDepartmentOrders ===
-            "function"
-        ) {
-
-            await initializeDepartmentOrders();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Department Orders initialization failed:",
-            error
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       PDS AI
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializePDSAI ===
-            "function"
-        ) {
-
-            await initializePDSAI();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "PDS: PDS AI initialization failed:",
-            error
-        );
-    }
-
-
-    /* ---------------------------------------------------------
-       ONEDRIVE
-       
-       OneDrive authentication is separate from
-       Supabase authentication.
-       
-       Project Monitoring uses Excel OVERALL
-       as its source of truth.
-    --------------------------------------------------------- */
-
-    try {
-
-        if (
-            typeof initializeOneDrive ===
-            "function"
-        ) {
-
+        const initialized =
             await initializeOneDrive();
+
+
+        if (!initialized) {
+            return null;
         }
-
-    } catch (error) {
-
-        console.warn(
-            "PDS: OneDrive initialization did not complete:",
-            error
-        );
     }
 
 
-    /* ---------------------------------------------------------
-       FINAL UI
-    --------------------------------------------------------- */
+    const account =
+        microsoftAccount ||
+        msalInstance.getActiveAccount() ||
+        msalInstance.getAllAccounts()[0];
+
+
+    if (!account) {
+
+        const signedIn =
+            await signInToMicrosoft();
+
+
+        if (!signedIn) {
+            return null;
+        }
+    }
+
+
+    const activeAccount =
+        microsoftAccount ||
+        msalInstance.getActiveAccount();
+
 
     try {
 
-        if (
-            typeof initializeFinalPDSUI ===
-            "function"
-        ) {
+        const response =
+            await msalInstance.acquireTokenSilent({
 
-            initializeFinalPDSUI();
-        }
+                scopes:
+                    MICROSOFT_SCOPES,
 
-    } catch (error) {
-
-        console.error(
-            "PDS: Final UI initialization failed:",
-            error
-        );
-    }
+                account:
+                    activeAccount
+            });
 
 
-    console.log(
-        "PDS: Authenticated workspace ready."
-    );
-}
+        oneDriveAccessToken =
+            response.accessToken;
 
 
-/* =========================================================
-   MSAL — LOAD MICROSOFT AUTHENTICATION LIBRARY
-========================================================= */
+        return oneDriveAccessToken;
 
-function loadMSAL() {
-
-    if (
-        window.msal &&
-        typeof window.msal.PublicClientApplication ===
-            "function"
-    ) {
-
-        return Promise.resolve(
-            true
-        );
-    }
-
-    if (
-        oneDriveScriptLoading
-    ) {
-
-        return oneDriveScriptLoading;
-    }
-
-    oneDriveScriptLoading =
-        new Promise(
-            resolve => {
-
-                const existing =
-                    document.querySelector(
-                        "script[data-pds-msal='true']"
-                    );
-
-                if (existing) {
-
-                    existing.addEventListener(
-                        "load",
-                        () => resolve(true),
-                        {
-                            once: true
-                        }
-                    );
-
-                    existing.addEventListener(
-                        "error",
-                        () => resolve(false),
-                        {
-                            once: true
-                        }
-                    );
-
-                    return;
-                }
-
-
-                const script =
-                    document.createElement(
-                        "script"
-                    );
-
-                script.src =
-                    "https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js";
-
-                script.async =
-                    true;
-
-                script.defer =
-                    true;
-
-                script.dataset.pdsMsal =
-                    "true";
-
-
-                script.onload =
-                    () => {
-
-                        console.log(
-                            "PDS OneDrive: MSAL loaded."
-                        );
-
-                        resolve(true);
-                    };
-
-
-                script.onerror =
-                    error => {
-
-                        console.error(
-                            "PDS OneDrive: Failed to load MSAL.",
-                            error
-                        );
-
-                        resolve(false);
-                    };
-
-
-                document.head.appendChild(
-                    script
-                );
-            }
-        );
-
-    return oneDriveScriptLoading;
-}
-
-
-/* =========================================================
-   ONEDRIVE CONFIGURATION
-========================================================= */
-
-const PDS_ONEDRIVE_CONFIG = {
-
-    clientId:
-        window.PDS_ONEDRIVE_CLIENT_ID ||
-        "",
-
-    authority:
-        "https://login.microsoftonline.com/common",
-
-    scopes: [
-        "Files.ReadWrite",
-        "User.Read"
-    ],
-
-    workbookName:
-        "trial for website.xlsx",
-
-    worksheetName:
-        "OVERALL"
-};
-
-
-/* =========================================================
-   ONEDRIVE STATE
-========================================================= */
-
-let msalInstance =
-    null;
-
-let oneDriveAccount =
-    null;
-
-let oneDriveAccessToken =
-    null;
-
-let oneDriveWorkbookId =
-    null;
-
-
-/* =========================================================
-   CREATE MSAL INSTANCE
-========================================================= */
-
-async function initializeMSAL() {
-
-    if (msalInstance) {
-
-        return msalInstance;
-    }
-
-    const loaded =
-        await loadMSAL();
-
-    if (!loaded) {
-
-        throw new Error(
-            "Microsoft authentication library could not be loaded."
-        );
-    }
-
-    if (
-        !window.msal ||
-        typeof window.msal.PublicClientApplication !==
-            "function"
-    ) {
-
-        throw new Error(
-            "MSAL browser library is unavailable."
-        );
-    }
-
-    if (
-        !PDS_ONEDRIVE_CONFIG.clientId
-    ) {
+    } catch (silentError) {
 
         console.warn(
-            "PDS OneDrive: Client ID has not been configured."
+            "PDS: Silent Microsoft token request failed. Opening login.",
+            silentError
         );
 
-        return null;
-    }
 
-    msalInstance =
-        new window.msal.PublicClientApplication(
-            {
-                auth: {
-                    clientId:
-                        PDS_ONEDRIVE_CONFIG.clientId,
+        try {
 
-                    authority:
-                        PDS_ONEDRIVE_CONFIG.authority,
+            const response =
+                await msalInstance.acquireTokenPopup({
 
-                    redirectUri:
-                        window.location.origin +
-                        window.location.pathname
-                },
-
-                cache: {
-                    cacheLocation:
-                        "localStorage",
-
-                    storeAuthStateInCookie:
-                        false
-                }
-            }
-        );
-
-    return msalInstance;
-}
-
-
-/* =========================================================
-   ONEDRIVE ACCOUNT
-========================================================= */
-
-function getOneDriveAccount() {
-
-    if (
-        oneDriveAccount
-    ) {
-
-        return oneDriveAccount;
-    }
-
-    if (
-        !msalInstance
-    ) {
-
-        return null;
-    }
-
-    const accounts =
-        msalInstance.getAllAccounts();
-
-    oneDriveAccount =
-        accounts[0] ||
-        null;
-
-    return oneDriveAccount;
-}
-
-
-/* =========================================================
-   ONEDRIVE STATUS
-========================================================= */
-
-function isOneDriveConnected() {
-
-    return (
-        oneDriveInitialized === true ||
-        oneDriveReady === true
-    );
-}
-
-
-function updateOneDriveStatusUI() {
-
-    const statusElements =
-        document.querySelectorAll(
-            [
-                "#oneDriveStatus",
-                "#onedriveStatus",
-                "[data-onedrive-status]"
-            ].join(",")
-        );
-
-    const connected =
-        isOneDriveConnected();
-
-    statusElements.forEach(
-        element => {
-
-            if (connected) {
-
-                element.textContent =
-                    "OneDrive Excel Connected";
-
-                element.classList.remove(
-                    "offline",
-                    "disconnected",
-                    "error"
-                );
-
-                element.classList.add(
-                    "connected"
-                );
-
-            } else {
-
-                element.textContent =
-                    "OneDrive Excel Not Connected";
-
-                element.classList.remove(
-                    "connected"
-                );
-
-                element.classList.add(
-                    "disconnected"
-                );
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   ONEDRIVE SIGN IN
-========================================================= */
-
-async function signInToOneDrive() {
-
-    const msal =
-        await initializeMSAL();
-
-    if (!msal) {
-
-        throw new Error(
-            "OneDrive Client ID is not configured."
-        );
-    }
-
-    let account =
-        getOneDriveAccount();
-
-    if (!account) {
-
-        const loginResponse =
-            await msal.loginPopup(
-                {
                     scopes:
-                        PDS_ONEDRIVE_CONFIG.scopes
-                }
+                        MICROSOFT_SCOPES
+                });
+
+
+            oneDriveAccessToken =
+                response.accessToken;
+
+
+            microsoftAccount =
+                response.account ||
+                microsoftAccount;
+
+
+            return oneDriveAccessToken;
+
+        } catch (popupError) {
+
+            console.error(
+                "PDS: Microsoft token acquisition failed:",
+                popupError
             );
 
-        account =
-            loginResponse?.account ||
-            null;
 
-        oneDriveAccount =
-            account;
+            showMessage(
+                "OneDrive authorization failed.",
+                "error"
+            );
+
+
+            return null;
+        }
     }
-
-    if (!account) {
-
-        throw new Error(
-            "Microsoft account sign in did not return an account."
-        );
-    }
-
-    const tokenResponse =
-        await msal.acquireTokenSilent(
-            {
-                scopes:
-                    PDS_ONEDRIVE_CONFIG.scopes,
-
-                account
-            }
-        );
-
-    oneDriveAccessToken =
-        tokenResponse.accessToken;
-
-    oneDriveInitialized =
-        true;
-
-    oneDriveReady =
-        true;
-
-    updateOneDriveStatusUI();
-
-    return true;
-}
-
-
-/* =========================================================
-   ONEDRIVE INITIALIZATION
-========================================================= */
-
-async function initializeOneDrive() {
-
-    if (
-        oneDriveInitializationPromise
-    ) {
-
-        return oneDriveInitializationPromise;
-    }
-
-    oneDriveInitializationPromise =
-               (async () => {
-
-            try {
-
-                const msal =
-                    await initializeMSAL();
-
-                if (!msal) {
-
-                    updateOneDriveStatusUI();
-
-                    return false;
-                }
-
-                let account =
-                    getOneDriveAccount();
-
-                if (!account) {
-
-                    updateOneDriveStatusUI();
-
-                    return false;
-                }
-
-                const tokenResponse =
-                    await msal.acquireTokenSilent(
-                        {
-                            scopes:
-                                PDS_ONEDRIVE_CONFIG.scopes,
-
-                            account
-                        }
-                    );
-
-                oneDriveAccessToken =
-                    tokenResponse.accessToken;
-
-                oneDriveAccount =
-                    account;
-
-                oneDriveInitialized =
-                    true;
-
-                oneDriveReady =
-                    true;
-
-                updateOneDriveStatusUI();
-
-                console.log(
-                    "PDS OneDrive: Existing Microsoft session restored."
-                );
-
-                return true;
-
-            } catch (error) {
-
-                console.warn(
-                    "PDS OneDrive: Initialization failed:",
-                    error
-                );
-
-                oneDriveInitialized =
-                    false;
-
-                oneDriveReady =
-                    false;
-
-                updateOneDriveStatusUI();
-
-                return false;
-
-            } finally {
-
-                oneDriveInitializationPromise =
-                    null;
-            }
-
-        })();
-
-    return oneDriveInitializationPromise;
 }
 
 
@@ -5789,62 +1476,62 @@ async function graphRequest(
     options = {}
 ) {
 
-    if (
-        !oneDriveAccessToken
-    ) {
+    const token =
+        await getOneDriveAccessToken();
+
+
+    if (!token) {
 
         throw new Error(
-            "OneDrive is not authenticated."
+            "No Microsoft access token available."
         );
     }
+
+
+    const headers = {
+
+        Authorization:
+            `Bearer ${token}`,
+
+        Accept:
+            "application/json",
+
+        ...(options.headers || {})
+    };
+
 
     const response =
         await fetch(
-            `https://graph.microsoft.com/v1.0${endpoint}`,
+            ONEDRIVE_GRAPH_ROOT +
+            endpoint,
             {
                 ...options,
-
-                headers: {
-                    Accept:
-                        "application/json",
-
-                    ...(options.body
-                        ? {
-                            "Content-Type":
-                                "application/json"
-                        }
-                        : {}),
-
-                    ...(options.headers || {}),
-
-                    Authorization:
-                        `Bearer ${oneDriveAccessToken}`
-                }
+                headers
             }
         );
 
+
     if (!response.ok) {
 
-        let errorMessage =
-            `Microsoft Graph request failed (${response.status}).`;
+        let errorText = "";
+
 
         try {
 
-            const errorData =
-                await response.json();
-
-            errorMessage =
-                errorData?.error?.message ||
-                errorMessage;
+            errorText =
+                await response.text();
 
         } catch {
-            /* Ignore JSON parsing errors. */
+            errorText =
+                response.statusText;
         }
 
+
         throw new Error(
-            errorMessage
+            `Microsoft Graph ${response.status}: ${errorText}`
         );
     }
+
 
     if (
         response.status === 204
@@ -5853,10 +1540,12 @@ async function graphRequest(
         return null;
     }
 
+
     const contentType =
         response.headers.get(
             "content-type"
         ) || "";
+
 
     if (
         contentType.includes(
@@ -5864,596 +1553,1047 @@ async function graphRequest(
         )
     ) {
 
-        return await response.json();
+        return response.json();
     }
 
-    return await response.text();
+
+    return response.text();
 }
 
 
 /* =========================================================
-   GET ONEDRIVE ROOT ITEMS
+   FIND EXCEL FILE IN ONEDRIVE
 ========================================================= */
 
-async function getOneDriveRootItems() {
+async function findOneDriveWorkbook() {
 
-    return await graphRequest(
-        "/me/drive/root/children?$select=id,name,file,folder,size,lastModifiedDateTime"
-    );
-}
-
-
-/* =========================================================
-   FIND EXCEL WORKBOOK
-========================================================= */
-
-async function findOneDriveWorkbook(
-    fileName =
-        PDS_ONEDRIVE_CONFIG.workbookName
-) {
-
-    const encodedName =
+    const encodedFileName =
         encodeURIComponent(
-            fileName
+            ONEDRIVE_FILE_NAME
         );
+
+
+    /*
+     * Search the user's OneDrive for the
+     * exact workbook name.
+     */
+
+    const data =
+        await graphRequest(
+            `/me/drive/root/search(q='${encodedFileName}')`
+        );
+
+
+    const items =
+        Array.isArray(data?.value)
+            ? data.value
+            : [];
+
+
+    const workbook =
+        items.find(
+            item =>
+                item?.name?.toLowerCase() ===
+                ONEDRIVE_FILE_NAME.toLowerCase()
+        );
+
+
+    if (!workbook) {
+
+        throw new Error(
+            `Could not find "${ONEDRIVE_FILE_NAME}" in OneDrive.`
+        );
+    }
+
+
+    return workbook;
+}
+
+
+/* =========================================================
+   LOAD OVERALL WORKSHEET
+========================================================= */
+
+async function loadOneDriveOverallSheet() {
+
+    console.log(
+        "PDS: Loading OVERALL worksheet..."
+    );
+
 
     try {
 
-        const result =
+        const workbook =
+            await findOneDriveWorkbook();
+
+
+        const worksheetName =
+            encodeURIComponent(
+                ONEDRIVE_SHEET_NAME
+            );
+
+
+        const rangeResponse =
             await graphRequest(
-                `/me/drive/root/search(q='${encodedName}')?$select=id,name,file,folder,size,lastModifiedDateTime,parentReference`
+                `/me/drive/items/${workbook.id}/workbook/worksheets('${worksheetName}')/usedRange(valuesOnly=false)`
             );
 
-        const items =
-            Array.isArray(
-                result?.value
-            )
-                ? result.value
-                : [];
 
-        const exact =
-            items.find(
-                item =>
-                    safeString(
-                        item.name
-                    ).toLowerCase() ===
-                    safeString(
-                        fileName
-                    ).toLowerCase()
+        if (!rangeResponse) {
+
+            throw new Error(
+                "The OVERALL worksheet returned no data."
             );
-
-        if (exact) {
-
-            oneDriveWorkbookId =
-                exact.id;
-
-            return exact;
         }
 
-        return null;
+
+        const values =
+            rangeResponse.values ||
+            [];
+
+
+        if (!values.length) {
+
+            throw new Error(
+                "The OVERALL worksheet is empty."
+            );
+        }
+
+
+        /*
+         * Excel row 1 in the returned usedRange
+         * may not necessarily correspond to
+         * worksheet row 1.
+         *
+         * We normalize the returned matrix
+         * into headers + data rows.
+         */
+
+        const normalized =
+            normalizeWorkbookMatrix(
+                values
+            );
+
+
+        oneDriveHeaders =
+            normalized.headers;
+
+
+        oneDriveWorkbookRows =
+            normalized.rows.map(
+                row =>
+                    rowToProject(
+                        row,
+                        oneDriveHeaders
+                    )
+            );
+
+
+        console.log(
+            "PDS: OVERALL loaded:",
+            oneDriveWorkbookRows.length,
+            "records"
+        );
+
+
+        return {
+
+            workbook,
+
+            values,
+
+            headers:
+                oneDriveHeaders,
+
+            projects:
+                oneDriveWorkbookRows
+        };
 
     } catch (error) {
 
         console.error(
-            "PDS OneDrive: Workbook search failed:",
+            "PDS: Failed to load OVERALL:",
             error
         );
 
-        throw error;
+
+        showMessage(
+            "Unable to load the OVERALL sheet: " +
+            error.message,
+            "error"
+        );
+
+
+        return null;
     }
 }
 
 
 /* =========================================================
-   GET WORKBOOK ID
+   NORMALIZE EXCEL MATRIX
 ========================================================= */
 
-async function getOneDriveWorkbookId() {
-
-    if (
-        oneDriveWorkbookId
-    ) {
-
-        return oneDriveWorkbookId;
-    }
-
-    const workbook =
-        await findOneDriveWorkbook();
-
-    if (!workbook?.id) {
-
-        throw new Error(
-            `Excel workbook "${PDS_ONEDRIVE_CONFIG.workbookName}" was not found in OneDrive.`
-        );
-    }
-
-    return workbook.id;
-}
-
-
-/* =========================================================
-   EXCEL GRAPH BASE
-========================================================= */
-
-function excelBasePath() {
-
-    if (
-        !oneDriveWorkbookId
-    ) {
-
-        throw new Error(
-            "OneDrive Excel workbook is not selected."
-        );
-    }
-
-    return (
-        `/me/drive/items/${encodeURIComponent(
-            oneDriveWorkbookId
-        )}/workbook`
-    );
-}
-
-
-/* =========================================================
-   GET WORKSHEET
-========================================================= */
-
-async function getExcelWorksheet(
-    worksheetName =
-        PDS_ONEDRIVE_CONFIG.worksheetName
-) {
-
-    const encoded =
-        encodeURIComponent(
-            worksheetName
-        );
-
-    return await graphRequest(
-        `${excelBasePath()}/worksheets/${encoded}`
-    );
-}
-
-
-/* =========================================================
-   GET USED RANGE
-========================================================= */
-
-async function getExcelUsedRange(
-    worksheetName =
-        PDS_ONEDRIVE_CONFIG.worksheetName
-) {
-
-    const encoded =
-        encodeURIComponent(
-            worksheetName
-        );
-
-    return await graphRequest(
-        `${excelBasePath()}/worksheets/${encoded}/usedRange(valuesOnly=true)`
-    );
-}
-
-
-/* =========================================================
-   LOAD OVERALL VALUES
-========================================================= */
-
-async function loadOverallExcelValues() {
-
-    await getOneDriveWorkbookId();
-
-    const usedRange =
-        await getExcelUsedRange(
-            PDS_ONEDRIVE_CONFIG.worksheetName
-        );
-
-    return (
-        Array.isArray(
-            usedRange?.values
-        )
-            ? usedRange.values
-            : []
-    );
-}
-
-
-/* =========================================================
-   FIND EXCEL COLUMN
-========================================================= */
-
-function findExcelColumn(
-    headers,
-    possibleNames
+function normalizeWorkbookMatrix(
+    values
 ) {
 
     if (
-        !Array.isArray(headers)
+        !Array.isArray(values) ||
+        values.length === 0
     ) {
 
-        return -1;
+        return {
+
+            headers: [],
+
+            rows: []
+        };
     }
 
-    const normalizedHeaders =
-        headers.map(
-            header =>
-                cleanExcelText(
-                    header
-                ).toLowerCase()
-        );
 
+    let headerIndex =
+        -1;
+
+
+    /*
+     * Find the row containing the project
+     * monitoring headers.
+     */
 
     for (
-        const name of possibleNames
+        let i = 0;
+        i < Math.min(values.length, 20);
+        i++
     ) {
 
-        const normalizedName =
-            cleanExcelText(
-                name
-            ).toLowerCase();
+        const row =
+            Array.isArray(values[i])
+                ? values[i]
+                : [];
 
-        const index =
-            normalizedHeaders.indexOf(
-                normalizedName
-            );
+
+        const text =
+            row
+                .map(
+                    value =>
+                        String(
+                            value ?? ""
+                        )
+                            .trim()
+                            .toUpperCase()
+                )
+                .join(" | ");
+
 
         if (
-            index >= 0
+            text.includes(
+                "PROJECT TITLE AS PER GAA"
+            ) ||
+            text.includes(
+                "ALLOCATION"
+            ) ||
+            text.includes(
+                "MUNICIPALITY"
+            )
         ) {
 
-            return index;
+            headerIndex =
+                i;
+
+            break;
         }
     }
 
 
-    return -1;
+    /*
+     * If the header cannot be detected,
+     * use the first non-empty row.
+     */
+
+    if (headerIndex < 0) {
+
+        for (
+            let i = 0;
+            i < values.length;
+            i++
+        ) {
+
+            const row =
+                values[i] || [];
+
+
+            if (
+                row.some(
+                    value =>
+                        String(
+                            value ?? ""
+                        ).trim() !== ""
+                )
+            ) {
+
+                headerIndex =
+                    i;
+
+                break;
+            }
+        }
+    }
+
+
+    if (headerIndex < 0) {
+
+        return {
+
+            headers: [],
+
+            rows: []
+        };
+    }
+
+
+    const headers =
+        (values[headerIndex] || [])
+            .map(
+                value =>
+                    String(
+                        value ?? ""
+                    ).trim()
+            );
+
+
+    const rows =
+        values
+            .slice(headerIndex + 1)
+            .filter(
+                row =>
+                    Array.isArray(row) &&
+                    row.some(
+                        value =>
+                            String(
+                                value ?? ""
+                            ).trim() !== ""
+                    )
+            );
+
+
+    return {
+
+        headers,
+
+        rows
+    };
+}
+/* =========================================================
+   NORMALIZE HEADER NAME
+========================================================= */
+
+function normalizeHeaderName(value) {
+
+    return String(value ?? "")
+        .replace(/\r?\n/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
 }
 
 
 /* =========================================================
-   EXCEL CELL
+   FIND HEADER INDEX
 ========================================================= */
 
-function excelCell(
-    row,
-    index
+function findHeaderIndex(
+    headers,
+    names
 ) {
 
+    if (!Array.isArray(headers)) {
+        return -1;
+    }
+
+
+    const wanted =
+        Array.isArray(names)
+            ? names
+            : [names];
+
+
+    const normalizedWanted =
+        wanted.map(
+            name =>
+                normalizeHeaderName(name)
+        );
+
+
+    return headers.findIndex(
+        header =>
+            normalizedWanted.includes(
+                normalizeHeaderName(header)
+            )
+    );
+}
+
+
+/* =========================================================
+   GET VALUE FROM EXCEL ROW
+========================================================= */
+
+function getRowValue(
+    row,
+    headers,
+    names
+) {
+
+    const index =
+        findHeaderIndex(
+            headers,
+            names
+        );
+
+
     if (
-        !Array.isArray(row) ||
-        index < 0
+        index < 0 ||
+        !Array.isArray(row)
     ) {
 
         return "";
     }
 
-    return (
-        row[index] ??
-        ""
-    );
+
+    return row[index] ?? "";
 }
 
 
 /* =========================================================
-   CLEAN EXCEL TEXT
+   CONVERT EXCEL VALUE TO NUMBER
 ========================================================= */
 
-function cleanExcelText(
-    value
-) {
-
-    return safeString(
-        value
-    )
-        .replace(
-            /\u00a0/g,
-            " "
-        )
-        .trim();
-}
-
-
-/* =========================================================
-   MAP OVERALL ROW TO PROJECT
-========================================================= */
-
-function mapOverallRowToProject(
-    row,
-    headers,
-    rowIndex
-) {
-
-    const titleIndex =
-        findExcelColumn(
-            headers,
-            [
-                "PROJECT TITLE AS PER GAA",
-                "PROJECT TITLE",
-                "PROJECT TITLE AS PER GAA "
-            ]
-        );
-
-    const municipalityIndex =
-        findExcelColumn(
-            headers,
-            [
-                "MUNICIPALITY",
-                "CITY/MUNICIPALITY",
-                "CITY / MUNICIPALITY"
-            ]
-        );
-
-    const allocationIndex =
-        findExcelColumn(
-            headers,
-            [
-                "ALLOCATION",
-                "ABC",
-                "PROJECT ALLOCATION"
-            ]
-        );
-
-    const programIndex =
-        findExcelColumn(
-            headers,
-            [
-                "PROGRAM2",
-                "PROGRAM",
-                "PROGRAM 2"
-            ]
-        );
-
-    const projectCountIndex =
-        findExcelColumn(
-            headers,
-            [
-                "NO. OF PROJS",
-                "NO. OF PROJECTS",
-                "NUMBER OF PROJECTS"
-            ]
-        );
-
-
-    const projectTitle =
-        cleanExcelText(
-            excelCell(
-                row,
-                titleIndex
-            )
-        );
+function excelNumber(value) {
 
     if (
-        !projectTitle
+        value === null ||
+        value === undefined ||
+        value === ""
     ) {
 
         return null;
     }
 
 
-    const project = {
+    if (
+        typeof value === "number"
+    ) {
 
-        id:
-            `overall-${rowIndex}`,
+        return value;
+    }
 
-        excelRow:
-            rowIndex + 1,
 
-        projectTitle,
+    const cleaned =
+        String(value)
+            .replace(/,/g, "")
+            .replace(/₱/g, "")
+            .replace(/%/g, "")
+            .trim();
 
-        municipality:
-            cleanExcelText(
-                excelCell(
-                    row,
-                    municipalityIndex
+
+    const number =
+        Number(cleaned);
+
+
+    return Number.isFinite(number)
+        ? number
+        : null;
+}
+
+
+/* =========================================================
+   CONVERT EXCEL DATE
+========================================================= */
+
+function excelDateToJS(
+    value
+) {
+
+    if (!value) {
+        return null;
+    }
+
+
+    if (
+        value instanceof Date
+    ) {
+
+        return value;
+    }
+
+
+    /*
+     * Microsoft Graph can return Excel
+     * dates as ISO strings or numeric
+     * serial values depending on the
+     * workbook/range.
+     */
+
+    if (
+        typeof value === "number"
+    ) {
+
+        /*
+         * Excel's default 1900 date system.
+         */
+
+        const excelEpoch =
+            new Date(
+                Date.UTC(
+                    1899,
+                    11,
+                    30
                 )
-            ),
+            );
 
-        allocation:
-            toNumber(
-                excelCell(
-                    row,
-                    allocationIndex
-                ),
-                0
-            ),
 
-        program:
-            cleanExcelText(
-                excelCell(
-                    row,
-                    programIndex
-                )
-            ),
+        return new Date(
+            excelEpoch.getTime() +
+            value * 86400000
+        );
+    }
 
-        projectCount:
-            toNumber(
-                excelCell(
-                    row,
-                    projectCountIndex
-                ),
-                0
+
+    const parsed =
+        new Date(value);
+
+
+    if (
+        !Number.isNaN(
+            parsed.getTime()
+        )
+    ) {
+
+        return parsed;
+    }
+
+
+    return null;
+}
+
+
+/* =========================================================
+   FORMAT DATE
+========================================================= */
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
+        return "";
+    }
+
+
+    const date =
+        excelDateToJS(value);
+
+
+    if (!date) {
+        return String(value);
+    }
+
+
+    return date.toLocaleDateString(
+        "en-PH",
+        {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        }
+    );
+}
+
+
+/* =========================================================
+   NORMALIZE STATUS
+========================================================= */
+
+function normalizeStatus(
+    value
+) {
+
+    const text =
+        String(
+            value ?? ""
+        ).trim();
+
+
+    if (!text) {
+        return "NOT STARTED";
+    }
+
+
+    return text.toUpperCase();
+}
+
+
+/* =========================================================
+   NORMALIZE PERCENTAGE
+========================================================= */
+
+function normalizePercentage(
+    value
+) {
+
+    const number =
+        excelNumber(value);
+
+
+    if (number === null) {
+        return 0;
+    }
+
+
+    /*
+     * Excel percentages may arrive as:
+     *
+     * 0.75  -> 75%
+     * 75    -> 75%
+     *
+     * Normalize everything to 0–100.
+     */
+
+    if (
+        number >= 0 &&
+        number <= 1
+    ) {
+
+        return number * 100;
+    }
+
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            number
+        )
+    );
+}
+
+
+/* =========================================================
+   PROJECT OBJECT FROM EXCEL ROW
+========================================================= */
+
+function rowToProject(
+    row,
+    headers
+) {
+
+    const project = {};
+
+
+    /*
+     * Preserve the original Excel row.
+     * This is important because saving
+     * should update the correct row.
+     */
+
+    project.__excelRow =
+        Array.isArray(row)
+            ? [...row]
+            : [];
+
+
+    project.__headers =
+        Array.isArray(headers)
+            ? [...headers]
+            : [];
+
+
+    project.category =
+        getRowValue(
+            row,
+            headers,
+            [
+                "CATEGORY"
+            ]
+        );
+
+
+    project.program =
+        getRowValue(
+            row,
+            headers,
+            [
+                "PROGRAM"
+            ]
+        );
+
+
+    project.subProgram =
+        getRowValue(
+            row,
+            headers,
+            [
+                "SUB-PROGRAM",
+                "SUB PROGRAM"
+            ]
+        );
+
+
+    project.projectTitle =
+        getRowValue(
+            row,
+            headers,
+            [
+                "PROJECT TITLE AS PER GAA",
+                "PROJECT TITLE"
+            ]
+        );
+
+
+    project.projectTitleGAA =
+        project.projectTitle;
+
+
+    project.noOfProjects =
+        getRowValue(
+            row,
+            headers,
+            [
+                "NO. OF PROJS",
+                "NO OF PROJS",
+                "NO. OF PROJECTS"
+            ]
+        );
+
+
+    project.allocation =
+        excelNumber(
+            getRowValue(
+                row,
+                headers,
+                [
+                    "ALLOCATION"
+                ]
             )
-    };
+        );
 
 
-    /* ---------------------------------------------------------
-       MONITORING FIELDS
-    --------------------------------------------------------- */
-
-    const programStatusIndex =
-        findExcelColumn(
+    project.municipality =
+        getRowValue(
+            row,
             headers,
             [
-                "PROGRAM STATUS",
-                "PROGRAM2 STATUS"
+                "MUNICIPALITY"
             ]
         );
 
-    const programPercentIndex =
-        findExcelColumn(
+
+    project.program2 =
+        getRowValue(
+            row,
             headers,
             [
-                "PROGRAM % COMPLETE",
-                "PROGRAM PERCENT COMPLETE",
-                "PROGRAM %"
+                "PROGRAM2",
+                "PROGRAM 2"
             ]
         );
 
-    const planStatusIndex =
-        findExcelColumn(
+
+    project.plan =
+        getRowValue(
+            row,
             headers,
             [
-                "PLAN STATUS",
-                "PLANS STATUS"
+                "PLAN"
             ]
         );
 
-    const planPercentIndex =
-        findExcelColumn(
+
+    project.advertisementBatch =
+        getRowValue(
+            row,
             headers,
             [
-                "PLAN % COMPLETE",
-                "PLAN PERCENT COMPLETE",
-                "PLAN %"
+                "ADVERTISEMENT BATCH",
+                "ADVERTISEMENT"
             ]
         );
 
-    const overallStatusIndex =
-        findExcelColumn(
+
+    project.contractId =
+        getRowValue(
+            row,
             headers,
             [
-                "OVERALL STATUS",
-                "STATUS"
+                "CONTRACT ID"
             ]
         );
 
-    const lastUpdatedIndex =
-        findExcelColumn(
+
+    project.canvass =
+        getRowValue(
+            row,
             headers,
             [
-                "LAST UPDATED",
-                "DATE UPDATED"
+                "CANVASS"
             ]
         );
 
-    const remarksIndex =
-        findExcelColumn(
+
+    project.marketScoping =
+        getRowValue(
+            row,
             headers,
             [
-                "REMARKS",
-                "REMARKS 1"
+                "MARKET SCOPING"
             ]
         );
 
-    const remarks2Index =
-        findExcelColumn(
+
+    project.certOfDed =
+        getRowValue(
+            row,
             headers,
             [
-                "REMARKS 2",
-                "REMARKS2"
+                "CERT OF DED"
+            ]
+        );
+
+
+    project.certOfCmpd =
+        getRowValue(
+            row,
+            headers,
+            [
+                "CERT OF CMPD"
+            ]
+        );
+
+
+    project.certOfValidation =
+        getRowValue(
+            row,
+            headers,
+            [
+                "CERT OF VALIDATION"
+            ]
+        );
+
+
+    project.printedCompleteProgram =
+        getRowValue(
+            row,
+            headers,
+            [
+                "PRINTED COMPLETE PROGRAM"
+            ]
+        );
+
+
+    project.submittedExcelFile =
+        getRowValue(
+            row,
+            headers,
+            [
+                "SUBMITTED EXCEL FILE"
+            ]
+        );
+
+
+    project.remarks =
+        getRowValue(
+            row,
+            headers,
+            [
+                "REMARKS"
+            ]
+        );
+
+
+    project.architectural =
+        getRowValue(
+            row,
+            headers,
+            [
+                "ARCHITECTURAL"
+            ]
+        );
+
+
+    project.structural =
+        getRowValue(
+            row,
+            headers,
+            [
+                "STRUCTURAL"
+            ]
+        );
+
+
+    project.plumbing =
+        getRowValue(
+            row,
+            headers,
+            [
+                "PLUMBING"
+            ]
+        );
+
+
+    project.electrical =
+        getRowValue(
+            row,
+            headers,
+            [
+                "ELECTRICAL"
+            ]
+        );
+
+
+    project.mechanical =
+        getRowValue(
+            row,
+            headers,
+            [
+                "MECHANICAL"
+            ]
+        );
+
+
+    project.survey =
+        getRowValue(
+            row,
+            headers,
+            [
+                "SURVEY"
+            ]
+        );
+
+
+    project.printedCompletePlan =
+        getRowValue(
+            row,
+            headers,
+            [
+                "PRINTED COMPLETE PLAN"
+            ]
+        );
+
+
+    project.remarks2 =
+        getRowValue(
+            row,
+            headers,
+            [
+                "REMARKS2",
+                "REMARKS 2"
             ]
         );
 
 
     project.programStatus =
-        cleanExcelText(
-            excelCell(
+        normalizeStatus(
+            getRowValue(
                 row,
-                programStatusIndex
+                headers,
+                [
+                    "PROGRAM STATUS"
+                ]
             )
         );
+
 
     project.programPercent =
-        clampPercent(
-            excelCell(
+        normalizePercentage(
+            getRowValue(
                 row,
-                programPercentIndex
+                headers,
+                [
+                    "PROGRAM % COMPLETE",
+                    "PROGRAM PERCENT COMPLETE"
+                ]
             )
         );
+
 
     project.planStatus =
-        cleanExcelText(
-            excelCell(
+        normalizeStatus(
+            getRowValue(
                 row,
-                planStatusIndex
+                headers,
+                [
+                    "PLAN STATUS"
+                ]
             )
         );
+
 
     project.planPercent =
-        clampPercent(
-            excelCell(
+        normalizePercentage(
+            getRowValue(
                 row,
-                planPercentIndex
+                headers,
+                [
+                    "PLAN % COMPLETE",
+                    "PLAN PERCENT COMPLETE"
+                ]
             )
         );
 
-    project.overallStatus =
-        cleanExcelText(
-            excelCell(
-                row,
-                overallStatusIndex
-            )
-        );
 
     project.lastUpdated =
-        cleanExcelText(
-            excelCell(
-                row,
-                lastUpdatedIndex
-            )
-        );
-
-    project.remarks =
-        cleanExcelText(
-            excelCell(
-                row,
-                remarksIndex
-            )
-        );
-
-    project.remarks2 =
-        cleanExcelText(
-            excelCell(
-                row,
-                remarks2Index
-            )
+        getRowValue(
+            row,
+            headers,
+            [
+                "LAST UPDATED"
+            ]
         );
 
 
-    /* ---------------------------------------------------------
-       FALLBACK STATUS
-    --------------------------------------------------------- */
+    project.daysSinceUpdate =
+        excelNumber(
+            getRowValue(
+                row,
+                headers,
+                [
+                    "DAYS SINCE UPDATE"
+                ]
+            )
+        );
+
+
+    project.overallStatus =
+        normalizeStatus(
+            getRowValue(
+                row,
+                headers,
+                [
+                    "OVERALL STATUS"
+                ]
+            )
+        );
+
+
+    /*
+     * Generate a stable project ID.
+     *
+     * The Excel row number is preferred
+     * because it points directly to the
+     * source record.
+     */
+
+    project.id =
+        `overall-row-${project.__excelRowNumber || ""}`;
+
 
     if (
-        !project.overallStatus
+        !project.projectTitle
     ) {
 
-        const program =
-            project.programPercent;
-
-        const plan =
-            project.planPercent;
-
-        if (
-            program >= 100 &&
-            plan >= 100
-        ) {
-
-            project.overallStatus =
-                "Completed";
-
-        } else if (
-            program > 0 ||
-            plan > 0
-        ) {
-
-            project.overallStatus =
-                "Ongoing";
-
-        } else {
-
-            project.overallStatus =
-                "Not Started";
-        }
+        project.projectTitle =
+            project.contractId ||
+            project.projectTitleGAA ||
+            "Untitled Project";
     }
 
 
@@ -6462,10 +2602,211 @@ function mapOverallRowToProject(
 
 
 /* =========================================================
-   LOAD PROJECT MONITORING FROM EXCEL
+   ASSIGN EXCEL ROW NUMBERS
 ========================================================= */
 
-async function loadProjectMonitoring(
+function assignExcelRowNumbers(
+    projects,
+    rangeResponse
+) {
+
+    if (!Array.isArray(projects)) {
+        return projects;
+    }
+
+
+    /*
+     * We normally read the complete usedRange.
+     * The actual worksheet starting row is
+     * obtained from the Graph range address.
+     *
+     * Example:
+     * OVERALL!A8:AI150
+     */
+
+    let startRow =
+        1;
+
+
+    const address =
+        String(
+            rangeResponse?.address ||
+            ""
+        );
+
+
+    const match =
+        address.match(
+            /![A-Z]+(\d+):/i
+        );
+
+
+    if (match) {
+
+        startRow =
+            Number(match[1]);
+    }
+
+
+    /*
+     * projects correspond to rows after
+     * the detected header.
+     */
+
+    const headerIndex =
+        projects.__headerIndex || 0;
+
+
+    projects.forEach(
+        (project, index) => {
+
+            project.__excelRowNumber =
+                startRow +
+                headerIndex +
+                1 +
+                index;
+
+
+            project.id =
+                `overall-row-${project.__excelRowNumber}`;
+        }
+    );
+
+
+    return projects;
+}
+
+
+/* =========================================================
+   LOAD MONITORING PROJECTS FROM ONEDRIVE
+========================================================= */
+
+async function refreshMonitoringFromOneDrive() {
+
+    const result =
+        await loadOneDriveOverallSheet();
+
+
+    if (!result) {
+
+        return [];
+    }
+
+
+    let projects =
+        result.projects || [];
+
+
+    /*
+     * Store row information so that
+     * website edits know exactly which
+     * Excel row must be updated.
+     */
+
+    const values =
+        result.values || [];
+
+
+    const headers =
+        result.headers || [];
+
+
+    let headerIndex =
+        -1;
+
+
+    for (
+        let i = 0;
+        i < values.length;
+        i++
+    ) {
+
+        const row =
+            values[i] || [];
+
+
+        const joined =
+            row
+                .map(
+                    value =>
+                        normalizeHeaderName(
+                            value
+                        )
+                )
+                .join("|");
+
+
+        if (
+            joined.includes(
+                "PROJECT TITLE AS PER GAA"
+            )
+        ) {
+
+            headerIndex =
+                i;
+
+            break;
+        }
+    }
+
+
+    if (headerIndex < 0) {
+        headerIndex = 0;
+    }
+
+
+    projects.forEach(
+        (project, index) => {
+
+            /*
+             * +1 because Excel rows are
+             * 1-based and the project begins
+             * after the header.
+             */
+
+            project.__excelRowNumber =
+                headerIndex +
+                index +
+                2;
+
+
+            project.id =
+                `overall-row-${project.__excelRowNumber}`;
+
+            project.__workbookId =
+                result.workbook?.id ||
+                null;
+        }
+    );
+
+
+    cachedMonitoringProjects =
+        projects;
+
+
+    oneDriveWorkbookRows =
+        projects;
+
+
+    oneDriveHeaders =
+        headers;
+
+
+    console.log(
+        "PDS: Monitoring cache refreshed:",
+        cachedMonitoringProjects.length
+    );
+
+
+    return cachedMonitoringProjects;
+}
+
+
+/* =========================================================
+   GET MONITORING PROJECTS
+========================================================= */
+
+async function getMonitoringProjects(
     forceRefresh = false
 ) {
 
@@ -6481,205 +2822,29 @@ async function loadProjectMonitoring(
     }
 
 
-    if (
-        !isOneDriveConnected()
-    ) {
-
-        const initialized =
-            await initializeOneDrive();
-
-        if (!initialized) {
-
-            throw new Error(
-                "OneDrive Excel is not connected."
-            );
-        }
-    }
-
-
-    const values =
-        await loadOverallExcelValues();
-
-    if (
-        !Array.isArray(values) ||
-        values.length === 0
-    ) {
-
-        cachedMonitoringProjects =
-            [];
-
-        return [];
-    }
-
-
-    const headers =
-        Array.isArray(values[0])
-            ? values[0]
-            : [];
-
-
-    const projects = [];
-
-    for (
-        let i = 1;
-        i < values.length;
-        i++
-    ) {
-
-        const project =
-            mapOverallRowToProject(
-                values[i],
-                headers,
-                i
-            );
-
-        if (project) {
-
-            projects.push(
-                project
-            );
-        }
-    }
-
-
-    cachedMonitoringProjects =
-        projects;
-
-    return projects;
-}
-        if (project) {
-
-            projects.push(
-                project
-            );
-        }
-    }
-
-
-    cachedMonitoringProjects =
-        projects;
-
-    return projects;
+    return refreshMonitoringFromOneDrive();
 }
 
 
 /* =========================================================
-   REFRESH MONITORING FROM ONEDRIVE
-========================================================= */
-
-async function refreshMonitoringFromOneDrive() {
-
-    showMonitoringLoadingState();
-
-    try {
-
-        const projects =
-            await loadProjectMonitoring(
-                true
-            );
-
-        cachedMonitoringProjects =
-            Array.isArray(projects)
-                ? projects
-                : [];
-
-        renderMonitoringProjects();
-
-        updateDashboardProjectCounts(
-            cachedMonitoringProjects
-        );
-
-        renderDashboardRecentProjects(
-            cachedMonitoringProjects
-        );
-
-        updateOneDriveStatusUI();
-
-        return cachedMonitoringProjects;
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Monitoring refresh failed:",
-            error
-        );
-
-        showMonitoringErrorState(
-            error?.message ||
-            "Unable to load project monitoring data."
-        );
-
-        throw error;
-    }
-}
-
-
-/* =========================================================
-   REFRESH AFTER EXCEL SAVE
-========================================================= */
-
-async function refreshAfterExcelSave() {
-
-    const projects =
-        await refreshMonitoringFromOneDrive();
-
-    dispatchPDSDataUpdated(
-        projects
-    );
-
-    return projects;
-}
-
-
-/* =========================================================
-   PDS DATA UPDATED EVENT
-========================================================= */
-
-function dispatchPDSDataUpdated(
-    projects
-) {
-
-    document.dispatchEvent(
-        new CustomEvent(
-            "pds:data-updated",
-            {
-                detail: {
-                    projects:
-                        Array.isArray(projects)
-                            ? projects
-                            : []
-                }
-            }
-        )
-    );
-}
-
-
-/* =========================================================
-   FIND MONITORING PROJECT
+   FIND MONITORING PROJECT BY ID
 ========================================================= */
 
 function findMonitoringProject(
     projectId
 ) {
 
-    if (
-        projectId === null ||
-        projectId === undefined
-    ) {
-
+    if (!projectId) {
         return null;
     }
+
 
     return (
         cachedMonitoringProjects.find(
             project =>
                 String(
                     project.id
-                ) ===
-                String(
-                    projectId
-                )
+                ) === String(projectId)
         ) ||
         null
     );
@@ -6687,105 +2852,973 @@ function findMonitoringProject(
 
 
 /* =========================================================
-   STATUS NORMALIZATION
+   FIND MONITORING PROJECT BY TITLE
 ========================================================= */
 
-function normalizeStatus(
-    status
+function findMonitoringProjectByTitle(
+    title
 ) {
 
-    const value =
-        cleanExcelText(
-            status
-        );
+    if (!title) {
+        return null;
+    }
 
-    return value ||
-        "Not Started";
+
+    const target =
+        String(title)
+            .trim()
+            .toLowerCase();
+
+
+    return (
+        cachedMonitoringProjects.find(
+            project =>
+                String(
+                    project.projectTitle || ""
+                )
+                    .trim()
+                    .toLowerCase() === target
+        ) ||
+        null
+    );
+}
+/* =========================================================
+   FIND COLUMN INDEX FOR UPDATE
+========================================================= */
+
+function getExcelColumnIndex(
+    headers,
+    names
+) {
+
+    return findHeaderIndex(
+        headers,
+        names
+    );
 }
 
 
 /* =========================================================
-   PROGRESS BAR
+   EXCEL COLUMN LETTER
 ========================================================= */
 
-function createProgressBar(
-    value
+function excelColumnLetter(
+    columnNumber
 ) {
 
-    const percent =
-        clampPercent(
-            value
-        );
+    let result = "";
+    let number = columnNumber;
 
-    return `
-        <div
-            class="pds-progress"
-            style="
-                width:100%;
-                min-width:90px;
-            "
-        >
-            <div
-                class="pds-progress-track"
-                style="
-                    width:100%;
-                    height:8px;
-                    border-radius:999px;
-                    background:#e6ebf2;
-                    overflow:hidden;
-                "
-            >
-                <div
-                    class="pds-progress-fill"
-                    style="
-                        width:${percent}%;
-                        height:100%;
-                        border-radius:999px;
-                    "
-                ></div>
-            </div>
 
-            <div
-                style="
-                    margin-top:4px;
-                    font-size:12px;
-                    font-weight:600;
-                "
-            >
-                ${percent.toFixed(1)}%
-            </div>
-        </div>
-    `;
+    while (number > 0) {
+
+        const remainder =
+            (number - 1) % 26;
+
+
+        result =
+            String.fromCharCode(
+                65 + remainder
+            ) + result;
+
+
+        number =
+            Math.floor(
+                (number - 1) / 26
+            );
+    }
+
+
+    return result;
 }
 
 
 /* =========================================================
-   STATUS BADGE
+   BUILD EXCEL CELL ADDRESS
 ========================================================= */
 
-function createStatusBadge(
-    status
+function excelCellAddress(
+    rowNumber,
+    columnNumber
 ) {
 
-    const text =
-        normalizeStatus(
-            status
-        );
-
-    return `
-        <span
-            class="pds-status-badge"
-            data-status="${escapeHTML(text)}"
-        >
-            ${escapeHTML(text)}
-        </span>
-    `;
+    return (
+        `${excelColumnLetter(columnNumber)}${rowNumber}`
+    );
 }
 
 
 /* =========================================================
-   MONITORING FILTERS
+   CONVERT VALUE FOR EXCEL
 ========================================================= */
+
+function valueForExcel(
+    value,
+    header
+) {
+
+    if (
+        value === undefined ||
+        value === null
+    ) {
+
+        return "";
+    }
+
+
+    const normalizedHeader =
+        normalizeHeaderName(
+            header
+        );
+
+
+    /*
+     * Percentage columns are stored in
+     * Excel as decimal fractions.
+     *
+     * Example:
+     * Website 75 -> Excel 0.75
+     */
+
+    if (
+        normalizedHeader.includes(
+            "% COMPLETE"
+        )
+    ) {
+
+        const number =
+            Number(value);
+
+
+        if (
+            Number.isFinite(number)
+        ) {
+
+            return number > 1
+                ? number / 100
+                : number;
+        }
+    }
+
+
+    /*
+     * Allocation and numeric fields.
+     */
+
+    if (
+        normalizedHeader ===
+            "ALLOCATION" ||
+        normalizedHeader ===
+            "NO. OF PROJS" ||
+        normalizedHeader ===
+            "DAYS SINCE UPDATE"
+    ) {
+
+        const number =
+            excelNumber(value);
+
+
+        return number === null
+            ? ""
+            : number;
+    }
+
+
+    return value;
+}
+
+
+/* =========================================================
+   UPDATE EXCEL CELL
+========================================================= */
+
+async function updateExcelCell(
+    workbookId,
+    worksheetName,
+    rowNumber,
+    columnNumber,
+    value,
+    header
+) {
+
+    if (
+        !workbookId ||
+        !rowNumber ||
+        !columnNumber
+    ) {
+
+        throw new Error(
+            "Invalid Excel cell location."
+        );
+    }
+
+
+    const address =
+        excelCellAddress(
+            rowNumber,
+            columnNumber
+        );
+
+
+    const encodedWorksheet =
+        encodeURIComponent(
+            worksheetName
+        );
+
+
+    const endpoint =
+        `/me/drive/items/${workbookId}` +
+        `/workbook/worksheets('${encodedWorksheet}')` +
+        `/range(address='${address}')`;
+
+
+    const excelValue =
+        valueForExcel(
+            value,
+            header
+        );
+
+
+    return graphRequest(
+        endpoint,
+        {
+
+            method: "PATCH",
+
+            headers: {
+
+                "Content-Type":
+                    "application/json"
+            },
+
+            body: JSON.stringify({
+
+                values: [
+                    [
+                        excelValue
+                    ]
+                ]
+            })
+        }
+    );
+}
+
+
+/* =========================================================
+   SAVE PROJECT CHANGES TO OVERALL
+========================================================= */
+
+async function saveProjectToOverall(
+    project,
+    changes = {}
+) {
+
+    if (!project) {
+
+        throw new Error(
+            "No project was supplied."
+        );
+    }
+
+
+    const workbookId =
+        project.__workbookId ||
+        oneDriveWorkbookRows.find(
+            item =>
+                item.id === project.id
+        )?.__workbookId;
+
+
+    if (!workbookId) {
+
+        throw new Error(
+            "Workbook ID is missing. Refresh the OVERALL sheet first."
+        );
+    }
+
+
+    const rowNumber =
+        Number(
+            project.__excelRowNumber
+        );
+
+
+    if (
+        !Number.isFinite(rowNumber) ||
+        rowNumber < 1
+    ) {
+
+        throw new Error(
+            "Excel row number is missing."
+        );
+    }
+
+
+    if (
+        !oneDriveHeaders ||
+        !oneDriveHeaders.length
+    ) {
+
+        throw new Error(
+            "Excel headers have not been loaded."
+        );
+    }
+
+
+    const entries =
+        Object.entries(
+            changes
+        );
+
+
+    if (!entries.length) {
+
+        return {
+
+            success: true,
+
+            updated: 0,
+
+            rowNumber
+        };
+    }
+
+
+    const fieldMap = {
+
+        category: [
+            "CATEGORY"
+        ],
+
+        program: [
+            "PROGRAM"
+        ],
+
+        subProgram: [
+            "SUB-PROGRAM",
+            "SUB PROGRAM"
+        ],
+
+        projectTitle: [
+            "PROJECT TITLE AS PER GAA"
+        ],
+
+        projectTitleGAA: [
+            "PROJECT TITLE AS PER GAA"
+        ],
+
+        noOfProjects: [
+            "NO. OF PROJS"
+        ],
+
+        allocation: [
+            "ALLOCATION"
+        ],
+
+        municipality: [
+            "MUNICIPALITY"
+        ],
+
+        program2: [
+            "PROGRAM2"
+        ],
+
+        plan: [
+            "PLAN"
+        ],
+
+        advertisementBatch: [
+            "ADVERTISEMENT BATCH"
+        ],
+
+        contractId: [
+            "CONTRACT ID"
+        ],
+
+        canvass: [
+            "CANVASS"
+        ],
+
+        marketScoping: [
+            "MARKET SCOPING"
+        ],
+
+        certOfDed: [
+            "CERT OF DED"
+        ],
+
+        certOfCmpd: [
+            "CERT OF CMPD"
+        ],
+
+        certOfValidation: [
+            "CERT OF VALIDATION"
+        ],
+
+        printedCompleteProgram: [
+            "PRINTED COMPLETE PROGRAM"
+        ],
+
+        submittedExcelFile: [
+            "SUBMITTED EXCEL FILE"
+        ],
+
+        remarks: [
+            "REMARKS"
+        ],
+
+        architectural: [
+            "ARCHITECTURAL"
+        ],
+
+        structural: [
+            "STRUCTURAL"
+        ],
+
+        plumbing: [
+            "PLUMBING"
+        ],
+
+        electrical: [
+            "ELECTRICAL"
+        ],
+
+        mechanical: [
+            "MECHANICAL"
+        ],
+
+        survey: [
+            "SURVEY"
+        ],
+
+        printedCompletePlan: [
+            "PRINTED COMPLETE PLAN"
+        ],
+
+        remarks2: [
+            "REMARKS2",
+            "REMARKS 2"
+        ],
+
+        programStatus: [
+            "PROGRAM STATUS"
+        ],
+
+        programPercent: [
+            "PROGRAM % COMPLETE"
+        ],
+
+        planStatus: [
+            "PLAN STATUS"
+        ],
+
+        planPercent: [
+            "PLAN % COMPLETE"
+        ],
+
+        lastUpdated: [
+            "LAST UPDATED"
+        ],
+
+        daysSinceUpdate: [
+            "DAYS SINCE UPDATE"
+        ],
+
+        overallStatus: [
+            "OVERALL STATUS"
+        ]
+    };
+
+
+    let updatedCount =
+        0;
+
+
+    /*
+     * Update only the fields that changed.
+     *
+     * This is intentional:
+     * we do not overwrite the entire row.
+     */
+
+    for (
+        const [field, value] of entries
+    ) {
+
+        const possibleHeaders =
+            fieldMap[field] ||
+            [field];
+
+
+        const columnIndex =
+            findHeaderIndex(
+                oneDriveHeaders,
+                possibleHeaders
+            );
+
+
+        if (columnIndex < 0) {
+
+            console.warn(
+                `PDS: Excel column not found for field "${field}".`
+            );
+
+            continue;
+        }
+
+
+        /*
+         * Excel columns are 1-based.
+         */
+
+        const columnNumber =
+            columnIndex + 1;
+
+
+        await updateExcelCell(
+            workbookId,
+            ONEDRIVE_SHEET_NAME,
+            rowNumber,
+            columnNumber,
+            value,
+            oneDriveHeaders[columnIndex]
+        );
+
+
+        updatedCount++;
+    }
+
+
+    /*
+     * Update local cache after successful
+     * OneDrive writes.
+     */
+
+    Object.assign(
+        project,
+        changes
+    );
+
+
+    /*
+     * Recalculate local derived values.
+     */
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            changes,
+            "programPercent"
+        )
+    ) {
+
+        project.programPercent =
+            normalizePercentage(
+                project.programPercent
+            );
+    }
+
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            changes,
+            "planPercent"
+        )
+    ) {
+
+        project.planPercent =
+            normalizePercentage(
+                project.planPercent
+            );
+    }
+
+
+    /*
+     * Keep cached project synchronized.
+     */
+
+    const cached =
+        findMonitoringProject(
+            project.id
+        );
+
+
+    if (cached) {
+
+        Object.assign(
+            cached,
+            changes
+        );
+    }
+
+
+    return {
+
+        success: true,
+
+        updated:
+            updatedCount,
+
+        rowNumber,
+
+        project
+    };
+}
+
+
+/* =========================================================
+   SAVE COMPLETE MONITORING PROJECT
+========================================================= */
+
+async function saveMonitoringProject(
+    projectId,
+    changes
+) {
+
+    let project =
+        findMonitoringProject(
+            projectId
+        );
+
+
+    /*
+     * If the project isn't currently cached,
+     * refresh OneDrive first.
+     */
+
+    if (!project) {
+
+        await refreshMonitoringFromOneDrive();
+
+
+        project =
+            findMonitoringProject(
+                projectId
+            );
+    }
+
+
+    if (!project) {
+
+        throw new Error(
+            "Project could not be found in the OVERALL sheet."
+        );
+    }
+
+
+    const result =
+        await saveProjectToOverall(
+            project,
+            changes
+        );
+
+
+    if (result.success) {
+
+        showMessage(
+            `Saved ${result.updated} change(s) to OneDrive Excel.`,
+            "success"
+        );
+    }
+
+
+    return result;
+}
+
+
+/* =========================================================
+   REFRESH AFTER SAVE
+========================================================= */
+
+async function refreshAfterExcelSave() {
+
+    try {
+
+        await refreshMonitoringFromOneDrive();
+
+
+        /*
+         * Re-render the currently visible
+         * monitoring page if available.
+         */
+
+        if (
+            typeof renderMonitoringProjects ===
+            "function"
+        ) {
+
+            await renderMonitoringProjects(
+                cachedMonitoringProjects
+            );
+        }
+
+
+        if (
+            typeof renderProjects ===
+            "function"
+        ) {
+
+            /*
+             * Only refresh if the project
+             * rendering function is being
+             * used by the monitoring page.
+             */
+
+            try {
+
+                await renderProjects(
+                    cachedMonitoringProjects
+                );
+
+            } catch {
+                /*
+                 * Ignore incompatible legacy
+                 * renderProjects signatures.
+                 */
+            }
+        }
+
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Post-save refresh failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   OPEN EXCEL IN ONEDRIVE
+========================================================= */
+
+async function openOverallWorkbook() {
+
+    try {
+
+        const workbook =
+            await findOneDriveWorkbook();
+
+
+        if (
+            workbook?.webUrl
+        ) {
+
+            window.open(
+                workbook.webUrl,
+                "_blank",
+                "noopener,noreferrer"
+            );
+
+
+            return true;
+        }
+
+
+        showMessage(
+            "The Excel workbook does not have a web URL.",
+            "warning"
+        );
+
+
+        return false;
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Unable to open workbook:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to open the OneDrive Excel file: " +
+            error.message,
+            "error"
+        );
+
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   CREATE ONEDRIVE BUTTON
+========================================================= */
+
+function setupOneDriveButton() {
+
+    const buttons =
+        document.querySelectorAll(
+            "#connectOneDrive, #oneDriveConnect, [data-action='connect-onedrive']"
+        );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.dataset.pdsBound ===
+                "true"
+            ) {
+                return;
+            }
+
+
+            button.dataset.pdsBound =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
+
+                    await signInToMicrosoft();
+
+                }
+            );
+        }
+    );
+
+
+    const openButtons =
+        document.querySelectorAll(
+            "#openOverallExcel, #openOneDriveExcel, [data-action='open-overall-excel']"
+        );
+
+
+    openButtons.forEach(
+        button => {
+
+            if (
+                button.dataset.pdsBound ===
+                "true"
+            ) {
+                return;
+            }
+
+
+            button.dataset.pdsBound =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
+                    await openOverallWorkbook();
+
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   INITIALIZE PROJECT MONITORING
+========================================================= */
+
+async function initializeProjectMonitoring() {
+
+    console.log(
+        "PDS: Initializing Project Monitoring..."
+    );
+
+
+    setupOneDriveButton();
+
+
+    /*
+     * Do not automatically force a Microsoft
+     * login popup on page load.
+     *
+     * The user can connect OneDrive when
+     * Project Monitoring is opened.
+     */
+
+    if (
+        !MICROSOFT_CLIENT_ID ||
+        MICROSOFT_CLIENT_ID ===
+            "PASTE-YOUR-MICROSOFT-CLIENT-ID-HERE"
+    ) {
+
+        console.warn(
+            "PDS: OneDrive Client ID is not configured."
+        );
+
+
+        updateOneDriveStatus(
+            "OneDrive setup required."
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * If an existing Microsoft account
+     * is already cached, load the workbook.
+     */
+
+    try {
+
+        if (
+            msalInstance &&
+            msalInstance.getAllAccounts().length
+        ) {
+
+            microsoftAccount =
+                msalInstance.getAllAccounts()[0];
+
+
+            oneDriveReady =
+                true;
+
+
+            await refreshMonitoringFromOneDrive();
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Existing OneDrive session could not be restored:",
+            error
+        );
+    }
+}
+/* =========================================================
+   PROJECT MONITORING STATE
+========================================================= */
+
+let monitoringState = {
+
+    search: "",
+
+    category: "",
+
+    municipality: "",
+
+    status: "",
+
+    sortBy: "projectTitle",
+
+    sortDirection: "asc",
+
+    currentPage: 1,
+
+    pageSize: 25,
+
+    selectedProjectId: null
+};
 
 
 /* =========================================================
@@ -6880,9 +3913,8 @@ function getFilteredMonitoringProjects() {
                         project.category ||
                         ""
                     )
-                        .trim()
                         .toLowerCase() !==
-                        category
+                    category
                 ) {
 
                     return false;
@@ -6895,27 +3927,31 @@ function getFilteredMonitoringProjects() {
                         project.municipality ||
                         ""
                     )
-                        .trim()
                         .toLowerCase() !==
-                        municipality
+                    municipality
                 ) {
 
                     return false;
                 }
 
 
-                if (
-                    status &&
-                    String(
-                        project.overallStatus ||
-                        ""
-                    )
-                        .trim()
-                        .toLowerCase() !==
-                        status
-                ) {
+                if (status) {
 
-                    return false;
+                    const projectStatus =
+                        String(
+                            project.overallStatus ||
+                            ""
+                        )
+                            .toLowerCase();
+
+
+                    if (
+                        projectStatus !==
+                        status
+                    ) {
+
+                        return false;
+                    }
                 }
 
 
@@ -6923,10 +3959,6 @@ function getFilteredMonitoringProjects() {
             }
         );
 
-
-    /* =====================================================
-       SORT
-    ===================================================== */
 
     const sortBy =
         monitoringState.sortBy ||
@@ -6943,59 +3975,60 @@ function getFilteredMonitoringProjects() {
     projects.sort(
         (a, b) => {
 
-            let valueA =
-                a?.[sortBy];
+            let aValue =
+                a?.[sortBy] ?? "";
 
 
-            let valueB =
-                b?.[sortBy];
-
-
-            if (
-                valueA === null ||
-                valueA === undefined
-            ) {
-
-                valueA = "";
-            }
+            let bValue =
+                b?.[sortBy] ?? "";
 
 
             if (
-                valueB === null ||
-                valueB === undefined
+                typeof aValue ===
+                "number" ||
+                typeof bValue ===
+                "number"
             ) {
 
-                valueB = "";
-            }
+                aValue =
+                    Number(aValue) || 0;
 
+                bValue =
+                    Number(bValue) || 0;
 
-            if (
-                typeof valueA ===
-                    "number" &&
-                typeof valueB ===
-                    "number"
-            ) {
+            } else {
 
-                return (
-                    valueA -
-                    valueB
-                ) * direction;
-            }
-
-
-            return String(
-                valueA
-            )
-                .localeCompare(
+                aValue =
                     String(
-                        valueB
-                    ),
-                    undefined,
-                    {
-                        numeric: true,
-                        sensitivity: "base"
-                    }
-                ) * direction;
+                        aValue
+                    ).toLowerCase();
+
+                bValue =
+                    String(
+                        bValue
+                    ).toLowerCase();
+            }
+
+
+            if (
+                aValue <
+                bValue
+            ) {
+
+                return -1 * direction;
+            }
+
+
+            if (
+                aValue >
+                bValue
+            ) {
+
+                return 1 * direction;
+            }
+
+
+            return 0;
         }
     );
 
@@ -7005,209 +4038,3694 @@ function getFilteredMonitoringProjects() {
 
 
 /* =========================================================
-   GET MONITORING MUNICIPALITIES
+   POPULATE MONITORING FILTERS
 ========================================================= */
 
-function getMonitoringMunicipalities() {
+function populateMonitoringFilters() {
 
-    const municipalities =
-        new Set();
+    const categorySelect =
+        $("monitoringCategoryFilter");
 
 
-    (
+    const municipalitySelect =
+        $("monitoringMunicipalityFilter");
+
+
+    const statusSelect =
+        $("monitoringStatusFilter");
+
+
+    const projects =
         Array.isArray(
             cachedMonitoringProjects
         )
             ? cachedMonitoringProjects
-            : []
-    ).forEach(
-        project => {
+            : [];
 
-            const municipality =
-                String(
-                    project?.municipality ||
-                    ""
-                ).trim();
 
+    if (categorySelect) {
+
+        const categories =
+            [
+                ...new Set(
+                    projects
+                        .map(
+                            project =>
+                                String(
+                                    project.category ||
+                                    ""
+                                ).trim()
+                        )
+                        .filter(Boolean)
+                )
+            ]
+                .sort(
+                    (a, b) =>
+                        a.localeCompare(b)
+                );
+
+
+        const currentValue =
+            categorySelect.value;
+
+
+        categorySelect.innerHTML =
+            `<option value="">All Categories</option>`;
+
+
+        categories.forEach(
+            category => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    category;
+
+
+                option.textContent =
+                    category;
+
+
+                categorySelect.appendChild(
+                    option
+                );
+            }
+        );
+
+
+        categorySelect.value =
+            currentValue;
+    }
+
+
+    if (municipalitySelect) {
+
+        const municipalities =
+            [
+                ...new Set(
+                    projects
+                        .map(
+                            project =>
+                                String(
+                                    project.municipality ||
+                                    ""
+                                ).trim()
+                        )
+                        .filter(Boolean)
+                )
+            ]
+                .sort(
+                    (a, b) =>
+                        a.localeCompare(b)
+                );
+
+
+        const currentValue =
+            municipalitySelect.value;
+
+
+        municipalitySelect.innerHTML =
+            `<option value="">All Municipalities</option>`;
+
+
+        municipalities.forEach(
+            municipality => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    municipality;
+
+
+                option.textContent =
+                    municipality;
+
+
+                municipalitySelect.appendChild(
+                    option
+                );
+            }
+        );
+
+
+        municipalitySelect.value =
+            currentValue;
+    }
+
+
+    if (statusSelect) {
+
+        const statuses =
+            [
+                ...new Set(
+                    projects
+                        .map(
+                            project =>
+                                String(
+                                    project.overallStatus ||
+                                    ""
+                                ).trim()
+                        )
+                        .filter(Boolean)
+                )
+            ]
+                .sort(
+                    (a, b) =>
+                        a.localeCompare(b)
+                );
+
+
+        const currentValue =
+            statusSelect.value;
+
+
+        statusSelect.innerHTML =
+            `<option value="">All Statuses</option>`;
+
+
+        statuses.forEach(
+            status => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    status;
+
+
+                option.textContent =
+                    status;
+
+
+                statusSelect.appendChild(
+                    option
+                );
+            }
+        );
+
+
+        statusSelect.value =
+            currentValue;
+    }
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* =========================================================
+   FORMAT CURRENCY
+========================================================= */
+
+function formatCurrency(
+    value
+) {
+
+    const number =
+        Number(value);
+
+
+    if (
+        !Number.isFinite(number)
+    ) {
+
+        return "₱0.00";
+    }
+
+
+    return number.toLocaleString(
+        "en-PH",
+        {
+            style: "currency",
+            currency: "PHP",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+
+function createProgressBar(
+    percentage
+) {
+
+    const value =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                Number(
+                    percentage
+                ) || 0
+            )
+        );
+
+
+    return `
+        <div class="pds-progress">
+            <div
+                class="pds-progress-track"
+                style="
+                    width:100%;
+                    height:8px;
+                    background:#e5e7eb;
+                    border-radius:999px;
+                    overflow:hidden;
+                "
+            >
+                <div
+                    class="pds-progress-fill"
+                    style="
+                        width:${value}%;
+                        height:100%;
+                        border-radius:999px;
+                    "
+                ></div>
+            </div>
+
+            <div
+                style="
+                    margin-top:4px;
+                    font-size:12px;
+                    font-weight:600;
+                "
+            >
+                ${value.toFixed(1)}%
+            </div>
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   STATUS BADGE
+========================================================= */
+
+function createStatusBadge(
+    status
+) {
+
+    const text =
+        normalizeStatus(
+            status
+        );
+
+
+    return `
+        <span
+            class="pds-status-badge"
+            data-status="${escapeHTML(text)}"
+        >
+            ${escapeHTML(text)}
+        </span>
+    `;
+}
+
+
+/* =========================================================
+   RENDER MONITORING PROJECTS
+========================================================= */
+
+async function renderMonitoringProjects(
+    projects = null
+) {
+
+    const container =
+        $("monitoringProjectsContainer") ||
+        $("projectMonitoringContainer") ||
+        $("monitoringTableBody");
+
+
+    if (!container) {
+
+        console.warn(
+            "PDS: Monitoring container was not found."
+        );
+
+        return;
+    }
+
+
+    const source =
+        Array.isArray(projects)
+            ? projects
+            : getFilteredMonitoringProjects();
+
+
+    /*
+     * If the target is a table body, render
+     * table rows only.
+     */
+
+    const isTableBody =
+        container.tagName ===
+        "TBODY";
+
+
+    if (isTableBody) {
+
+        container.innerHTML =
+            "";
+
+
+        source.forEach(
+            project => {
+
+                const tr =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                tr.dataset.projectId =
+                    project.id;
+
+
+                tr.innerHTML = `
+                    <td>
+                        ${escapeHTML(
+                            project.projectTitle
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            project.municipality
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatCurrency(
+                            project.allocation
+                        )}
+                    </td>
+
+                    <td>
+                        ${createProgressBar(
+                            project.programPercent
+                        )}
+                    </td>
+
+                    <td>
+                        ${createProgressBar(
+                            project.planPercent
+                        )}
+                    </td>
+
+                    <td>
+                        ${createStatusBadge(
+                            project.overallStatus
+                        )}
+                    </td>
+
+                    <td>
+                        <button
+                            type="button"
+                            class="monitoring-edit-button"
+                            data-project-id="${escapeHTML(
+                                project.id
+                            )}"
+                        >
+                            Edit
+                        </button>
+                    </td>
+                `;
+
+
+                container.appendChild(
+                    tr
+                );
+            }
+        );
+
+
+    } else {
+
+        container.innerHTML =
+            "";
+
+
+        if (!source.length) {
+
+            container.innerHTML = `
+                <div
+                    class="pds-empty-state"
+                    style="
+                        padding:40px;
+                        text-align:center;
+                    "
+                >
+                    No project monitoring records found.
+                </div>
+            `;
+
+
+            return;
+        }
+
+
+        const table =
+            document.createElement(
+                "table"
+            );
+
+
+        table.className =
+            "pds-monitoring-table";
+
+
+        table.innerHTML = `
+            <thead>
+                <tr>
+
+                    <th>Project Title</th>
+
+                    <th>Municipality</th>
+
+                    <th>Allocation</th>
+
+                    <th>Program</th>
+
+                    <th>Plan</th>
+
+                    <th>Overall Status</th>
+
+                    <th>Action</th>
+
+                </tr>
+            </thead>
+
+            <tbody></tbody>
+        `;
+
+
+        const tbody =
+            table.querySelector(
+                "tbody"
+            );
+
+
+        source.forEach(
+            project => {
+
+                const tr =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                tr.dataset.projectId =
+                    project.id;
+
+
+                tr.innerHTML = `
+                    <td>
+                        <strong>
+                            ${escapeHTML(
+                                project.projectTitle
+                            )}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            project.municipality
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatCurrency(
+                            project.allocation
+                        )}
+                    </td>
+
+                    <td>
+                        ${createProgressBar(
+                            project.programPercent
+                        )}
+                    </td>
+
+                    <td>
+                        ${createProgressBar(
+                            project.planPercent
+                        )}
+                    </td>
+
+                    <td>
+                        ${createStatusBadge(
+                            project.overallStatus
+                        )}
+                    </td>
+
+                    <td>
+                        <button
+                            type="button"
+                            class="monitoring-edit-button"
+                            data-project-id="${escapeHTML(
+                                project.id
+                            )}"
+                        >
+                            Edit
+                        </button>
+                    </td>
+                `;
+
+
+                tbody.appendChild(
+                    tr
+                );
+            }
+        );
+
+
+        container.appendChild(
+            table
+        );
+    }
+
+
+    /*
+     * Bind edit buttons after rendering.
+     */
+
+    container
+        .querySelectorAll(
+            ".monitoring-edit-button"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    event => {
+
+                        event.preventDefault();
+
+
+                        const projectId =
+                            button.dataset.projectId;
+
+
+                        editMonitoringProject(
+                            projectId
+                        );
+                    }
+                );
+            }
+        );
+}
+
+
+/* =========================================================
+   LOAD AND RENDER PROJECT MONITORING
+========================================================= */
+
+async function loadProjectMonitoring(
+    forceRefresh = false
+) {
+
+    const projects =
+        await getMonitoringProjects(
+            forceRefresh
+        );
+
+
+    populateMonitoringFilters();
+
+
+    monitoringState.currentPage =
+        1;
+
+
+    const filtered =
+        getFilteredMonitoringProjects();
+
+
+    await renderMonitoringProjects(
+        filtered
+    );
+
+
+    updateMonitoringSummary(
+        filtered
+    );
+
+
+    return filtered;
+}
+
+
+/* =========================================================
+   MONITORING SUMMARY
+========================================================= */
+
+function updateMonitoringSummary(
+    projects
+) {
+
+    const data =
+        Array.isArray(projects)
+            ? projects
+            : [];
+
+
+    const total =
+        data.length;
+
+
+    const totalAllocation =
+        data.reduce(
+            (sum, project) =>
+                sum +
+                (
+                    Number(
+                        project.allocation
+                    ) || 0
+                ),
+            0
+        );
+
+
+    const programAverage =
+        total
+            ? data.reduce(
+                (sum, project) =>
+                    sum +
+                    (
+                        Number(
+                            project.programPercent
+                        ) || 0
+                    ),
+                0
+            ) / total
+            : 0;
+
+
+    const planAverage =
+        total
+            ? data.reduce(
+                (sum, project) =>
+                    sum +
+                    (
+                        Number(
+                            project.planPercent
+                        ) || 0
+                    ),
+                0
+            ) / total
+            : 0;
+
+
+    const elements = {
+
+        total:
+            document.querySelector(
+                "[data-monitoring-total]"
+            ),
+
+        allocation:
+            document.querySelector(
+                "[data-monitoring-allocation]"
+            ),
+
+        program:
+            document.querySelector(
+                "[data-monitoring-program-average]"
+            ),
+
+        plan:
+            document.querySelector(
+                "[data-monitoring-plan-average]"
+            )
+    };
+
+
+    if (elements.total) {
+
+        elements.total.textContent =
+            total.toLocaleString(
+                "en-PH"
+            );
+    }
+
+
+    if (elements.allocation) {
+
+        elements.allocation.textContent =
+            formatCurrency(
+                totalAllocation
+            );
+    }
+
+
+    if (elements.program) {
+
+        elements.program.textContent =
+            `${programAverage.toFixed(1)}%`;
+    }
+
+
+    if (elements.plan) {
+
+        elements.plan.textContent =
+            `${planAverage.toFixed(1)}%`;
+    }
+}
+
+
+/* =========================================================
+   MONITORING FILTER EVENTS
+========================================================= */
+
+function initializeMonitoringFilters() {
+
+    if (
+        monitoringFiltersReady
+    ) {
+        return;
+    }
+
+
+    const searchInput =
+        $("monitoringSearch") ||
+        $("projectMonitoringSearch");
+
+
+    const categorySelect =
+        $("monitoringCategoryFilter");
+
+
+    const municipalitySelect =
+        $("monitoringMunicipalityFilter");
+
+
+    const statusSelect =
+        $("monitoringStatusFilter");
+
+
+    const applyFilters =
+        async () => {
+
+            monitoringState.search =
+                searchInput?.value ||
+                "";
+
+
+            monitoringState.category =
+                categorySelect?.value ||
+                "";
+
+
+            monitoringState.municipality =
+                municipalitySelect?.value ||
+                "";
+
+
+            monitoringState.status =
+                statusSelect?.value ||
+                "";
+
+
+            monitoringState.currentPage =
+                1;
+
+
+            const filtered =
+                getFilteredMonitoringProjects();
+
+
+            await renderMonitoringProjects(
+                filtered
+            );
+
+
+            updateMonitoringSummary(
+                filtered
+            );
+        };
+
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            applyFilters
+        );
+    }
+
+
+    if (categorySelect) {
+
+        categorySelect.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+
+    if (municipalitySelect) {
+
+        municipalitySelect.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+
+    if (statusSelect) {
+
+        statusSelect.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+
+    monitoringFiltersReady =
+        true;
+}
+/* =========================================================
+   EDIT MONITORING PROJECT
+========================================================= */
+
+async function editMonitoringProject(
+    projectId
+) {
+
+    let project =
+        findMonitoringProject(
+            projectId
+        );
+
+
+    if (!project) {
+
+        try {
+
+            await refreshMonitoringFromOneDrive();
+
+            project =
+                findMonitoringProject(
+                    projectId
+                );
+
+        } catch (error) {
+
+            console.error(
+                "PDS: Unable to refresh project:",
+                error
+            );
+        }
+    }
+
+
+    if (!project) {
+
+        showMessage(
+            "Project was not found in the OVERALL sheet.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    monitoringState.selectedProjectId =
+        project.id;
+
+
+    /*
+     * Use an existing modal if the HTML already
+     * provides one. Otherwise create a simple
+     * editor dynamically.
+     */
+
+    let modal =
+        $("monitoringEditModal");
+
+
+    if (!modal) {
+
+        modal =
+            createMonitoringEditModal();
+    }
+
+
+    populateMonitoringEditModal(
+        modal,
+        project
+    );
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+
+    modal.style.display =
+        "flex";
+
+
+    /*
+     * Keep the user on the current page.
+     * Do not navigate to another section.
+     */
+
+    if (
+        typeof saveCurrentPageState ===
+        "function"
+    ) {
+
+        try {
+            saveCurrentPageState();
+        } catch {
+            /* ignore legacy function */
+        }
+    }
+}
+
+
+/* =========================================================
+   CREATE MONITORING EDIT MODAL
+========================================================= */
+
+function createMonitoringEditModal() {
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "monitoringEditModal";
+
+
+    modal.className =
+        "pds-modal";
+
+
+    modal.style.position =
+        "fixed";
+
+    modal.style.inset =
+        "0";
+
+    modal.style.zIndex =
+        "99990";
+
+    modal.style.display =
+        "flex";
+
+    modal.style.alignItems =
+        "center";
+
+    modal.style.justifyContent =
+        "center";
+
+    modal.style.background =
+        "rgba(0,0,0,.45)";
+
+    modal.innerHTML = `
+
+        <div
+            class="pds-modal-content"
+            style="
+                width:min(900px,94vw);
+                max-height:90vh;
+                overflow:auto;
+                background:#fff;
+                border-radius:12px;
+                box-shadow:0 20px 60px rgba(0,0,0,.25);
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    padding:18px 22px;
+                    border-bottom:1px solid #e5e7eb;
+                    position:sticky;
+                    top:0;
+                    background:#fff;
+                    z-index:2;
+                "
+            >
+
+                <div>
+
+                    <div
+                        style="
+                            font-size:18px;
+                            font-weight:700;
+                        "
+                    >
+                        Edit Project Monitoring
+                    </div>
+
+                    <div
+                        id="monitoringEditProjectTitle"
+                        style="
+                            margin-top:4px;
+                            font-size:13px;
+                            color:#6b7280;
+                        "
+                    ></div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="monitoringEditClose"
+                    style="
+                        border:0;
+                        background:transparent;
+                        font-size:24px;
+                        cursor:pointer;
+                    "
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <form
+                id="monitoringEditForm"
+                style="
+                    padding:22px;
+                "
+            >
+
+                <input
+                    type="hidden"
+                    id="monitoringEditProjectId"
+                >
+
+
+                <div
+                    style="
+                        display:grid;
+                        grid-template-columns:
+                            repeat(2,minmax(0,1fr));
+                        gap:16px;
+                    "
+                >
+
+                    <label>
+                        <span>Program Status</span>
+
+                        <select
+                            id="editProgramStatus"
+                            name="programStatus"
+                        >
+
+                            <option value="">
+                                Select status
+                            </option>
+
+                            <option value="NOT STARTED">
+                                NOT STARTED
+                            </option>
+
+                            <option value="ONGOING">
+                                ONGOING
+                            </option>
+
+                            <option value="COMPLETED">
+                                COMPLETED
+                            </option>
+
+                            <option value="ON HOLD">
+                                ON HOLD
+                            </option>
+
+                            <option value="DEFERRED">
+                                DEFERRED
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+                        <span>Program % Complete</span>
+
+                        <input
+                            type="number"
+                            id="editProgramPercent"
+                            name="programPercent"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                        >
+
+                    </label>
+
+
+                    <label>
+                        <span>Plan Status</span>
+
+                        <select
+                            id="editPlanStatus"
+                            name="planStatus"
+                        >
+
+                            <option value="">
+                                Select status
+                            </option>
+
+                            <option value="NOT STARTED">
+                                NOT STARTED
+                            </option>
+
+                            <option value="ONGOING">
+                                ONGOING
+                            </option>
+
+                            <option value="COMPLETED">
+                                COMPLETED
+                            </option>
+
+                            <option value="ON HOLD">
+                                ON HOLD
+                            </option>
+
+                            <option value="DEFERRED">
+                                DEFERRED
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+                        <span>Plan % Complete</span>
+
+                        <input
+                            type="number"
+                            id="editPlanPercent"
+                            name="planPercent"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                        >
+
+                    </label>
+
+
+                    <label>
+                        <span>Overall Status</span>
+
+                        <select
+                            id="editOverallStatus"
+                            name="overallStatus"
+                        >
+
+                            <option value="">
+                                Select status
+                            </option>
+
+                            <option value="NOT STARTED">
+                                NOT STARTED
+                            </option>
+
+                            <option value="ONGOING">
+                                ONGOING
+                            </option>
+
+                            <option value="COMPLETED">
+                                COMPLETED
+                            </option>
+
+                            <option value="ON HOLD">
+                                ON HOLD
+                            </option>
+
+                            <option value="DEFERRED">
+                                DEFERRED
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+                        <span>Last Updated</span>
+
+                        <input
+                            type="date"
+                            id="editLastUpdated"
+                            name="lastUpdated"
+                        >
+
+                    </label>
+
+
+                    <label
+                        style="
+                            grid-column:1/-1;
+                        "
+                    >
+                        <span>Remarks</span>
+
+                        <textarea
+                            id="editRemarks"
+                            name="remarks"
+                            rows="4"
+                        ></textarea>
+
+                    </label>
+
+
+                    <label
+                        style="
+                            grid-column:1/-1;
+                        "
+                    >
+                        <span>Plan Remarks</span>
+
+                        <textarea
+                            id="editRemarks2"
+                            name="remarks2"
+                            rows="4"
+                        ></textarea>
+
+                    </label>
+
+                </div>
+
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:flex-end;
+                        gap:10px;
+                        margin-top:22px;
+                    "
+                >
+
+                    <button
+                        type="button"
+                        id="monitoringEditCancel"
+                    >
+                        Cancel
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        id="monitoringEditSave"
+                    >
+                        Save to OneDrive
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    const closeButton =
+        modal.querySelector(
+            "#monitoringEditClose"
+        );
+
+
+    const cancelButton =
+        modal.querySelector(
+            "#monitoringEditCancel"
+        );
+
+
+    const form =
+        modal.querySelector(
+            "#monitoringEditForm"
+        );
+
+
+    closeButton?.addEventListener(
+        "click",
+        () => closeMonitoringEditModal()
+    );
+
+
+    cancelButton?.addEventListener(
+        "click",
+        () => closeMonitoringEditModal()
+    );
+
+
+    modal.addEventListener(
+        "click",
+        event => {
 
             if (
-                municipality
+                event.target === modal
             ) {
 
-                municipalities.add(
-                    municipality
+                closeMonitoringEditModal();
+            }
+        }
+    );
+
+
+    form?.addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            await submitMonitoringEdit(
+                modal
+            );
+        }
+    );
+
+
+    return modal;
+}
+
+
+/* =========================================================
+   POPULATE MONITORING EDIT MODAL
+========================================================= */
+
+function populateMonitoringEditModal(
+    modal,
+    project
+) {
+
+    const setValue =
+        (selector, value) => {
+
+            const element =
+                modal.querySelector(
+                    selector
+                );
+
+
+            if (element) {
+
+                element.value =
+                    value ?? "";
+            }
+        };
+
+
+    const titleElement =
+        modal.querySelector(
+            "#monitoringEditProjectTitle"
+        );
+
+
+    if (titleElement) {
+
+        titleElement.textContent =
+            project.projectTitle || "";
+    }
+
+
+    setValue(
+        "#monitoringEditProjectId",
+        project.id
+    );
+
+
+    setValue(
+        "#editProgramStatus",
+        project.programStatus
+    );
+
+
+    setValue(
+        "#editProgramPercent",
+        Number(
+            project.programPercent || 0
+        ).toFixed(1)
+    );
+
+
+    setValue(
+        "#editPlanStatus",
+        project.planStatus
+    );
+
+
+    setValue(
+        "#editPlanPercent",
+        Number(
+            project.planPercent || 0
+        ).toFixed(1)
+    );
+
+
+    setValue(
+        "#editOverallStatus",
+        project.overallStatus
+    );
+
+
+    /*
+     * Convert the Excel date to the
+     * format required by <input type="date">.
+     */
+
+    const date =
+        excelDateToJS(
+            project.lastUpdated
+        );
+
+
+    if (date) {
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        setValue(
+            "#editLastUpdated",
+            `${year}-${month}-${day}`
+        );
+
+    } else {
+
+        setValue(
+            "#editLastUpdated",
+            ""
+        );
+    }
+
+
+    setValue(
+        "#editRemarks",
+        project.remarks
+    );
+
+
+    setValue(
+        "#editRemarks2",
+        project.remarks2
+    );
+}
+
+
+/* =========================================================
+   CLOSE MONITORING EDIT MODAL
+========================================================= */
+
+function closeMonitoringEditModal() {
+
+    const modal =
+        $("monitoringEditModal");
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.add(
+        "hidden"
+    );
+
+
+    modal.style.display =
+        "none";
+
+
+    monitoringState.selectedProjectId =
+        null;
+}
+
+
+/* =========================================================
+   SUBMIT MONITORING EDIT
+========================================================= */
+
+async function submitMonitoringEdit(
+    modal
+) {
+
+    const projectId =
+        modal.querySelector(
+            "#monitoringEditProjectId"
+        )?.value;
+
+
+    if (!projectId) {
+
+        showMessage(
+            "Project ID is missing.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const saveButton =
+        modal.querySelector(
+            "#monitoringEditSave"
+        );
+
+
+    const changes = {
+
+        programStatus:
+            modal.querySelector(
+                "#editProgramStatus"
+            )?.value || "",
+
+        programPercent:
+            Number(
+                modal.querySelector(
+                    "#editProgramPercent"
+                )?.value || 0
+            ),
+
+        planStatus:
+            modal.querySelector(
+                "#editPlanStatus"
+            )?.value || "",
+
+        planPercent:
+            Number(
+                modal.querySelector(
+                    "#editPlanPercent"
+                )?.value || 0
+            ),
+
+        overallStatus:
+            modal.querySelector(
+                "#editOverallStatus"
+            )?.value || "",
+
+        lastUpdated:
+            modal.querySelector(
+                "#editLastUpdated"
+            )?.value || "",
+
+        remarks:
+            modal.querySelector(
+                "#editRemarks"
+            )?.value || "",
+
+        remarks2:
+            modal.querySelector(
+                "#editRemarks2"
+            )?.value || ""
+    };
+
+
+    /*
+     * Validate percentages.
+     */
+
+    if (
+        changes.programPercent < 0 ||
+        changes.programPercent > 100
+    ) {
+
+        showMessage(
+            "Program % Complete must be between 0 and 100.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
+        changes.planPercent < 0 ||
+        changes.planPercent > 100
+    ) {
+
+        showMessage(
+            "Plan % Complete must be between 0 and 100.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (saveButton) {
+
+        saveButton.disabled =
+            true;
+
+        saveButton.textContent =
+            "Saving...";
+    }
+
+
+    try {
+
+        await saveMonitoringProject(
+            projectId,
+            changes
+        );
+
+
+        closeMonitoringEditModal();
+
+
+        /*
+         * Pull the latest values directly
+         * from OneDrive after the write.
+         */
+
+        await refreshAfterExcelSave();
+
+
+        /*
+         * Re-render the filtered view.
+         */
+
+        const filtered =
+            getFilteredMonitoringProjects();
+
+
+        await renderMonitoringProjects(
+            filtered
+        );
+
+
+        updateMonitoringSummary(
+            filtered
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Monitoring save failed:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to save changes to OneDrive: " +
+            error.message,
+            "error"
+        );
+
+    } finally {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.textContent =
+                "Save to OneDrive";
+        }
+    }
+}
+
+
+/* =========================================================
+   OPEN MONITORING PROJECT DETAILS
+========================================================= */
+
+async function openMonitoringProject(
+    projectId
+) {
+
+    let project =
+        findMonitoringProject(
+            projectId
+        );
+
+
+    if (!project) {
+
+        await refreshMonitoringFromOneDrive();
+
+
+        project =
+            findMonitoringProject(
+                projectId
+            );
+    }
+
+
+    if (!project) {
+
+        showMessage(
+            "Project not found.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    monitoringState.selectedProjectId =
+        project.id;
+
+
+    /*
+     * If the website already has a project
+     * details renderer, use it.
+     */
+
+    if (
+        typeof showProjectDetails ===
+        "function"
+    ) {
+
+        try {
+
+            await showProjectDetails(
+                project
+            );
+
+            return;
+
+        } catch (error) {
+
+            console.warn(
+                "PDS: Existing project details renderer failed:",
+                error
+            );
+        }
+    }
+
+
+    /*
+     * Otherwise use a simple details modal.
+     */
+
+    showSimpleMonitoringDetails(
+        project
+    );
+}
+
+
+/* =========================================================
+   SIMPLE PROJECT DETAILS
+========================================================= */
+
+function showSimpleMonitoringDetails(
+    project
+) {
+
+    let modal =
+        $("monitoringDetailsModal");
+
+
+    if (!modal) {
+
+        modal =
+            document.createElement(
+                "div"
+            );
+
+
+        modal.id =
+            "monitoringDetailsModal";
+
+
+        modal.style.position =
+            "fixed";
+
+        modal.style.inset =
+            "0";
+
+        modal.style.zIndex =
+            "99980";
+
+        modal.style.display =
+            "flex";
+
+        modal.style.alignItems =
+            "center";
+
+        modal.style.justifyContent =
+            "center";
+
+        modal.style.background =
+            "rgba(0,0,0,.45)";
+
+
+        modal.innerHTML = `
+
+            <div
+                style="
+                    width:min(900px,94vw);
+                    max-height:90vh;
+                    overflow:auto;
+                    background:#fff;
+                    border-radius:12px;
+                    padding:24px;
+                "
+            >
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                    "
+                >
+
+                    <h2>
+                        Project Details
+                    </h2>
+
+                    <button
+                        type="button"
+                        id="monitoringDetailsClose"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="monitoringDetailsBody"
+                ></div>
+
+            </div>
+        `;
+
+
+        document.body.appendChild(
+            modal
+        );
+
+
+        modal
+            .querySelector(
+                "#monitoringDetailsClose"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    modal.style.display =
+                        "none";
+                }
+            );
+    }
+
+
+    const body =
+        modal.querySelector(
+            "#monitoringDetailsBody"
+        );
+
+
+    body.innerHTML = `
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    180px 1fr;
+                gap:10px 20px;
+            "
+        >
+
+            <strong>
+                Project Title
+            </strong>
+
+            <span>
+                ${escapeHTML(
+                    project.projectTitle
+                )}
+            </span>
+
+
+            <strong>
+                Municipality
+            </strong>
+
+            <span>
+                ${escapeHTML(
+                    project.municipality
+                )}
+            </span>
+
+
+            <strong>
+                Contract ID
+            </strong>
+
+            <span>
+                ${escapeHTML(
+                    project.contractId
+                )}
+            </span>
+
+
+            <strong>
+                Allocation
+            </strong>
+
+            <span>
+                ${formatCurrency(
+                    project.allocation
+                )}
+            </span>
+
+
+            <strong>
+                Program Status
+            </strong>
+
+            <span>
+                ${createStatusBadge(
+                    project.programStatus
+                )}
+            </span>
+
+
+            <strong>
+                Program %
+            </strong>
+
+            <span>
+                ${Number(
+                    project.programPercent || 0
+                ).toFixed(1)}%
+            </span>
+
+
+            <strong>
+                Plan Status
+            </strong>
+
+            <span>
+                ${createStatusBadge(
+                    project.planStatus
+                )}
+            </span>
+
+
+            <strong>
+                Plan %
+            </strong>
+
+            <span>
+                ${Number(
+                    project.planPercent || 0
+                ).toFixed(1)}%
+            </span>
+
+
+            <strong>
+                Overall Status
+            </strong>
+
+            <span>
+                ${createStatusBadge(
+                    project.overallStatus
+                )}
+            </span>
+
+
+            <strong>
+                Last Updated
+            </strong>
+
+            <span>
+                ${escapeHTML(
+                    formatDate(
+                        project.lastUpdated
+                    )
+                )}
+            </span>
+
+
+            <strong>
+                Remarks
+            </strong>
+
+            <span>
+                ${escapeHTML(
+                    project.remarks
+                )}
+            </span>
+
+        </div>
+
+
+        <div
+            style="
+                margin-top:24px;
+                display:flex;
+                justify-content:flex-end;
+                gap:10px;
+            "
+        >
+
+            <button
+                type="button"
+                onclick="
+                    editMonitoringProject(
+                        '${escapeHTML(project.id)}'
+                    )
+                "
+            >
+                Edit
+            </button>
+
+        </div>
+    `;
+
+
+    modal.style.display =
+        "flex";
+}
+/* =========================================================
+   PAGE STATE
+   Keeps the website on the page/tab where the user
+   left it instead of returning to the dashboard.
+========================================================= */
+
+const PDS_PAGE_STATE_KEY =
+    "pds_current_page";
+
+
+const PDS_SCROLL_STATE_KEY =
+    "pds_scroll_positions";
+
+
+let pdsCurrentPage =
+    null;
+
+
+let pdsScrollPositions =
+    {};
+
+
+/* =========================================================
+   GET PAGE ID
+========================================================= */
+
+function getPageIdFromElement(
+    element
+) {
+
+    if (!element) {
+        return null;
+    }
+
+
+    return (
+        element.dataset?.page ||
+        element.dataset?.target ||
+        element.getAttribute(
+            "data-section"
+        ) ||
+        element.getAttribute(
+            "href"
+        ) ||
+        null
+    );
+}
+
+
+/* =========================================================
+   NORMALIZE PAGE ID
+========================================================= */
+
+function normalizePageId(
+    value
+) {
+
+    if (!value) {
+        return null;
+    }
+
+
+    let page =
+        String(value)
+            .trim();
+
+
+    if (
+        page.startsWith("#")
+    ) {
+
+        page =
+            page.substring(1);
+    }
+
+
+    return page;
+}
+
+
+/* =========================================================
+   SAVE CURRENT PAGE
+========================================================= */
+
+function saveCurrentPageState() {
+
+    try {
+
+        if (
+            pdsCurrentPage
+        ) {
+
+            localStorage.setItem(
+                PDS_PAGE_STATE_KEY,
+                pdsCurrentPage
+            );
+        }
+
+
+        /*
+         * Save scroll position for the current
+         * page so that returning to it restores
+         * the previous location.
+         */
+
+        if (
+            pdsCurrentPage
+        ) {
+
+            pdsScrollPositions[
+                pdsCurrentPage
+            ] =
+                window.scrollY || 0;
+
+
+            localStorage.setItem(
+                PDS_SCROLL_STATE_KEY,
+                JSON.stringify(
+                    pdsScrollPositions
+                )
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Unable to save page state:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   LOAD SAVED PAGE STATE
+========================================================= */
+
+function loadSavedPageState() {
+
+    try {
+
+        const savedPage =
+            localStorage.getItem(
+                PDS_PAGE_STATE_KEY
+            );
+
+
+        const savedScroll =
+            localStorage.getItem(
+                PDS_SCROLL_STATE_KEY
+            );
+
+
+        if (savedPage) {
+
+            pdsCurrentPage =
+                savedPage;
+        }
+
+
+        if (savedScroll) {
+
+            try {
+
+                const parsed =
+                    JSON.parse(
+                        savedScroll
+                    );
+
+
+                if (
+                    parsed &&
+                    typeof parsed ===
+                        "object"
+                ) {
+
+                    pdsScrollPositions =
+                        parsed;
+                }
+
+            } catch {
+                pdsScrollPositions = {};
+            }
+        }
+
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Unable to restore page state:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   GET ALL PAGE/SECTION ELEMENTS
+========================================================= */
+
+function getPDSPageElements() {
+
+    const selectors = [
+
+        "[data-page]",
+
+        "[data-section]",
+
+        ".page-section",
+
+        ".content-section",
+
+        ".dashboard-section",
+
+        "main section"
+
+    ];
+
+
+    const elements = [];
+
+
+    selectors.forEach(
+        selector => {
+
+            document
+                .querySelectorAll(
+                    selector
+                )
+                .forEach(
+                    element => {
+
+                        if (
+                            !elements.includes(
+                                element
+                            )
+                        ) {
+
+                            elements.push(
+                                element
+                            );
+                        }
+                    }
+                );
+        }
+    );
+
+
+    return elements;
+}
+
+
+/* =========================================================
+   FIND PAGE ELEMENT
+========================================================= */
+
+function findPDSPage(
+    pageId
+) {
+
+    const normalized =
+        normalizePageId(
+            pageId
+        );
+
+
+    if (!normalized) {
+        return null;
+    }
+
+
+    const selectors = [
+
+        `[data-page="${CSS.escape(normalized)}"]`,
+
+        `[data-section="${CSS.escape(normalized)}"]`,
+
+        `#${CSS.escape(normalized)}`,
+
+        `.page-${CSS.escape(normalized)}`
+
+    ];
+
+
+    for (
+        const selector of selectors
+    ) {
+
+        const element =
+            document.querySelector(
+                selector
+            );
+
+
+        if (element) {
+            return element;
+        }
+    }
+
+
+    return null;
+}
+
+
+/* =========================================================
+   SHOW PAGE
+========================================================= */
+
+function showPDSPage(
+    pageId,
+    options = {}
+) {
+
+    const normalized =
+        normalizePageId(
+            pageId
+        );
+
+
+    if (!normalized) {
+        return false;
+    }
+
+
+    const {
+
+        saveState = true,
+
+        restoreScroll = true,
+
+        updateHistory = false
+
+    } = options;
+
+
+    if (
+        saveState &&
+        pdsCurrentPage &&
+        pdsCurrentPage !==
+            normalized
+    ) {
+
+        saveCurrentPageState();
+    }
+
+
+    const pages =
+        getPDSPageElements();
+
+
+    let target =
+        findPDSPage(
+            normalized
+        );
+
+
+    /*
+     * Some existing PDS HTML structures use
+     * IDs directly rather than data-page.
+     */
+
+    if (!target) {
+
+        target =
+            document.getElementById(
+                normalized
+            );
+    }
+
+
+    if (!target) {
+
+        console.warn(
+            "PDS: Page not found:",
+            normalized
+        );
+
+        return false;
+    }
+
+
+    /*
+     * Hide only actual page/section elements.
+     * Do not hide the permanent sidebar,
+     * top navigation, or sign-in shell.
+     */
+
+    pages.forEach(
+        page => {
+
+            if (
+                page === target
+            ) {
+
+                page.classList.remove(
+                    "hidden"
+                );
+
+                page.style.display =
+                    "";
+
+                page.setAttribute(
+                    "aria-hidden",
+                    "false"
+                );
+
+            } else {
+
+                /*
+                 * Avoid hiding elements that are
+                 * parents of the target.
+                 */
+
+                if (
+                    page.contains(
+                        target
+                    ) ||
+                    target.contains(
+                        page
+                    )
+                ) {
+
+                    return;
+                }
+
+
+                page.classList.add(
+                    "hidden"
+                );
+
+                page.setAttribute(
+                    "aria-hidden",
+                    "true"
                 );
             }
         }
     );
 
 
-    return Array.from(
-        municipalities
-    ).sort(
-        (a, b) =>
-            a.localeCompare(
-                b,
-                undefined,
-                {
-                    sensitivity:
-                        "base"
+    pdsCurrentPage =
+        normalized;
+
+
+    if (saveState) {
+
+        try {
+
+            localStorage.setItem(
+                PDS_PAGE_STATE_KEY,
+                normalized
+            );
+
+        } catch {
+            /* ignore */
+        }
+    }
+
+
+    /*
+     * Update navigation buttons.
+     */
+
+    document
+        .querySelectorAll(
+            "[data-page], [data-section]"
+        )
+        .forEach(
+            nav => {
+
+                const navPage =
+                    normalizePageId(
+                        nav.dataset?.page ||
+                        nav.dataset?.section
+                    );
+
+
+                if (
+                    navPage ===
+                    normalized
+                ) {
+
+                    nav.classList.add(
+                        "active"
+                    );
+
+                    nav.setAttribute(
+                        "aria-current",
+                        "page"
+                    );
+
+                } else {
+
+                    nav.classList.remove(
+                        "active"
+                    );
+
+                    nav.removeAttribute(
+                        "aria-current"
+                    );
                 }
+            }
+        );
+
+
+    if (updateHistory) {
+
+        try {
+
+            history.replaceState(
+                {
+                    pdsPage:
+                        normalized
+                },
+                "",
+                `#${encodeURIComponent(normalized)}`
+            );
+
+        } catch {
+            /* ignore */
+        }
+    }
+
+
+    /*
+     * Restore the previous scroll position.
+     */
+
+    if (restoreScroll) {
+
+        const scrollTop =
+            Number(
+                pdsScrollPositions[
+                    normalized
+                ]
+            );
+
+
+        requestAnimationFrame(
+            () => {
+
+                if (
+                    Number.isFinite(
+                        scrollTop
+                    ) &&
+                    scrollTop > 0
+                ) {
+
+                    window.scrollTo(
+                        {
+                            top:
+                                scrollTop,
+
+                            behavior:
+                                "auto"
+                        }
+                    );
+
+                } else {
+
+                    window.scrollTo(
+                        {
+                            top: 0,
+
+                            behavior:
+                                "auto"
+                        }
+                    );
+                }
+            }
+        );
+    }
+
+
+    /*
+     * Load page-specific data only when
+     * that page is actually opened.
+     */
+
+    if (
+        normalized
+            .toLowerCase()
+            .includes(
+                "monitor"
             )
+    ) {
+
+        loadProjectMonitoring(
+            false
+        ).catch(
+            error => {
+
+                console.error(
+                    "PDS: Monitoring page load failed:",
+                    error
+                );
+            }
+        );
+    }
+
+
+    return true;
+}
+
+
+/* =========================================================
+   NAVIGATION CLICK HANDLER
+========================================================= */
+
+function handlePDSNavigationClick(
+    event
+) {
+
+    const link =
+        event.target.closest(
+            "[data-page], [data-section], [data-target]"
+        );
+
+
+    if (!link) {
+        return;
+    }
+
+
+    /*
+     * Do not intercept buttons that have their
+     * own application action unless they are
+     * explicitly navigation links.
+     */
+
+    const pageId =
+        getPageIdFromElement(
+            link
+        );
+
+
+    if (!pageId) {
+        return;
+    }
+
+
+    /*
+     * Ignore external URLs.
+     */
+
+    const href =
+        link.getAttribute(
+            "href"
+        );
+
+
+    if (
+        href &&
+        (
+            href.startsWith(
+                "http://"
+            ) ||
+            href.startsWith(
+                "https://"
+            )
+        )
+    ) {
+
+        return;
+    }
+
+
+    event.preventDefault();
+
+
+    showPDSPage(
+        pageId,
+        {
+            saveState: true,
+            restoreScroll: true,
+            updateHistory: true
+        }
     );
 }
 
 
 /* =========================================================
-   GET MONITORING CATEGORIES
+   INITIALIZE NAVIGATION
 ========================================================= */
 
-function getMonitoringCategories() {
+async function initializeNavigation() {
+
+    if (
+        navigationReady
+    ) {
+        return;
+    }
+
+
+    loadSavedPageState();
+
+
+    /*
+     * Capture scroll before leaving a page.
+     */
+
+    window.addEventListener(
+        "scroll",
+        () => {
+
+            if (
+                pdsCurrentPage
+            ) {
+
+                pdsScrollPositions[
+                    pdsCurrentPage
+                ] =
+                    window.scrollY || 0;
+            }
+
+        },
+        {
+            passive: true
+        }
+    );
+
+
+    /*
+     * Save page position before reload,
+     * closing, or navigation away.
+     */
+
+    window.addEventListener(
+        "beforeunload",
+        () => {
+
+            saveCurrentPageState();
+
+        }
+    );
+
+
+    /*
+     * Use event delegation so dynamically
+     * generated navigation elements work too.
+     */
+
+    document.addEventListener(
+        "click",
+        handlePDSNavigationClick
+    );
+
+
+    navigationReady =
+        true;
+
+
+    /*
+     * Restore the last page.
+     *
+     * If no previous page exists, use the
+     * dashboard as the default.
+     */
+
+    const hash =
+        window.location.hash
+            ? decodeURIComponent(
+                window.location.hash
+                    .substring(1)
+            )
+            : null;
+
+
+    const initialPage =
+        hash ||
+        pdsCurrentPage ||
+        "dashboard";
+
+
+    const shown =
+        showPDSPage(
+            initialPage,
+            {
+                saveState: false,
+                restoreScroll: true,
+                updateHistory: false
+            }
+        );
+
+
+    if (!shown) {
+
+        showPDSPage(
+            "dashboard",
+            {
+                saveState: false,
+                restoreScroll: false,
+                updateHistory: false
+            }
+        );
+    }
+}
+
+
+/* =========================================================
+   REMEMBER CURRENT PAGE BEFORE TAB CHANGE
+========================================================= */
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.visibilityState ===
+            "hidden"
+        ) {
+
+            saveCurrentPageState();
+        }
+    }
+);
+
+
+/* =========================================================
+   PROJECT MONITORING NAVIGATION
+========================================================= */
+
+function openProjectMonitoringPage() {
+
+    const possiblePages = [
+
+        "projectMonitoring",
+
+        "project-monitoring",
+
+        "monitoring",
+
+        "projectMonitoringPage",
+
+        "monitoringPage"
+
+    ];
+
+
+    for (
+        const page of possiblePages
+    ) {
+
+        if (
+            findPDSPage(page)
+        ) {
+
+            showPDSPage(
+                page,
+                {
+                    saveState: true,
+                    restoreScroll: true,
+                    updateHistory: true
+                }
+            );
+
+
+            loadProjectMonitoring(
+                false
+            ).catch(
+                error => {
+
+                    console.error(
+                        "PDS: Unable to load Project Monitoring:",
+                        error
+                    );
+                }
+            );
+
+
+            return true;
+        }
+    }
+
+
+    /*
+     * If the existing HTML uses a
+     * navigation function, fall back to it.
+     */
+
+    if (
+        typeof showSection ===
+        "function"
+    ) {
+
+        try {
+
+            showSection(
+                "project-monitoring"
+            );
+
+            return true;
+
+        } catch {
+            /* continue */
+        }
+    }
+
+
+    return false;
+}
+
+
+/* =========================================================
+   PROJECT MONITORING REFRESH BUTTON
+========================================================= */
+
+function setupMonitoringRefreshButton() {
+
+    const buttons =
+        document.querySelectorAll(
+            "#refreshMonitoring, #refreshProjectMonitoring, [data-action='refresh-monitoring']"
+        );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.dataset.pdsBound ===
+                "true"
+            ) {
+                return;
+            }
+
+
+            button.dataset.pdsBound =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
+
+                    const originalText =
+                        button.textContent;
+
+
+                    button.disabled =
+                        true;
+
+
+                    button.textContent =
+                        "Refreshing...";
+
+
+                    try {
+
+                        await loadProjectMonitoring(
+                            true
+                        );
+
+
+                        showMessage(
+                            "Project Monitoring refreshed from OneDrive.",
+                            "success"
+                        );
+
+                    } catch (error) {
+
+                        console.error(
+                            "PDS: Monitoring refresh failed:",
+                            error
+                        );
+
+
+                        showMessage(
+                            "Unable to refresh Project Monitoring.",
+                            "error"
+                        );
+
+                    } finally {
+
+                        button.disabled =
+                            false;
+
+                        button.textContent =
+                            originalText;
+                    }
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   INITIALIZE MONITORING CONTROLS
+========================================================= */
+
+function initializeMonitoringControls() {
+
+    initializeMonitoringFilters();
+
+    setupMonitoringRefreshButton();
+
+    setupOneDriveButton();
+}
+/* =========================================================
+   PROJECT MONITORING — FILTER EVENTS
+========================================================= */
+
+function initializeMonitoringFilters() {
+
+    const searchInput =
+        document.querySelector(
+            "#monitoringSearch"
+        );
+
+    const categoryFilter =
+        document.querySelector(
+            "#monitoringCategory"
+        );
+
+    const municipalityFilter =
+        document.querySelector(
+            "#monitoringMunicipality"
+        );
+
+    const programFilter =
+        document.querySelector(
+            "#monitoringProgram"
+        );
+
+    const statusFilter =
+        document.querySelector(
+            "#monitoringStatus"
+        );
+
+
+    if (
+        searchInput &&
+        searchInput.dataset.pdsBound !==
+            "true"
+    ) {
+
+        searchInput.dataset.pdsBound =
+            "true";
+
+
+        searchInput.addEventListener(
+            "input",
+            () => {
+
+                monitoringFilters.search =
+                    searchInput.value
+                        .trim()
+                        .toLowerCase();
+
+
+                renderMonitoringProjects();
+            }
+        );
+    }
+
+
+    if (
+        categoryFilter &&
+        categoryFilter.dataset.pdsBound !==
+            "true"
+    ) {
+
+        categoryFilter.dataset.pdsBound =
+            "true";
+
+
+        categoryFilter.addEventListener(
+            "change",
+            () => {
+
+                monitoringFilters.category =
+                    categoryFilter.value;
+
+
+                renderMonitoringProjects();
+            }
+        );
+    }
+
+
+    if (
+        municipalityFilter &&
+        municipalityFilter.dataset.pdsBound !==
+            "true"
+    ) {
+
+        municipalityFilter.dataset.pdsBound =
+            "true";
+
+
+        municipalityFilter.addEventListener(
+            "change",
+            () => {
+
+                monitoringFilters.municipality =
+                    municipalityFilter.value;
+
+
+                renderMonitoringProjects();
+            }
+        );
+    }
+
+
+    if (
+        programFilter &&
+        programFilter.dataset.pdsBound !==
+            "true"
+    ) {
+
+        programFilter.dataset.pdsBound =
+            "true";
+
+
+        programFilter.addEventListener(
+            "change",
+            () => {
+
+                monitoringFilters.program =
+                    programFilter.value;
+
+
+                renderMonitoringProjects();
+            }
+        );
+    }
+
+
+    if (
+        statusFilter &&
+        statusFilter.dataset.pdsBound !==
+            "true"
+    ) {
+
+        statusFilter.dataset.pdsBound =
+            "true";
+
+
+        statusFilter.addEventListener(
+            "change",
+            () => {
+
+                monitoringFilters.status =
+                    statusFilter.value;
+
+
+                renderMonitoringProjects();
+            }
+        );
+    }
+
+
+    populateMonitoringFilterOptions();
+}
+
+
+/* =========================================================
+   POPULATE FILTER OPTIONS
+========================================================= */
+
+function populateMonitoringFilterOptions() {
+
+    const projects =
+        Array.isArray(
+            cachedMonitoringProjects
+        )
+            ? cachedMonitoringProjects
+            : [];
+
 
     const categories =
         new Set();
 
+    const municipalities =
+        new Set();
 
-    (
-        Array.isArray(
-            cachedMonitoringProjects
-        )
-            ? cachedMonitoringProjects
-            : []
-    ).forEach(
-        project => {
-
-            const category =
-                String(
-                    project?.category ||
-                    ""
-                ).trim();
-
-
-            if (
-                category
-            ) {
-
-                categories.add(
-                    category
-                );
-            }
-        }
-    );
-
-
-    return Array.from(
-        categories
-    ).sort(
-        (a, b) =>
-            a.localeCompare(
-                b,
-                undefined,
-                {
-                    sensitivity:
-                        "base"
-                }
-            )
-    );
-}
-
-
-/* =========================================================
-   GET MONITORING STATUSES
-========================================================= */
-
-function getMonitoringStatuses() {
+    const programs =
+        new Set();
 
     const statuses =
         new Set();
 
 
-    (
-        Array.isArray(
-            cachedMonitoringProjects
-        )
-            ? cachedMonitoringProjects
-            : []
-    ).forEach(
+    projects.forEach(
         project => {
 
-            const status =
-                String(
-                    project?.overallStatus ||
-                    ""
-                ).trim();
+            if (
+                project.category
+            ) {
+
+                categories.add(
+                    String(
+                        project.category
+                    ).trim()
+                );
+            }
 
 
             if (
-                status
+                project.municipality
+            ) {
+
+                municipalities.add(
+                    String(
+                        project.municipality
+                    ).trim()
+                );
+            }
+
+
+            if (
+                project.program
+            ) {
+
+                programs.add(
+                    String(
+                        project.program
+                    ).trim()
+                );
+            }
+
+
+            if (
+                project.overallStatus
             ) {
 
                 statuses.add(
-                    status
+                    String(
+                        project.overallStatus
+                    ).trim()
                 );
             }
         }
     );
 
 
-    return Array.from(
-        statuses
-    ).sort(
-        (a, b) =>
-            a.localeCompare(
-                b,
-                undefined,
-                {
-                    sensitivity:
-                        "base"
-                }
-            )
+    populateSelect(
+        "#monitoringCategory",
+        categories,
+        "All Categories"
+    );
+
+
+    populateSelect(
+        "#monitoringMunicipality",
+        municipalities,
+        "All Municipalities"
+    );
+
+
+    populateSelect(
+        "#monitoringProgram",
+        programs,
+        "All Programs"
+    );
+
+
+    populateSelect(
+        "#monitoringStatus",
+        statuses,
+        "All Statuses"
     );
 }
 
 
 /* =========================================================
-   UPDATE MONITORING STATE
+   SELECT BUILDER
 ========================================================= */
 
-function updateMonitoringState(
-    changes = {}
+function populateSelect(
+    selector,
+    values,
+    defaultText
 ) {
 
-    monitoringState = {
-        ...monitoringState,
-        ...changes
-    };
+    const select =
+        document.querySelector(
+            selector
+        );
 
 
-    /*
-     * Any filter/sort change returns
-     * the table to page 1.
-     */
-    if (
-        Object.keys(
-            changes
-        ).some(
-            key =>
-                [
-                    "search",
-                    "category",
-                    "municipality",
-                    "status",
-                    "sortBy",
-                    "sortDirection"
-                ].includes(
-                    key
-                )
-        )
-    ) {
-
-        monitoringState.currentPage =
-            1;
+    if (!select) {
+        return;
     }
 
 
-    renderMonitoringProjects();
+    const currentValue =
+        select.value;
+
+
+    const sorted =
+        Array.from(values)
+            .filter(
+                value =>
+                    value !==
+                    ""
+            )
+            .sort(
+                (a, b) =>
+                    a.localeCompare(
+                        b
+                    )
+            );
+
+
+    select.innerHTML = "";
+
+
+    const defaultOption =
+        document.createElement(
+            "option"
+        );
+
+
+    defaultOption.value =
+        "";
+
+
+    defaultOption.textContent =
+        defaultText;
+
+
+    select.appendChild(
+        defaultOption
+    );
+
+
+    sorted.forEach(
+        value => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                value;
+
+
+            option.textContent =
+                value;
+
+
+            select.appendChild(
+                option
+            );
+        }
+    );
+
+
+    if (
+        sorted.includes(
+            currentValue
+        )
+    ) {
+
+        select.value =
+            currentValue;
+
+    } else {
+
+        select.value =
+            "";
+    }
+}
+
+
+/* =========================================================
+   APPLY MONITORING FILTERS
+========================================================= */
+
+function getFilteredMonitoringProjects() {
+
+    const projects =
+        Array.isArray(
+            cachedMonitoringProjects
+        )
+            ? cachedMonitoringProjects
+            : [];
+
+
+    const search =
+        String(
+            monitoringFilters.search ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const category =
+        String(
+            monitoringFilters.category ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const municipality =
+        String(
+            monitoringFilters.municipality ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const program =
+        String(
+            monitoringFilters.program ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    const status =
+        String(
+            monitoringFilters.status ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
+
+
+    return projects.filter(
+        project => {
+
+            const searchableText = [
+
+                project.category,
+
+                project.program,
+
+                project.subProgram,
+
+                project.projectTitle,
+
+                project.municipality,
+
+                project.program2,
+
+                project.plan,
+
+                project.contractId,
+
+                project.remarks,
+
+                project.remarks2,
+
+                project.overallStatus,
+
+                project.programStatus,
+
+                project.planStatus
+
+            ]
+                .filter(
+                    value =>
+                        value !==
+                        undefined &&
+                        value !==
+                        null
+                )
+                .join(" ")
+                .toLowerCase();
+
+
+            if (
+                search &&
+                !searchableText.includes(
+                    search
+                )
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                category &&
+                String(
+                    project.category ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase() !==
+                    category
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                municipality &&
+                String(
+                    project.municipality ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase() !==
+                    municipality
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                program &&
+                String(
+                    project.program ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase() !==
+                    program
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                status &&
+                String(
+                    project.overallStatus ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase() !==
+                    status
+            ) {
+
+                return false;
+            }
+
+
+            return true;
+        }
+    );
 }
 
 
@@ -7217,84 +7735,51 @@ function updateMonitoringState(
 
 function clearMonitoringFilters() {
 
-    monitoringState = {
-
-        ...monitoringState,
+    monitoringFilters = {
 
         search: "",
+
         category: "",
+
         municipality: "",
-        status: "",
-        currentPage: 1
+
+        program: "",
+
+        status: ""
     };
 
 
-    const searchInput =
-        document.querySelector(
-            "#monitoringSearch, " +
-            "#projectMonitoringSearch, " +
-            "[data-monitoring-search]"
-        );
+    const selectors = [
+
+        "#monitoringSearch",
+
+        "#monitoringCategory",
+
+        "#monitoringMunicipality",
+
+        "#monitoringProgram",
+
+        "#monitoringStatus"
+
+    ];
 
 
-    if (
-        searchInput
-    ) {
+    selectors.forEach(
+        selector => {
 
-        searchInput.value =
-            "";
-    }
-
-
-    const categorySelect =
-        document.querySelector(
-            "#monitoringCategory, " +
-            "#projectMonitoringCategory, " +
-            "[data-monitoring-category]"
-        );
+            const element =
+                document.querySelector(
+                    selector
+                );
 
 
-    if (
-        categorySelect
-    ) {
+            if (element) {
 
-        categorySelect.value =
-            "";
-    }
-
-
-    const municipalitySelect =
-        document.querySelector(
-            "#monitoringMunicipality, " +
-            "#projectMonitoringMunicipality, " +
-            "[data-monitoring-municipality]"
-        );
-
-
-    if (
-        municipalitySelect
-    ) {
-
-        municipalitySelect.value =
-            "";
-    }
-
-
-    const statusSelect =
-        document.querySelector(
-            "#monitoringStatus, " +
-            "#projectMonitoringStatus, " +
-            "[data-monitoring-status]"
-        );
-
-
-    if (
-        statusSelect
-    ) {
-
-        statusSelect.value =
-            "";
-    }
+                element.value =
+                    "";
+            }
+        }
+    );
 
 
     renderMonitoringProjects();
@@ -7302,257 +7787,520 @@ function clearMonitoringFilters() {
 
 
 /* =========================================================
-   PAGINATION
+   CLEAR FILTER BUTTON
 ========================================================= */
 
-function getMonitoringPagination() {
+function setupMonitoringClearButton() {
 
-    const projects =
-        getFilteredMonitoringProjects();
-
-
-    const pageSize =
-        Math.max(
-            1,
-            Number(
-                monitoringState.pageSize
-            ) || 25
+    const buttons =
+        document.querySelectorAll(
+            "#clearMonitoringFilters, [data-action='clear-monitoring-filters']"
         );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.dataset.pdsBound ===
+                "true"
+            ) {
+                return;
+            }
+
+
+            button.dataset.pdsBound =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                event => {
+
+                    event.preventDefault();
+
+                    clearMonitoringFilters();
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   MONITORING SUMMARY
+========================================================= */
+
+function updateMonitoringSummary(
+    projects
+) {
+
+    const list =
+        Array.isArray(
+            projects
+        )
+            ? projects
+            : [];
 
 
     const total =
-        projects.length;
+        list.length;
 
 
-    const totalPages =
-        Math.max(
-            1,
-            Math.ceil(
-                total /
-                pageSize
-            )
-        );
+    const programComplete =
+        list.filter(
+            project =>
+                isCompletedValue(
+                    project.programStatus
+                ) ||
+                Number(
+                    project.programPercent
+                ) >= 100
+        ).length;
 
 
-    let currentPage =
-        Number(
-            monitoringState.currentPage
-        ) || 1;
+    const planComplete =
+        list.filter(
+            project =>
+                isCompletedValue(
+                    project.planStatus
+                ) ||
+                Number(
+                    project.planPercent
+                ) >= 100
+        ).length;
 
 
-    currentPage =
-        Math.min(
-            Math.max(
-                currentPage,
-                1
-            ),
-            totalPages
-        );
+    const completed =
+        list.filter(
+            project =>
+                isCompletedValue(
+                    project.overallStatus
+                )
+        ).length;
 
 
-    monitoringState.currentPage =
-        currentPage;
+    const active =
+        list.filter(
+            project =>
+                !isCompletedValue(
+                    project.overallStatus
+                )
+        ).length;
 
 
-    const start =
-        (
-            currentPage -
-            1
-        ) * pageSize;
+    setText(
+        [
+            "#monitoringTotal",
+
+            "#totalMonitoringProjects",
+
+            "#monitoringProjectCount"
+
+        ],
+        total
+    );
 
 
-    const end =
-        Math.min(
-            start +
-            pageSize,
-            total
-        );
+    setText(
+        [
+            "#monitoringProgramComplete",
+
+            "#programCompleteCount"
+
+        ],
+        programComplete
+    );
 
 
-    return {
+    setText(
+        [
+            "#monitoringPlanComplete",
 
-        projects,
+            "#planCompleteCount"
 
-        pageProjects:
-            projects.slice(
-                start,
-                end
-            ),
+        ],
+        planComplete
+    );
 
-        total,
 
-        pageSize,
+    setText(
+        [
+            "#monitoringCompleted",
 
-        currentPage,
+            "#completedMonitoringCount"
 
-        totalPages,
+        ],
+        completed
+    );
 
-        start,
 
-        end
-    };
+    setText(
+        [
+            "#monitoringActive",
+
+            "#activeMonitoringCount"
+
+        ],
+        active
+    );
 }
 
 
 /* =========================================================
-   SET MONITORING PAGE
+   SET TEXT HELPER
 ========================================================= */
-function setMonitoringPage(
-    page
+
+function setText(
+    selectors,
+    value
 ) {
 
-    const pagination =
-        getMonitoringPagination();
+    selectors.forEach(
+        selector => {
+
+            const element =
+                document.querySelector(
+                    selector
+                );
 
 
-    const requested =
+            if (element) {
+
+                element.textContent =
+                    String(
+                        value ??
+                        ""
+                    );
+            }
+        }
+    );
+}
+
+
+/* =========================================================
+   COMPLETION CHECK
+========================================================= */
+
+function isCompletedValue(
+    value
+) {
+
+    if (
+        value ===
+        undefined ||
+        value ===
+        null
+    ) {
+
+        return false;
+    }
+
+
+    const normalized =
+        String(
+            value
+        )
+            .trim()
+            .toLowerCase();
+
+
+    return [
+
+        "completed",
+
+        "complete",
+
+        "100%",
+
+        "done",
+
+        "closed",
+
+        "finished"
+
+    ].includes(
+        normalized
+    );
+}
+
+
+/* =========================================================
+   PERCENTAGE FORMAT
+========================================================= */
+
+function formatPercent(
+    value
+) {
+
+    if (
+        value ===
+        undefined ||
+        value ===
+        null ||
+        value ===
+        ""
+    ) {
+
+        return "0%";
+    }
+
+
+    const number =
         Number(
-            page
+            String(
+                value
+            )
+                .replace(
+                    "%",
+                    ""
+                )
+                .replace(
+                    ",",
+                    ""
+                )
+                .trim()
         );
 
 
     if (
-        !Number.isFinite(
-            requested
+        Number.isNaN(
+            number
         )
     ) {
 
-        return;
+        return "0%";
     }
 
 
-    monitoringState.currentPage =
+    return `${Math.max(
+        0,
         Math.min(
-            Math.max(
-                Math.floor(
-                    requested
-                ),
-                1
-            ),
-            pagination.totalPages
-        );
-
-
-    renderMonitoringProjects();
+            100,
+            number
+        )
+    )}%`;
 }
 
 
 /* =========================================================
-   NEXT PAGE
+   STATUS CLASS
 ========================================================= */
 
-function nextMonitoringPage() {
+function getStatusClass(
+    status
+) {
 
-    const pagination =
-        getMonitoringPagination();
+    const normalized =
+        String(
+            status ||
+            ""
+        )
+            .trim()
+            .toLowerCase();
 
 
     if (
-        pagination.currentPage <
-        pagination.totalPages
+        normalized.includes(
+            "complete"
+        ) ||
+        normalized.includes(
+            "done"
+        ) ||
+        normalized.includes(
+            "finish"
+        )
     ) {
 
-        monitoringState.currentPage =
-            pagination.currentPage +
-            1;
-
-
-        renderMonitoringProjects();
+        return "status-complete";
     }
-}
-
-
-/* =========================================================
-   PREVIOUS PAGE
-========================================================= */
-
-function previousMonitoringPage() {
-
-    const pagination =
-        getMonitoringPagination();
 
 
     if (
-        pagination.currentPage >
-        1
+        normalized.includes(
+            "ongoing"
+        ) ||
+        normalized.includes(
+            "progress"
+        ) ||
+        normalized.includes(
+            "active"
+        )
     ) {
 
-        monitoringState.currentPage =
-            pagination.currentPage -
-            1;
-
-
-        renderMonitoringProjects();
+        return "status-ongoing";
     }
+
+
+    if (
+        normalized.includes(
+            "delayed"
+        ) ||
+        normalized.includes(
+            "delay"
+        )
+    ) {
+
+        return "status-delayed";
+    }
+
+
+    if (
+        normalized.includes(
+            "pending"
+        ) ||
+        normalized.includes(
+            "not started"
+        )
+    ) {
+
+        return "status-pending";
+    }
+
+
+    return "status-default";
 }
 
 
 /* =========================================================
-   SORT MONITORING PROJECTS
+   ESCAPE HTML
 ========================================================= */
 
-function sortMonitoringProjects(
-    field
+function escapeHTML(
+    value
 ) {
 
     if (
-        !field
-    ) {
-
-        return;
-    }
-
-
-    if (
-        monitoringState.sortBy ===
-        field
-    ) {
-
-        monitoringState.sortDirection =
-            monitoringState.sortDirection ===
-            "asc"
-                ? "desc"
-                : "asc";
-
-    } else {
-
-        monitoringState.sortBy =
-            field;
-
-        monitoringState.sortDirection =
-            "asc";
-    }
-
-
-    monitoringState.currentPage =
-        1;
-
-
-    renderMonitoringProjects();
-}
-
-
-/* =========================================================
-   MONITORING TABLE HEADER
-========================================================= */
-
-function monitoringSortIndicator(
-    field
-) {
-
-    if (
-        monitoringState.sortBy !==
-        field
+        value ===
+        undefined ||
+        value ===
+        null
     ) {
 
         return "";
     }
 
 
-    return monitoringState.sortDirection ===
-        "asc"
-        ? " ↑"
-        : " ↓";
+    return String(
+        value
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* =========================================================
+   MONITORING PROJECT ROW
+========================================================= */
+
+function renderMonitoringProjectRow(
+    project
+) {
+
+    const status =
+        project.overallStatus ||
+        "Not Started";
+
+
+    const programPercent =
+        formatPercent(
+            project.programPercent
+        );
+
+
+    const planPercent =
+        formatPercent(
+            project.planPercent
+        );
+
+
+    return `
+
+        <tr
+            data-project-id="${escapeHTML(
+                project.id
+            )}"
+        >
+
+            <td>
+                ${escapeHTML(
+                    project.category
+                )}
+            </td>
+
+            <td>
+                <strong>
+                    ${escapeHTML(
+                        project.projectTitle
+                    )}
+                </strong>
+            </td>
+
+            <td>
+                ${escapeHTML(
+                    project.municipality
+                )}
+            </td>
+
+            <td>
+                ${escapeHTML(
+                    project.contractId
+                )}
+            </td>
+
+            <td>
+                <span
+                    class="monitoring-status ${getStatusClass(
+                        status
+                    )}"
+                >
+                    ${escapeHTML(
+                        status
+                    )}
+                </span>
+            </td>
+
+            <td>
+                ${programPercent}
+            </td>
+
+            <td>
+                ${planPercent}
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="btn btn-sm"
+                    data-monitoring-edit="${escapeHTML(
+                        project.id
+                    )}"
+                >
+                    Edit
+                </button>
+            </td>
+
+        </tr>
+
+    `;
 }
 
 
@@ -7560,367 +8308,845 @@ function monitoringSortIndicator(
    RENDER MONITORING PROJECTS
 ========================================================= */
 
-async function renderMonitoringProjects(
-    suppliedProjects = null
-) {
+function renderMonitoringProjects() {
 
-    const container =
+    const filtered =
+        getFilteredMonitoringProjects();
+
+
+    updateMonitoringSummary(
+        filtered
+    );
+
+
+    populateMonitoringFilterOptions();
+
+
+    const tbody =
         document.querySelector(
-            "#monitoringProjects"
-        ) ||
-        document.querySelector(
-            "#projectMonitoringTable"
-        ) ||
-        document.querySelector(
-            "[data-monitoring-container]"
+            "#monitoringProjectsBody"
         );
 
 
-    if (
-        !container
-    ) {
+    if (!tbody) {
+
+        console.warn(
+            "PDS: #monitoringProjectsBody not found."
+        );
 
         return;
     }
 
 
-    let projects;
-
-
     if (
-        Array.isArray(
-            suppliedProjects
-        )
+        filtered.length ===
+        0
     ) {
 
-        projects =
-            suppliedProjects;
+        tbody.innerHTML = `
 
-    } else {
+            <tr>
 
-        projects =
-            getFilteredMonitoringProjects();
-    }
-
-
-    /*
-     * Preserve the current page.
-     */
-
-    const pagination =
-        getMonitoringPagination();
-
-
-    const pageProjects =
-        Array.isArray(
-            suppliedProjects
-        )
-            ? projects
-            : pagination.pageProjects;
-
-
-    if (
-        !pageProjects.length
-    ) {
-
-        container.innerHTML = `
-            <div
-                class="pds-empty-state"
-                style="
-                    padding:40px;
-                    text-align:center;
-                "
-            >
-                <strong>
-                    No projects found.
-                </strong>
-
-                <div
-                    style="
-                        margin-top:6px;
-                        opacity:.7;
-                    "
+                <td
+                    colspan="8"
+                    class="empty-state"
                 >
-                    Try changing the search
-                    or filter.
-                </div>
-            </div>
+                    No project monitoring
+                    records found.
+                </td>
+
+            </tr>
+
         `;
 
         return;
     }
 
 
-    container.innerHTML = `
-        <div
-            class="pds-monitoring-table-wrap"
-            style="
-                width:100%;
-                overflow-x:auto;
-            "
-        >
-
-            <table
-                class="pds-monitoring-table"
-                style="
-                    width:100%;
-                    border-collapse:collapse;
-                "
-            >
-
-                <thead>
-                    <tr>
-
-                        <th>
-                            Project Title
-                        </th>
-
-                        <th>
-                            Municipality
-                        </th>
-
-                        <th>
-                            Program
-                        </th>
-
-                        <th>
-                            Allocation
-                        </th>
-
-                        <th>
-                            Program
-                        </th>
-
-                        <th>
-                            Plan
-                        </th>
-
-                        <th>
-                            Overall Status
-                        </th>
-
-                        <th>
-                            Action
-                        </th>
-
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    ${pageProjects
-                        .map(
-                            project =>
-                                renderMonitoringProjectRow(
-                                    project
-                                )
-                        )
-                        .join("")}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        ${renderMonitoringPagination(
-            pagination
-        )}
-    `;
+    tbody.innerHTML =
+        filtered
+            .map(
+                renderMonitoringProjectRow
+            )
+            .join("");
 
 
-    bindMonitoringRowActions();
+    /*
+     * Bind Edit buttons after rendering.
+     */
+
+    tbody
+        .querySelectorAll(
+            "[data-monitoring-edit]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    event => {
+
+                        event.preventDefault();
+
+
+                        const projectId =
+                            button.getAttribute(
+                                "data-monitoring-edit"
+                            );
+
+
+                        if (
+                            typeof editMonitoringProject ===
+                            "function"
+                        ) {
+
+                            editMonitoringProject(
+                                projectId
+                            );
+                        }
+                    }
+                );
+            }
+        );
 }
 
 
 /* =========================================================
-   RENDER MONITORING PROJECT ROW
+   LOAD PROJECT MONITORING
 ========================================================= */
 
-function renderMonitoringProjectRow(
-    project
+async function loadProjectMonitoring(
+    forceRefresh = false
 ) {
 
-    const projectId =
-        project?.id ??
-        "";
+    /*
+     * If data is already loaded and the caller
+     * did not explicitly request refresh,
+     * use the existing data.
+     */
+
+    if (
+        !forceRefresh &&
+        Array.isArray(
+            cachedMonitoringProjects
+        ) &&
+        cachedMonitoringProjects.length
+    ) {
+
+        populateMonitoringFilterOptions();
+
+        renderMonitoringProjects();
+
+        return cachedMonitoringProjects;
+    }
 
 
-    const title =
-        escapeHTML(
-            project?.projectTitle ||
-            project?.projectTitleGAA ||
-            "Untitled Project"
+    if (
+        typeof refreshMonitoringFromOneDrive !==
+        "function"
+    ) {
+
+        console.error(
+            "PDS: refreshMonitoringFromOneDrive() is not available."
         );
 
-
-    const municipality =
-        escapeHTML(
-            project?.municipality ||
-            ""
-        );
+        return [];
+    }
 
 
-    const program =
-        escapeHTML(
-            project?.program ||
-            project?.program2 ||
-            ""
-        );
+    const projects =
+        await refreshMonitoringFromOneDrive();
 
 
-    const allocation =
-        formatCurrency(
-            project?.allocation
-        );
+    cachedMonitoringProjects =
+        Array.isArray(
+            projects
+        )
+            ? projects
+            : [];
 
 
-    const programPercent =
-        normalizePercentage(
-            project?.programPercent
-        );
+    populateMonitoringFilterOptions();
+
+    renderMonitoringProjects();
 
 
-    const planPercent =
-        normalizePercentage(
-            project?.planPercent
-        );
+    return cachedMonitoringProjects;
+}
+/* =========================================================
+   MONITORING EDITOR — FORM HELPERS
+========================================================= */
 
+function getMonitoringEditModal() {
 
-    const status =
-        project?.overallStatus ||
-        "Not Started";
-
-
-    return `
-        <tr
-            data-project-id="${escapeHTML(
-                String(projectId)
-            )}"
-        >
-
-            <td>
-                <div
-                    style="
-                        font-weight:600;
-                        line-height:1.35;
-                    "
-                >
-                    ${title}
-                </div>
-
-                ${
-                    project?.projectTitleGAA &&
-                    project?.projectTitle !==
-                    project?.projectTitleGAA
-                        ? `
-                            <div
-                                style="
-                                    margin-top:3px;
-                                    font-size:11px;
-                                    opacity:.65;
-                                "
-                            >
-                                ${escapeHTML(
-                                    project.projectTitleGAA
-                                )}
-                            </div>
-                          `
-                        : ""
-                }
-            </td>
-
-
-            <td>
-                ${municipality}
-            </td>
-
-
-            <td>
-                ${program}
-            </td>
-
-
-            <td
-                style="
-                    text-align:right;
-                    white-space:nowrap;
-                "
-            >
-                ${allocation}
-            </td>
-
-
-            <td>
-                ${createProgressBar(
-                    programPercent
-                )}
-            </td>
-
-
-            <td>
-                ${createProgressBar(
-                    planPercent
-                )}
-            </td>
-
-
-            <td>
-                ${createStatusBadge(
-                    status
-                )}
-            </td>
-
-
-            <td
-                style="
-                    white-space:nowrap;
-                "
-            >
-
-                <button
-                    type="button"
-                    class="pds-monitoring-view-button"
-                    data-action="view-monitoring-project"
-                    data-project-id="${escapeHTML(
-                        String(projectId)
-                    )}"
-                >
-                    View
-                </button>
-
-                <button
-                    type="button"
-                    class="pds-monitoring-edit-button"
-                    data-action="edit-monitoring-project"
-                    data-project-id="${escapeHTML(
-                        String(projectId)
-                    )}"
-                >
-                    Edit
-                </button>
-
-            </td>
-
-        </tr>
-    `;
+    return (
+        document.querySelector(
+            "#monitoringEditModal"
+        ) ||
+        document.querySelector(
+            "#editMonitoringModal"
+        ) ||
+        document.querySelector(
+            "#monitoringModal"
+        )
+    );
 }
 
 
 /* =========================================================
-   BIND MONITORING ROW ACTIONS
+   GET INPUT VALUE
 ========================================================= */
 
-function bindMonitoringRowActions() {
+function getInputValue(
+    selectors
+) {
 
-    const buttons =
-        document.querySelectorAll(
-            "[data-action='view-monitoring-project'], " +
-            "[data-action='edit-monitoring-project']"
+    if (
+        !Array.isArray(
+            selectors
+        )
+    ) {
+
+        selectors = [
+            selectors
+        ];
+    }
+
+
+    for (
+        const selector of selectors
+    ) {
+
+        const element =
+            document.querySelector(
+                selector
+            );
+
+
+        if (element) {
+
+            return element.value;
+        }
+    }
+
+
+    return "";
+}
+
+
+/* =========================================================
+   SET INPUT VALUE
+========================================================= */
+
+function setInputValue(
+    selectors,
+    value
+) {
+
+    if (
+        !Array.isArray(
+            selectors
+        )
+    ) {
+
+        selectors = [
+            selectors
+        ];
+    }
+
+
+    for (
+        const selector of selectors
+    ) {
+
+        const element =
+            document.querySelector(
+                selector
+            );
+
+
+        if (element) {
+
+            element.value =
+                value ??
+                "";
+
+            return true;
+        }
+    }
+
+
+    return false;
+}
+
+
+/* =========================================================
+   EDIT PROJECT MONITORING
+========================================================= */
+
+function editMonitoringProject(
+    projectId
+) {
+
+    const project =
+        cachedMonitoringProjects.find(
+            item =>
+                String(
+                    item.id
+                ) ===
+                String(
+                    projectId
+                )
         );
 
 
-    buttons.forEach(
+    if (!project) {
+
+        showMessage(
+            "Project record was not found.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * Store the currently edited project.
+     */
+
+    currentEditingMonitoringProject =
+        project;
+
+
+    /*
+     * Fill the monitoring editor.
+     */
+
+    setInputValue(
+        [
+            "#monitoringEditProjectTitle",
+            "#editMonitoringProjectTitle",
+            "#editProjectTitle"
+        ],
+        project.projectTitle
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditCategory",
+            "#editMonitoringCategory"
+        ],
+        project.category
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditProgram",
+            "#editMonitoringProgram"
+        ],
+        project.program
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditSubProgram",
+            "#editMonitoringSubProgram"
+        ],
+        project.subProgram
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditMunicipality",
+            "#editMonitoringMunicipality"
+        ],
+        project.municipality
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditContractId",
+            "#editMonitoringContractId"
+        ],
+        project.contractId
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditProgramStatus",
+            "#editMonitoringProgramStatus"
+        ],
+        project.programStatus
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditProgramPercent",
+            "#editMonitoringProgramPercent"
+        ],
+        project.programPercent
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditPlanStatus",
+            "#editMonitoringPlanStatus"
+        ],
+        project.planStatus
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditPlanPercent",
+            "#editMonitoringPlanPercent"
+        ],
+        project.planPercent
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditOverallStatus",
+            "#editMonitoringOverallStatus"
+        ],
+        project.overallStatus
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditRemarks",
+            "#editMonitoringRemarks"
+        ],
+        project.remarks
+    );
+
+
+    setInputValue(
+        [
+            "#monitoringEditRemarks2",
+            "#editMonitoringRemarks2"
+        ],
+        project.remarks2
+    );
+
+
+    /*
+     * Display the modal.
+     */
+
+    const modal =
+        getMonitoringEditModal();
+
+
+    if (modal) {
+
+        modal.style.display =
+            "flex";
+
+        modal.classList.add(
+            "active"
+        );
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+    }
+
+
+    /*
+     * Focus first editable field.
+     */
+
+    setTimeout(
+        () => {
+
+            const firstInput =
+                document.querySelector(
+                    "#monitoringEditProgramStatus, #editMonitoringProgramStatus"
+                );
+
+
+            if (firstInput) {
+
+                firstInput.focus();
+            }
+
+        },
+        50
+    );
+}
+
+
+/* =========================================================
+   CLOSE MONITORING EDITOR
+========================================================= */
+
+function closeMonitoringEditModal() {
+
+    const modal =
+        getMonitoringEditModal();
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.remove(
+        "active"
+    );
+
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+
+    modal.style.display =
+        "none";
+
+
+    currentEditingMonitoringProject =
+        null;
+}
+
+
+/* =========================================================
+   COLLECT MONITORING FORM
+========================================================= */
+
+function collectMonitoringFormData() {
+
+    const current =
+        currentEditingMonitoringProject;
+
+
+    if (!current) {
+
+        throw new Error(
+            "No monitoring project is currently being edited."
+        );
+    }
+
+
+    const updated = {
+
+        ...current,
+
+        programStatus:
+            getInputValue(
+                [
+                    "#monitoringEditProgramStatus",
+                    "#editMonitoringProgramStatus"
+                ]
+            ),
+
+        programPercent:
+            getInputValue(
+                [
+                    "#monitoringEditProgramPercent",
+                    "#editMonitoringProgramPercent"
+                ]
+            ),
+
+        planStatus:
+            getInputValue(
+                [
+                    "#monitoringEditPlanStatus",
+                    "#editMonitoringPlanStatus"
+                ]
+            ),
+
+        planPercent:
+            getInputValue(
+                [
+                    "#monitoringEditPlanPercent",
+                    "#editMonitoringPlanPercent"
+                ]
+            ),
+
+        overallStatus:
+            getInputValue(
+                [
+                    "#monitoringEditOverallStatus",
+                    "#editMonitoringOverallStatus"
+                ]
+            ),
+
+        remarks:
+            getInputValue(
+                [
+                    "#monitoringEditRemarks",
+                    "#editMonitoringRemarks"
+                ]
+            ),
+
+        remarks2:
+            getInputValue(
+                [
+                    "#monitoringEditRemarks2",
+                    "#editMonitoringRemarks2"
+                ]
+            )
+
+    };
+
+
+    /*
+     * Automatically determine overall status
+     * when no explicit status was entered.
+     */
+
+    if (
+        !String(
+            updated.overallStatus ||
+            ""
+        ).trim()
+    ) {
+
+        const program =
+            Number(
+                String(
+                    updated.programPercent ||
+                    0
+                ).replace(
+                    "%",
+                    ""
+                )
+            );
+
+
+        const plan =
+            Number(
+                String(
+                    updated.planPercent ||
+                    0
+                ).replace(
+                    "%",
+                    ""
+                )
+            );
+
+
+        if (
+            program >= 100 &&
+            plan >= 100
+        ) {
+
+            updated.overallStatus =
+                "Completed";
+
+        } else if (
+            program > 0 ||
+            plan > 0
+        ) {
+
+            updated.overallStatus =
+                "Ongoing";
+
+        } else {
+
+            updated.overallStatus =
+                "Not Started";
+        }
+    }
+
+
+    /*
+     * Update timestamp.
+     */
+
+    updated.lastUpdated =
+        new Date().toISOString();
+
+
+    return updated;
+}
+
+
+/* =========================================================
+   SAVE MONITORING PROJECT FROM FORM
+========================================================= */
+
+async function saveMonitoringProjectFromForm() {
+
+    if (
+        !currentEditingMonitoringProject
+    ) {
+
+        showMessage(
+            "No project selected.",
+            "error"
+        );
+
+        return false;
+    }
+
+
+    const saveButton =
+        document.querySelector(
+            "#saveMonitoringProject, #saveMonitoringBtn, [data-action='save-monitoring-project']"
+        );
+
+
+    const originalText =
+        saveButton
+            ? saveButton.textContent
+            : "";
+
+
+    try {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+
+            saveButton.textContent =
+                "Saving...";
+        }
+
+
+        const updatedProject =
+            collectMonitoringFormData();
+
+
+        /*
+         * Write changes directly to the
+         * OVERALL worksheet in OneDrive Excel.
+         */
+
+        if (
+            typeof saveMonitoringProject ===
+            "function"
+        ) {
+
+            await saveMonitoringProject(
+                updatedProject
+            );
+
+        } else {
+
+            throw new Error(
+                "saveMonitoringProject() is unavailable."
+            );
+        }
+
+
+        /*
+         * Update local cache only after the
+         * Excel save succeeds.
+         */
+
+        const index =
+            cachedMonitoringProjects.findIndex(
+                item =>
+                    String(
+                        item.id
+                    ) ===
+                    String(
+                        updatedProject.id
+                    )
+            );
+
+
+        if (
+            index >= 0
+        ) {
+
+            cachedMonitoringProjects[
+                index
+            ] =
+                {
+                    ...cachedMonitoringProjects[
+                        index
+                    ],
+                    ...updatedProject
+                };
+        }
+
+
+        /*
+         * Close editor.
+         */
+
+        closeMonitoringEditModal();
+
+
+        /*
+         * Re-render the current page without
+         * navigating back to the dashboard.
+         */
+
+        renderMonitoringProjects();
+
+
+        showMessage(
+            "Project monitoring updated successfully in OneDrive Excel.",
+            "success"
+        );
+
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Failed to save monitoring project:",
+            error
+        );
+
+
+        showMessage(
+            error?.message ||
+            "Unable to save project monitoring changes.",
+            "error"
+        );
+
+
+        return false;
+
+    } finally {
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.textContent =
+                originalText ||
+                "Save";
+        }
+    }
+}
+
+
+/* =========================================================
+   BIND MONITORING EDIT FORM
+========================================================= */
+
+function setupMonitoringEditForm() {
+
+    const saveButtons =
+        document.querySelectorAll(
+            "#saveMonitoringProject, #saveMonitoringBtn, [data-action='save-monitoring-project']"
+        );
+
+
+    saveButtons.forEach(
         button => {
 
             if (
@@ -7941,450 +9167,18 @@ function bindMonitoringRowActions() {
                 event => {
 
                     event.preventDefault();
-                    event.stopPropagation();
 
 
-                    const projectId =
-                        button.dataset.projectId;
-
-
-                    if (
-                        button.dataset.action ===
-                        "edit-monitoring-project"
-                    ) {
-
-                        openMonitoringProjectEditor(
-                            projectId
-                        );
-
-                        return;
-                    }
-
-
-                    openMonitoringProjectDetails(
-                        projectId
-                    );
+                    saveMonitoringProjectFromForm();
                 }
             );
         }
     );
-}
 
-
-/* =========================================================
-   OPEN PROJECT DETAILS
-========================================================= */
-
-function openMonitoringProjectDetails(
-    projectId
-) {
-
-    const project =
-        findMonitoringProject(
-            projectId
-        );
-
-
-    if (
-        !project
-    ) {
-
-        showMessage(
-            "Project could not be found.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    monitoringState.selectedProjectId =
-        project.id;
-
-
-    /*
-     * Use the existing modal if the
-     * HTML already provides one.
-     */
-
-    const modal =
-        document.querySelector(
-            "#monitoringProjectModal"
-        ) ||
-        document.querySelector(
-            "#projectDetailsModal"
-        );
-
-
-    if (
-        !modal
-    ) {
-
-        /*
-         * Fall back to the site's
-         * existing project page.
-         */
-
-        if (
-            typeof openProjectDetails ===
-            "function"
-        ) {
-
-            openProjectDetails(
-                project.id
-            );
-
-            return;
-        }
-
-
-        showMessage(
-            "Project details interface was not found.",
-            "warning"
-        );
-
-        return;
-    }
-
-
-    const content =
-        modal.querySelector(
-            "[data-modal-content]"
-        ) ||
-        modal.querySelector(
-            ".modal-content"
-        ) ||
-        modal;
-
-
-    content.innerHTML = `
-        <div
-            class="pds-project-details"
-        >
-
-            <div
-                style="
-                    display:flex;
-                    justify-content:space-between;
-                    gap:16px;
-                    align-items:flex-start;
-                "
-            >
-
-                <div>
-
-                    <div
-                        style="
-                            font-size:12px;
-                            opacity:.65;
-                            margin-bottom:6px;
-                        "
-                    >
-                        PROJECT MONITORING
-                    </div>
-
-                    <h2
-                        style="
-                            margin:0;
-                        "
-                    >
-                        ${escapeHTML(
-                            project.projectTitle ||
-                            project.projectTitleGAA ||
-                            ""
-                        )}
-                    </h2>
-
-                </div>
-
-                <div>
-                    ${createStatusBadge(
-                        project.overallStatus
-                    )}
-                </div>
-
-            </div>
-
-
-            <div
-                class="pds-project-details-grid"
-                style="
-                    display:grid;
-                    grid-template-columns:
-                        repeat(
-                            auto-fit,
-                            minmax(180px,1fr)
-                        );
-                    gap:14px;
-                    margin-top:24px;
-                "
-            >
-
-                ${renderProjectDetailItem(
-                    "Municipality",
-                    project.municipality
-                )}
-
-                ${renderProjectDetailItem(
-                    "Program",
-                    project.program
-                )}
-
-                ${renderProjectDetailItem(
-                    "Category",
-                    project.category
-                )}
-
-                ${renderProjectDetailItem(
-                    "Contract ID",
-                    project.contractId
-                )}
-
-                ${renderProjectDetailItem(
-                    "Allocation",
-                    formatCurrency(
-                        project.allocation
-                    )
-                )}
-
-                ${renderProjectDetailItem(
-                    "Program Status",
-                    project.programStatus
-                )}
-
-                ${renderProjectDetailItem(
-                    "Plan Status",
-                    project.planStatus
-                )}
-
-                ${renderProjectDetailItem(
-                    "Last Updated",
-                    project.lastUpdated
-                )}
-
-            </div>
-
-
-            <div
-                style="
-                    margin-top:24px;
-                "
-            >
-
-                <div
-                    style="
-                        font-size:13px;
-                        font-weight:700;
-                        margin-bottom:8px;
-                    "
-                >
-                    Program Progress
-                </div>
-
-                ${createProgressBar(
-                    project.programPercent
-                )}
-
-            </div>
-
-
-            <div
-                style="
-                    margin-top:18px;
-                "
-            >
-
-                <div
-                    style="
-                        font-size:13px;
-                        font-weight:700;
-                        margin-bottom:8px;
-                    "
-                >
-                    Plan Progress
-                </div>
-
-                ${createProgressBar(
-                    project.planPercent
-                )}
-
-            </div>
-
-
-            <div
-                style="
-                    margin-top:24px;
-                "
-            >
-
-                <div
-                    style="
-                        font-size:13px;
-                        font-weight:700;
-                        margin-bottom:8px;
-                    "
-                >
-                    Remarks
-                </div>
-
-                <div
-                    style="
-                        padding:12px;
-                        border-radius:8px;
-                        background:#f5f7fa;
-                        min-height:50px;
-                    "
-                >
-                    ${escapeHTML(
-                        project.remarks ||
-                        "No remarks."
-                    )}
-                </div>
-
-            </div>
-
-
-            <div
-                style="
-                    margin-top:12px;
-                "
-            >
-
-                <div
-                    style="
-                        font-size:13px;
-                        font-weight:700;
-                        margin-bottom:8px;
-                    "
-                >
-                    Additional Remarks
-                </div>
-
-                <div
-                    style="
-                        padding:12px;
-                        border-radius:8px;
-                        background:#f5f7fa;
-                        min-height:50px;
-                    "
-                >
-                    ${escapeHTML(
-                        project.remarks2 ||
-                        "No additional remarks."
-                    )}
-                </div>
-
-            </div>
-
-
-            <div
-                style="
-                    display:flex;
-                    justify-content:flex-end;
-                    gap:10px;
-                    margin-top:24px;
-                "
-            >
-
-                <button
-                    type="button"
-                    class="pds-monitoring-edit-button"
-                    data-action="edit-monitoring-project"
-                    data-project-id="${escapeHTML(
-                        String(project.id)
-                    )}"
-                >
-                    Edit
-                </button>
-
-                <button
-                    type="button"
-                    class="pds-monitoring-close-button"
-                    data-action="close-monitoring-modal"
-                >
-                    Close
-                </button>
-
-            </div>
-
-        </div>
-    `;
-
-
-    modal.classList.add(
-        "is-open"
-    );
-
-
-    modal.removeAttribute(
-        "hidden"
-    );
-
-
-    modal.setAttribute(
-        "aria-hidden",
-        "false"
-    );
-
-
-    bindMonitoringModalActions();
-}
-
-
-/* =========================================================
-   PROJECT DETAIL ITEM
-========================================================= */
-
-function renderProjectDetailItem(
-    label,
-    value
-) {
-
-    return `
-        <div
-            class="pds-detail-item"
-        >
-
-            <div
-                style="
-                    font-size:11px;
-                    font-weight:700;
-                    text-transform:uppercase;
-                    opacity:.6;
-                    margin-bottom:4px;
-                "
-            >
-                ${escapeHTML(
-                    label
-                )}
-            </div>
-
-            <div
-                style="
-                    font-weight:600;
-                    line-height:1.4;
-                "
-            >
-                ${escapeHTML(
-                    value ??
-                    "—"
-                )}
-            </div>
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   BIND MONITORING MODAL ACTIONS
-========================================================= */
-
-function bindMonitoringModalActions() {
 
     const closeButtons =
         document.querySelectorAll(
-            "[data-action='close-monitoring-modal']"
+            "#closeMonitoringEdit, #closeMonitoringModal, [data-action='close-monitoring-editor']"
         );
 
 
@@ -8410,48 +9204,7 @@ function bindMonitoringModalActions() {
 
                     event.preventDefault();
 
-                    closeMonitoringProjectModal();
-                }
-            );
-        }
-    );
-
-
-    const editButtons =
-        document.querySelectorAll(
-            "#monitoringProjectModal " +
-            "[data-action='edit-monitoring-project']"
-        );
-
-
-    editButtons.forEach(
-        button => {
-
-            if (
-                button.dataset.pdsBound ===
-                "true"
-            ) {
-
-                return;
-            }
-
-
-            button.dataset.pdsBound =
-                "true";
-
-
-            button.addEventListener(
-                "click",
-                event => {
-
-                    event.preventDefault();
-
-                    const projectId =
-                        button.dataset.projectId;
-
-                    openMonitoringProjectEditor(
-                        projectId
-                    );
+                    closeMonitoringEditModal();
                 }
             );
         }
@@ -8460,51 +9213,215 @@ function bindMonitoringModalActions() {
 
 
 /* =========================================================
-   CLOSE MONITORING PROJECT MODAL
+   ESC KEY — CLOSE MONITORING MODAL
 ========================================================= */
 
-function closeMonitoringProjectModal() {
+document.addEventListener(
+    "keydown",
+    event => {
 
-    const modal =
+        if (
+            event.key !==
+            "Escape"
+        ) {
+
+            return;
+        }
+
+
+        const modal =
+            getMonitoringEditModal();
+
+
+        if (
+            modal &&
+            (
+                modal.classList.contains(
+                    "active"
+                ) ||
+                modal.style.display ===
+                    "flex"
+            )
+        ) {
+
+            closeMonitoringEditModal();
+        }
+    }
+);
+
+
+/* =========================================================
+   CLICK OUTSIDE MODAL
+========================================================= */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const modal =
+            getMonitoringEditModal();
+
+
+        if (
+            !modal ||
+            event.target !==
+                modal
+        ) {
+
+            return;
+        }
+
+
+        closeMonitoringEditModal();
+    }
+);
+
+
+/* =========================================================
+   MONITORING INITIALIZATION
+========================================================= */
+
+function initializeMonitoringEditor() {
+
+    setupMonitoringEditForm();
+
+    setupMonitoringClearButton();
+
+    initializeMonitoringControls();
+}
+
+
+/* =========================================================
+   MESSAGE / TOAST
+========================================================= */
+
+function showMessage(
+    message,
+    type = "info"
+) {
+
+    let container =
         document.querySelector(
-            "#monitoringProjectModal"
-        ) ||
-        document.querySelector(
-            "#projectDetailsModal"
+            "#pdsToastContainer"
         );
 
 
-    if (
-        !modal
-    ) {
+    if (!container) {
 
-        return;
+        container =
+            document.createElement(
+                "div"
+            );
+
+
+        container.id =
+            "pdsToastContainer";
+
+
+        container.className =
+            "pds-toast-container";
+
+
+        document.body.appendChild(
+            container
+        );
     }
 
 
-    modal.classList.remove(
-        "is-open"
+    const toast =
+        document.createElement(
+            "div"
+        );
+
+
+    toast.className =
+        `pds-toast pds-toast-${type}`;
+
+
+    toast.textContent =
+        message;
+
+
+    container.appendChild(
+        toast
     );
 
 
-    modal.setAttribute(
-        "hidden",
-        "hidden"
+    requestAnimationFrame(
+        () => {
+
+            toast.classList.add(
+                "show"
+            );
+        }
     );
 
 
-    modal.setAttribute(
-        "aria-hidden",
-        "true"
+    setTimeout(
+        () => {
+
+            toast.classList.remove(
+                "show"
+            );
+
+
+            setTimeout(
+                () => {
+
+                    toast.remove();
+
+                },
+                250
+            );
+
+        },
+        3500
+    );
+}
+/* =========================================================
+   PART 11
+   PROJECT DETAIL + DASHBOARD INTEGRATION
+========================================================= */
+
+
+/* =========================================================
+   FIND PROJECT BY ID
+========================================================= */
+
+function findMonitoringProject(
+    projectId
+) {
+
+    if (
+        !Array.isArray(
+            cachedMonitoringProjects
+        )
+    ) {
+
+        return null;
+    }
+
+
+    return (
+        cachedMonitoringProjects.find(
+            project =>
+                String(
+                    project.id
+                ) ===
+                String(
+                    projectId
+                )
+        ) ||
+        null
     );
 }
 
 
 /* =========================================================
-   OPEN MONITORING PROJECT EDITOR
+   OPEN PROJECT DETAILS
 ========================================================= */
 
-function openMonitoringProjectEditor(
+function openMonitoringProjectDetails(
     projectId
 ) {
 
@@ -8514,12 +9431,10 @@ function openMonitoringProjectEditor(
         );
 
 
-    if (
-        !project
-    ) {
+    if (!project) {
 
         showMessage(
-            "Project could not be found.",
+            "Project record not found.",
             "error"
         );
 
@@ -8527,1018 +9442,715 @@ function openMonitoringProjectEditor(
     }
 
 
-    monitoringState.selectedProjectId =
-        project.id;
+    currentSelectedProject =
+        project;
 
 
-    const modal =
+    /*
+     * Try the existing project-detail
+     * container first.
+     */
+
+    const detailContainer =
         document.querySelector(
-            "#monitoringProjectEditor"
+            "#projectDetails"
         ) ||
         document.querySelector(
-            "#monitoringEditModal"
+            "#monitoringProjectDetails"
         ) ||
         document.querySelector(
-            "#projectEditModal"
+            "#projectDetail"
         );
 
 
-    if (
-        !modal
-    ) {
+    if (!detailContainer) {
 
-        showMessage(
-            "Project editor interface was not found.",
-            "warning"
+        showSimpleMonitoringDetails(
+            project
         );
 
         return;
     }
 
 
-    const form =
-        modal.querySelector(
-            "form"
-        );
-
-
-    if (
-        !form
-    ) {
-
-        showMessage(
-            "Project editor form was not found.",
-            "warning"
-        );
-
-        return;
-    }
-
-
-    populateMonitoringEditForm(
-        form,
-        project
-    );
-
-
-    modal.classList.add(
-        "is-open"
-    );
-
-
-    modal.removeAttribute(
-        "hidden"
-    );
-
-
-    modal.setAttribute(
-        "aria-hidden",
-        "false"
-    );
-
-
-    bindMonitoringEditForm(
-        form
-    );
-}
-
-
-/* =========================================================
-   POPULATE MONITORING EDIT FORM
-========================================================= */
-
-function populateMonitoringEditForm(
-    form,
-    project
-) {
-
-    const setValue =
-        (
-            selectors,
-            value
-        ) => {
-
-            for (
-                const selector of selectors
-            ) {
-
-                const field =
-                    form.querySelector(
-                        selector
-                    );
-
-                if (
-                    field
-                ) {
-
-                    field.value =
-                        value ??
-                        "";
-
-                    return field;
-                }
-            }
-
-            return null;
-        };
-
-
-    setValue(
-        [
-            "[name='projectId']",
-            "[name='project_id']",
-            "[data-field='projectId']"
-        ],
-        project.id
-    );
-
-
-    setValue(
-        [
-            "[name='projectTitle']",
-            "[name='project_title']",
-            "[data-field='projectTitle']"
-        ],
-        project.projectTitle
-    );
-
-
-    setValue(
-        [
-            "[name='municipality']",
-            "[data-field='municipality']"
-        ],
-        project.municipality
-    );
-
-
-    setValue(
-        [
-            "[name='program']",
-            "[data-field='program']"
-        ],
-        project.program
-    );
-
-
-    setValue(
-        [
-            "[name='category']",
-            "[data-field='category']"
-        ],
-        project.category
-    );
-
-
-    setValue(
-        [
-            "[name='programPercent']",
-            "[name='program_percent']",
-            "[data-field='programPercent']"
-        ],
-        normalizePercentage(
-            project.programPercent
-        )
-    );
-
-
-    setValue(
-        [
-            "[name='planPercent']",
-            "[name='plan_percent']",
-            "[data-field='planPercent']"
-        ],
-        normalizePercentage(
-            project.planPercent
-        )
-    );
-
-
-    setValue(
-        [
-            "[name='programStatus']",
-            "[name='program_status']",
-            "[data-field='programStatus']"
-        ],
-        project.programStatus
-    );
-
-
-    setValue(
-        [
-            "[name='planStatus']",
-            "[name='plan_status']",
-            "[data-field='planStatus']"
-        ],
-        project.planStatus
-    );
-
-
-    setValue(
-        [
-            "[name='overallStatus']",
-            "[name='overall_status']",
-            "[data-field='overallStatus']"
-        ],
-        project.overallStatus
-    );
-
-
-    setValue(
-        [
-            "[name='remarks']",
-            "[data-field='remarks']"
-        ],
-        project.remarks
-    );
-
-
-    setValue(
-        [
-            "[name='remarks2']",
-            "[name='remarks_2']",
-            "[data-field='remarks2']"
-        ],
-        project.remarks2
-    );
-
-
-    setValue(
-        [
-            "[name='lastUpdated']",
-            "[name='last_updated']",
-            "[data-field='lastUpdated']"
-        ],
-        project.lastUpdated
-    );
-}
-
-
-/* =========================================================
-   SUBMIT MONITORING EDIT FORM
-========================================================= */
-
-async function submitMonitoringEditForm(
-    form
-) {
-
-    const projectIdField =
-        form.querySelector(
-            "[name='projectId'], " +
-            "[name='project_id'], " +
-            "[data-field='projectId']"
-        );
-
-
-    const projectId =
-        projectIdField?.value ||
-        monitoringState.selectedProjectId;
-
-
-    const project =
-        findMonitoringProject(
-            projectId
-        );
-
-
-    if (
-        !project
-    ) {
-
-        showMessage(
-            "Project could not be found.",
-            "error"
-        );
-
-        return false;
-    }
-
-
-    const getValue =
-        selectors => {
-
-            for (
-                const selector of selectors
-            ) {
-
-                const field =
-                    form.querySelector(
-                        selector
-                    );
-
-                if (
-                    field
-                ) {
-
-                    return field.value;
-                }
-            }
-
-            return "";
-        };
-
-
-    const programPercent =
-        clampPercent(
-            getValue(
-                [
-                    "[name='programPercent']",
-                    "[name='program_percent']",
-                    "[data-field='programPercent']"
-                ]
-            )
-        );
-
-
-    const planPercent =
-        clampPercent(
-            getValue(
-                [
-                    "[name='planPercent']",
-                    "[name='plan_percent']",
-                    "[data-field='planPercent']"
-                ]
-            )
-        );
-
-
-    const programStatus =
-        getValue(
-            [
-                "[name='programStatus']",
-                "[name='program_status']",
-                "[data-field='programStatus']"
-            ]
-        );
-
-
-    const planStatus =
-        getValue(
-            [
-                "[name='planStatus']",
-                "[name='plan_status']",
-                "[data-field='planStatus']"
-            ]
-        );
-
-
-    let overallStatus =
-        getValue(
-            [
-                "[name='overallStatus']",
-                "[name='overall_status']",
-                "[data-field='overallStatus']"
-            ]
-        );
-
-
-    if (
-        !overallStatus
-    ) {
-
-        if (
-            programPercent >= 100 &&
-            planPercent >= 100
-        ) {
-
-            overallStatus =
-                "Completed";
-
-        } else if (
-            programPercent > 0 ||
-            planPercent > 0
-        ) {
-
-            overallStatus =
-                "Ongoing";
-
-        } else {
-
-            overallStatus =
-                "Not Started";
-        }
-    }
-
-
-    const remarks =
-        getValue(
-            [
-                "[name='remarks']",
-                "[data-field='remarks']"
-            ]
-        );
-
-
-    const remarks2 =
-        getValue(
-            [
-                "[name='remarks2']",
-                "[name='remarks_2']",
-                "[data-field='remarks2']"
-            ]
-        );
-
-
-    const lastUpdated =
-        getValue(
-            [
-                "[name='lastUpdated']",
-                "[name='last_updated']",
-                "[data-field='lastUpdated']"
-            ]
-        ) ||
-        new Date()
-            .toISOString()
-            .slice(
-                0,
-                10
-            );
-
-
-    const update = {
-
-        programPercent,
-
-        planPercent,
-
-        programStatus,
-
-        planStatus,
-
-        overallStatus,
-
-        remarks,
-
-        remarks2,
-
-        lastUpdated
-    };
-
-
-    try {
-
-        await updateExcelMonitoringRow(
-            project,
-            update
-        );
-
-
-        showMessage(
-            "Project monitoring updated successfully.",
-            "success"
-        );
-
-
-        closeMonitoringProjectEditor();
-
-
-        await loadProjectMonitoring(
-            true
-        );
-
-
-        renderMonitoringProjects();
-
-
-        dispatchPDSDataUpdated(
-            cachedMonitoringProjects
-        );
-
-
-        return true;
-
-    } catch (error) {
-
-        console.error(
-            "PDS: Monitoring update failed:",
-            error
-        );
-
-
-        showMessage(
-            error?.message ||
-            "Unable to update project monitoring.",
-            "error"
-        );
-
-
-        return false;
-    }
-}
-
-
-/* =========================================================
-   MONITORING FILTER CONTROLS
-========================================================= */
-
-function populateMonitoringFilterOptions() {
-
-    const categorySelect =
-        document.querySelector(
-            "#monitoringCategory, " +
-            "#projectMonitoringCategory, " +
-            "[data-monitoring-category]"
-        );
-
-
-    if (
-        categorySelect
-    ) {
-
-        const current =
-            categorySelect.value;
-
-
-        categorySelect.innerHTML =
-            `
-                <option value="">
-                    All Categories
-                </option>
-            ` +
-            getMonitoringCategories()
-                .map(
-                    category =>
-                        `
-                            <option
-                                value="${escapeHTML(
-                                    category
-                                )}"
-                            >
-                                ${escapeHTML(
-                                    category
-                                )}
-                            </option>
-                        `
-                )
-                .join("");
-
-
-        categorySelect.value =
-            current;
-    }
-
-
-    const municipalitySelect =
-        document.querySelector(
-            "#monitoringMunicipality, " +
-            "#projectMonitoringMunicipality, " +
-            "[data-monitoring-municipality]"
-        );
-
-
-    if (
-        municipalitySelect
-    ) {
-
-        const current =
-            municipalitySelect.value;
-
-
-        municipalitySelect.innerHTML =
-            `
-                <option value="">
-                    All Municipalities
-                </option>
-            ` +
-            getMonitoringMunicipalities()
-                .map(
-                    municipality =>
-                        `
-                            <option
-                                value="${escapeHTML(
-                                    municipality
-                                )}"
-                            >
-                                ${escapeHTML(
-                                    municipality
-                                )}
-                            </option>
-                        `
-                )
-                .join("");
-
-
-        municipalitySelect.value =
-            current;
-    }
-
-
-    const statusSelect =
-        document.querySelector(
-            "#monitoringStatus, " +
-            "#projectMonitoringStatus, " +
-            "[data-monitoring-status]"
-        );
-
-
-    if (
-        statusSelect
-    ) {
-
-        const current =
-            statusSelect.value;
-
-
-        statusSelect.innerHTML =
-            `
-                <option value="">
-                    All Statuses
-                </option>
-            ` +
-            getMonitoringStatuses()
-                .map(
-                    status =>
-                        `
-                            <option
-                                value="${escapeHTML(
-                                    status
-                                )}"
-                            >
-                                ${escapeHTML(
-                                    status
-                                )}
-                            </option>
-                        `
-                )
-                .join("");
-
-
-        statusSelect.value =
-            current;
-    }
-}
-
-
-/* =========================================================
-   MONITORING PAGINATION UI
-========================================================= */
-
-function renderMonitoringPagination(
-    pagination
-) {
-
-    if (
-        !pagination
-    ) {
-
-        return "";
-    }
-
-
-    const {
-        total,
-        currentPage,
-        totalPages,
-        start,
-        end
-    } = pagination;
-
-
-    if (
-        total === 0
-    ) {
-
-        return "";
-    }
-
-
-    return `
-        <div
-            class="pds-monitoring-pagination"
-            style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:12px;
-                margin-top:16px;
-                flex-wrap:wrap;
-            "
-        >
-
-            <div
-                style="
-                    font-size:13px;
-                    opacity:.7;
-                "
+    detailContainer.innerHTML = `
+
+        <div class="project-detail-header">
+
+            <div>
+
+                <div class="project-detail-category">
+                    ${escapeHTML(
+                        project.category ||
+                        ""
+                    )}
+                </div>
+
+                <h2>
+                    ${escapeHTML(
+                        project.projectTitle ||
+                        "Untitled Project"
+                    )}
+                </h2>
+
+                <div class="project-detail-location">
+                    ${escapeHTML(
+                        project.municipality ||
+                        ""
+                    )}
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="btn"
+                data-action="close-project-details"
             >
-                Showing
+                Close
+            </button>
+
+        </div>
+
+
+        <div class="project-detail-grid">
+
+            <div class="project-detail-item">
+
+                <span>
+                    Program
+                </span>
+
                 <strong>
-                    ${start + 1}
+                    ${escapeHTML(
+                        project.program ||
+                        ""
+                    )}
                 </strong>
-                –
-                <strong>
-                    ${end}
-                </strong>
-                of
-                <strong>
-                    ${total}
-                </strong>
-                projects
+
             </div>
 
 
-            <div
-                style="
-                    display:flex;
-                    align-items:center;
-                    gap:6px;
-                "
-            >
+            <div class="project-detail-item">
 
-                <button
-                    type="button"
-                    class="pds-pagination-button"
-                    data-page-action="previous"
-                    ${
-                        currentPage <= 1
-                            ? "disabled"
-                            : ""
-                    }
-                >
-                    Previous
-                </button>
-
-
-                <span
-                    style="
-                        min-width:90px;
-                        text-align:center;
-                        font-size:13px;
-                    "
-                >
-                    Page
-                    <strong>
-                        ${currentPage}
-                    </strong>
-                    of
-                    <strong>
-                        ${totalPages}
-                    </strong>
+                <span>
+                    Sub-Program
                 </span>
 
+                <strong>
+                    ${escapeHTML(
+                        project.subProgram ||
+                        ""
+                    )}
+                </strong>
 
-                <button
-                    type="button"
-                    class="pds-pagination-button"
-                    data-page-action="next"
-                    ${
-                        currentPage >= totalPages
-                            ? "disabled"
-                            : ""
-                    }
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Contract ID
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        project.contractId ||
+                        ""
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Allocation
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        project.allocation ||
+                        ""
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Program Status
+                </span>
+
+                <strong
+                    class="${getStatusClass(
+                        project.programStatus
+                    )}"
                 >
-                    Next
-                </button>
+                    ${escapeHTML(
+                        project.programStatus ||
+                        "Not Started"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Program Progress
+                </span>
+
+                <strong>
+                    ${formatPercent(
+                        project.programPercent
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Plan Status
+                </span>
+
+                <strong
+                    class="${getStatusClass(
+                        project.planStatus
+                    )}"
+                >
+                    ${escapeHTML(
+                        project.planStatus ||
+                        "Not Started"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Plan Progress
+                </span>
+
+                <strong>
+                    ${formatPercent(
+                        project.planPercent
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Overall Status
+                </span>
+
+                <strong
+                    class="${getStatusClass(
+                        project.overallStatus
+                    )}"
+                >
+                    ${escapeHTML(
+                        project.overallStatus ||
+                        "Not Started"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="project-detail-item">
+
+                <span>
+                    Last Updated
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        formatMonitoringDate(
+                            project.lastUpdated
+                        )
+                    )}
+                </strong>
 
             </div>
 
         </div>
+
+
+        <div class="project-detail-remarks">
+
+            <h3>
+                Remarks
+            </h3>
+
+            <p>
+                ${escapeHTML(
+                    project.remarks ||
+                    "No remarks."
+                )}
+            </p>
+
+        </div>
+
+
+        <div class="project-detail-actions">
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                data-monitoring-edit="${escapeHTML(
+                    project.id
+                )}"
+            >
+                Edit Monitoring
+            </button>
+
+        </div>
+
     `;
+
+
+    detailContainer.style.display =
+        "";
+
+
+    detailContainer.classList.add(
+        "active"
+    );
+
+
+    /*
+     * Bind buttons created above.
+     */
+
+    const closeButton =
+        detailContainer.querySelector(
+            "[data-action='close-project-details']"
+        );
+
+
+    if (closeButton) {
+
+        closeButton.addEventListener(
+            "click",
+            () => {
+
+                closeMonitoringProjectDetails();
+            }
+        );
+    }
+
+
+    const editButton =
+        detailContainer.querySelector(
+            "[data-monitoring-edit]"
+        );
+
+
+    if (editButton) {
+
+        editButton.addEventListener(
+            "click",
+            () => {
+
+                editMonitoringProject(
+                    editButton.getAttribute(
+                        "data-monitoring-edit"
+                    )
+                );
+            }
+        );
+    }
 }
-                );
-            }
-        );
 
 
-    /*
-     * Close when clicking outside the modal
-     * content.
-     */
+/* =========================================================
+   FORMAT MONITORING DATE
+========================================================= */
 
-    document
-        .querySelectorAll(
-            "#monitoringProjectModal, " +
-            "#projectDetailsModal, " +
-            "#monitoringEditModal, " +
-            "#projectMonitoringEditModal"
-        )
-        .forEach(
-            modal => {
-
-                if (
-                    modal.dataset.pdsOutsideBound ===
-                    "true"
-                ) {
-
-                    return;
-                }
-
-
-                modal.dataset.pdsOutsideBound =
-                    "true";
-
-
-                modal.addEventListener(
-                    "click",
-                    event => {
-
-                        if (
-                            event.target ===
-                            modal
-                        ) {
-
-                            if (
-                                modal.id ===
-                                    "monitoringEditModal" ||
-                                modal.id ===
-                                    "projectMonitoringEditModal"
-                            ) {
-
-                                closeMonitoringProjectEditor();
-
-                            } else {
-
-                                closeMonitoringProjectModal();
-                            }
-                        }
-                    }
-                );
-            }
-        );
-
-
-    /*
-     * ESC closes the active monitoring modal.
-     */
+function formatMonitoringDate(
+    value
+) {
 
     if (
-        window.__PDS_MONITORING_ESC_BOUND__
+        !value
     ) {
+
+        return "—";
+    }
+
+
+    const date =
+        new Date(
+            value
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return String(
+            value
+        );
+    }
+
+
+    return date.toLocaleString(
+        "en-PH",
+        {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+/* =========================================================
+   CLOSE PROJECT DETAILS
+========================================================= */
+
+function closeMonitoringProjectDetails() {
+
+    const containers = [
+
+        "#projectDetails",
+
+        "#monitoringProjectDetails",
+
+        "#projectDetail"
+
+    ];
+
+
+    containers.forEach(
+        selector => {
+
+            const element =
+                document.querySelector(
+                    selector
+                );
+
+
+            if (!element) {
+                return;
+            }
+
+
+            element.classList.remove(
+                "active"
+            );
+
+
+            element.style.display =
+                "none";
+        }
+    );
+
+
+    currentSelectedProject =
+        null;
+}
+
+
+/* =========================================================
+   DASHBOARD PROJECT COUNTS
+========================================================= */
+
+function updateDashboardProjectCounts(
+    projects
+) {
+
+    const list =
+        Array.isArray(
+            projects
+        )
+            ? projects
+            : [];
+
+
+    const total =
+        list.length;
+
+
+    const completed =
+        list.filter(
+            project =>
+                isCompletedValue(
+                    project.overallStatus
+                )
+        ).length;
+
+
+    const ongoing =
+        list.filter(
+            project => {
+
+                const status =
+                    String(
+                        project.overallStatus ||
+                        ""
+                    )
+                        .toLowerCase();
+
+
+                return (
+                    status.includes(
+                        "ongoing"
+                    ) ||
+                    status.includes(
+                        "progress"
+                    ) ||
+                    status.includes(
+                        "active"
+                    )
+                );
+            }
+        ).length;
+
+
+    const pending =
+        list.filter(
+            project => {
+
+                const status =
+                    String(
+                        project.overallStatus ||
+                        ""
+                    )
+                        .toLowerCase();
+
+
+                return (
+                    status.includes(
+                        "pending"
+                    ) ||
+                    status.includes(
+                        "not started"
+                    )
+                );
+            }
+        ).length;
+
+
+    setText(
+        [
+            "#projectCount",
+            "#totalProjects",
+            "#dashboardProjectCount"
+        ],
+        total
+    );
+
+
+    setText(
+        [
+            "#completedProjects",
+            "#dashboardCompletedProjects"
+        ],
+        completed
+    );
+
+
+    setText(
+        [
+            "#ongoingProjects",
+            "#dashboardOngoingProjects"
+        ],
+        ongoing
+    );
+
+
+    setText(
+        [
+            "#pendingProjects",
+            "#dashboardPendingProjects"
+        ],
+        pending
+    );
+}
+
+
+/* =========================================================
+   DASHBOARD RECENT PROJECTS
+========================================================= */
+
+function renderDashboardRecentProjects(
+    projects
+) {
+
+    const container =
+        document.querySelector(
+            "#recentProjects"
+        ) ||
+        document.querySelector(
+            "#dashboardRecentProjects"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const list =
+        Array.isArray(
+            projects
+        )
+            ? projects.slice(
+                0,
+                8
+            )
+            : [];
+
+
+    if (
+        list.length ===
+        0
+    ) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                No project records available.
+
+            </div>
+
+        `;
 
         return;
     }
 
 
-    window.__PDS_MONITORING_ESC_BOUND__ =
-        true;
+    container.innerHTML =
+        list.map(
+            project => `
+
+                <div
+                    class="recent-project-item"
+                    data-project-id="${escapeHTML(
+                        project.id
+                    )}"
+                >
+
+                    <div
+                        class="recent-project-info"
+                    >
+
+                        <strong>
+                            ${escapeHTML(
+                                project.projectTitle ||
+                                "Untitled Project"
+                            )}
+                        </strong>
+
+                        <span>
+                            ${escapeHTML(
+                                project.municipality ||
+                                ""
+                            )}
+                        </span>
+
+                    </div>
 
 
-    document.addEventListener(
-        "keydown",
-        event => {
+                    <span
+                        class="monitoring-status ${getStatusClass(
+                            project.overallStatus
+                        )}"
+                    >
+                        ${escapeHTML(
+                            project.overallStatus ||
+                            "Not Started"
+                        )}
+                    </span>
 
-            if (
-                event.key !==
-                "Escape"
-            ) {
+                </div>
 
-                return;
-            }
-
-
-            closeMonitoringProjectEditor();
-
-            closeMonitoringProjectModal();
-        }
-    );
-}
+            `
+        )
+        .join("");
 
 
-/* =========================================================
-   MONITORING PAGE INITIALIZATION
-========================================================= */
+    container
+        .querySelectorAll(
+            "[data-project-id]"
+        )
+        .forEach(
+            element => {
 
-function initializeMonitoringInterface() {
+                element.addEventListener(
+                    "click",
+                    () => {
 
-    console.log(
-        "PDS: Initializing monitoring interface..."
-    );
-
-
-    populateMonitoringFilters();
-
-    initializeMonitoringFilters();
-
-    initializeMonitoringEditForms();
-
-    initializeMonitoringModalControls();
-
-
-    /*
-     * Do not automatically replace the
-     * currently displayed page.
-     *
-     * Data is loaded only when the
-     * Project Monitoring page is opened.
-     */
-
-    return true;
-}
-
-
-/* =========================================================
-   MONITORING NAVIGATION HOOK
-========================================================= */
-
-function setupMonitoringNavigation() {
-
-    const monitoringLinks =
-        document.querySelectorAll(
-            "[data-page='project-monitoring'], " +
-            "[data-section='project-monitoring'], " +
-            "#projectMonitoringLink, " +
-            "#projectMonitoringNav"
-        );
-
-
-    monitoringLinks.forEach(
-        link => {
-
-            if (
-                link.dataset.pdsMonitoringBound ===
-                "true"
-            ) {
-
-                return;
-            }
-
-
-            link.dataset.pdsMonitoringBound =
-                "true";
-
-
-            link.addEventListener(
-                "click",
-                async event => {
-
-                    /*
-                     * Do not prevent the site's
-                     * normal navigation unless
-                     * the target is actually handled
-                     * by the application.
-                     */
-
-                    try {
-
-                        await openProjectMonitoringPage();
-
-                    } catch (error) {
-
-                        console.error(
-                            "PDS: Monitoring navigation error:",
-                            error
+                        openMonitoringProjectDetails(
+                            element.getAttribute(
+                                "data-project-id"
+                            )
                         );
                     }
-                }
-            );
-        }
-    );
+                );
+            }
+        );
 }
 
 
 /* =========================================================
-   REFRESH PROJECT MONITORING DATA
+   REFRESH DASHBOARD DATA
 ========================================================= */
 
-async function refreshProjectMonitoringData() {
+async function refreshDashboardFromOneDrive() {
 
     try {
 
-        showMonitoringLoadingState();
-
-
         const projects =
-            await loadProjectMonitoring(
-                true
-            );
+            await refreshMonitoringFromOneDrive();
 
 
-        cachedMonitoringProjects =
-            Array.isArray(projects)
-                ? projects
-                : [];
+        if (
+            !Array.isArray(
+                projects
+            )
+        ) {
+
+            return [];
+        }
 
 
-        populateMonitoringFilters();
-
-
-        const filtered =
-            getFilteredMonitoringProjects();
-
-
-        await renderMonitoringProjects(
-            filtered
+        updateDashboardProjectCounts(
+            projects
         );
 
 
-        updateMonitoringSummary(
-            filtered
+        renderDashboardRecentProjects(
+            projects
         );
 
 
-        return filtered;
+        return projects;
 
     } catch (error) {
 
         console.error(
-            "PDS: Project Monitoring refresh failed:",
+            "PDS: Dashboard OneDrive refresh failed:",
             error
-        );
-
-
-        showMonitoringErrorState(
-            error?.message ||
-            "Unable to refresh project monitoring."
         );
 
 
@@ -9548,205 +10160,2116 @@ async function refreshProjectMonitoringData() {
 
 
 /* =========================================================
-   EXPOSE ADDITIONAL MONITORING FUNCTIONS
+   DASHBOARD INITIALIZATION
 ========================================================= */
 
-window.initializeMonitoringInterface =
-    initializeMonitoringInterface;
+function initializeDashboardData() {
 
-window.initializeMonitoringEditForms =
-    initializeMonitoringEditForms;
+    if (
+        Array.isArray(
+            cachedMonitoringProjects
+        ) &&
+        cachedMonitoringProjects.length
+    ) {
 
-window.initializeMonitoringModalControls =
-    initializeMonitoringModalControls;
-
-window.setupMonitoringNavigation =
-    setupMonitoringNavigation;
-
-window.refreshProjectMonitoringData =
-    refreshProjectMonitoringData;
-
-window.editMonitoringProject =
-    editMonitoringProject;
-
-window.closeMonitoringProjectEditor =
-    closeMonitoringProjectEditor;
+        updateDashboardProjectCounts(
+            cachedMonitoringProjects
+        );
 
 
-/* =========================================================
-   INITIALIZE MONITORING EDITOR
-========================================================= */
-
-function initializeMonitoringEditor() {
-
-    /*
-     * The editor modal is created only
-     * when the user clicks Edit.
-     *
-     * This prevents unnecessary DOM
-     * elements from being created on
-     * initial page load.
-     */
-
-    console.log(
-        "PDS: Monitoring editor ready."
-    );
+        renderDashboardRecentProjects(
+            cachedMonitoringProjects
+        );
+    }
 
 
     /*
-     * Keyboard support.
+     * Refresh only when the user is authenticated
+     * and OneDrive has already been initialized.
      */
 
     if (
-        window.__PDS_MONITORING_EDITOR_KEYS__
+        oneDriveInitialized
+    ) {
+
+        refreshDashboardFromOneDrive();
+    }
+}
+
+
+/* =========================================================
+   MONITORING TABLE CLICK — DETAILS
+========================================================= */
+
+function setupMonitoringRowDetails() {
+
+    const tbody =
+        document.querySelector(
+            "#monitoringProjectsBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    if (
+        tbody.dataset.detailsBound ===
+        "true"
     ) {
 
         return;
     }
 
 
-    window.__PDS_MONITORING_EDITOR_KEYS__ =
-        true;
+    tbody.dataset.detailsBound =
+        "true";
 
 
-    document.addEventListener(
-        "keydown",
+    tbody.addEventListener(
+        "dblclick",
         event => {
 
+            const row =
+                event.target.closest(
+                    "tr[data-project-id]"
+                );
+
+
+            if (!row) {
+                return;
+            }
+
+
+            openMonitoringProjectDetails(
+                row.getAttribute(
+                    "data-project-id"
+                )
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   DOCUMENT CLICK — CLOSE DETAILS
+========================================================= */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const action =
+            event.target.closest(
+                "[data-action='close-project-details']"
+            );
+
+
+        if (
+            action
+        ) {
+
+            event.preventDefault();
+
+            closeMonitoringProjectDetails();
+        }
+    }
+);
+
+
+/* =========================================================
+   PROJECT DATA EVENT
+========================================================= */
+
+function notifyProjectDataChanged() {
+
+    updateDashboardProjectCounts(
+        cachedMonitoringProjects
+    );
+
+
+    renderDashboardRecentProjects(
+        cachedMonitoringProjects
+    );
+
+
+    /*
+     * Keep the monitoring page in place.
+     * Do NOT redirect the user to Dashboard.
+     */
+
+    if (
+        pdsCurrentPage &&
+        (
+            pdsCurrentPage
+                .toLowerCase()
+                .includes(
+                    "monitor"
+                )
+        )
+    ) {
+
+        renderMonitoringProjects();
+    }
+}
+/* =========================================================
+   PART 12
+   FINAL INITIALIZATION + EVENT WIRING
+========================================================= */
+
+
+/* =========================================================
+   INITIALIZE PDS MONITORING MODULE
+========================================================= */
+
+function initializePDSMonitoringModule() {
+
+    try {
+
+        /*
+         * Restore the last page first.
+         */
+
+        loadSavedPageState();
+
+
+        /*
+         * Initialize navigation.
+         */
+
+        initializeNavigation();
+
+
+        /*
+         * Initialize monitoring controls.
+         */
+
+        initializeMonitoringEditor();
+
+
+        /*
+         * Enable row double-click details.
+         */
+
+        setupMonitoringRowDetails();
+
+
+        /*
+         * If OneDrive data is already available,
+         * render it immediately.
+         */
+
+        if (
+            Array.isArray(
+                cachedMonitoringProjects
+            ) &&
+            cachedMonitoringProjects.length
+        ) {
+
+            populateMonitoringFilterOptions();
+
+            renderMonitoringProjects();
+
+            updateDashboardProjectCounts(
+                cachedMonitoringProjects
+            );
+
+            renderDashboardRecentProjects(
+                cachedMonitoringProjects
+            );
+        }
+
+
+        console.log(
+            "PDS: Monitoring module initialized."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Monitoring initialization error:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   AUTH STATE → REFRESH ONE DRIVE DATA
+========================================================= */
+
+function handlePDSAuthenticatedState() {
+
+    /*
+     * Do not automatically navigate to Dashboard.
+     *
+     * The saved page is restored instead.
+     */
+
+    const savedPage =
+        localStorage.getItem(
+            PDS_PAGE_STATE_KEY
+        );
+
+
+    if (
+        savedPage
+    ) {
+
+        showPDSPage(
+            savedPage,
+            {
+                saveState: false,
+                restoreScroll: true,
+                updateHistory: false
+            }
+        );
+    }
+
+
+    /*
+     * Refresh project data from Excel.
+     */
+
+    if (
+        oneDriveInitialized
+    ) {
+
+        refreshMonitoringFromOneDrive()
+            .then(
+                projects => {
+
+                    cachedMonitoringProjects =
+                        Array.isArray(
+                            projects
+                        )
+                            ? projects
+                            : [];
+
+
+                    populateMonitoringFilterOptions();
+
+                    renderMonitoringProjects();
+
+                    updateDashboardProjectCounts(
+                        cachedMonitoringProjects
+                    );
+
+                    renderDashboardRecentProjects(
+                        cachedMonitoringProjects
+                    );
+
+                }
+            )
+            .catch(
+                error => {
+
+                    console.error(
+                        "PDS: Failed to refresh Excel data after authentication:",
+                        error
+                    );
+                }
+            );
+    }
+}
+
+
+/* =========================================================
+   HANDLE HASH NAVIGATION
+========================================================= */
+
+window.addEventListener(
+    "hashchange",
+    () => {
+
+        const hash =
+            window.location.hash;
+
+
+        if (
+            !hash
+        ) {
+
+            return;
+        }
+
+
+        let pageId =
+            hash.substring(1);
+
+
+        try {
+
+            pageId =
+                decodeURIComponent(
+                    pageId
+                );
+
+        } catch {
+            /* keep original value */
+        }
+
+
+        if (
+            pageId
+        ) {
+
+            showPDSPage(
+                pageId,
+                {
+                    saveState: true,
+                    restoreScroll: true,
+                    updateHistory: false
+                }
+            );
+        }
+    }
+);
+
+
+/* =========================================================
+   GLOBAL PAGE SAVE
+========================================================= */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        saveCurrentPageState();
+
+    }
+);
+
+
+/* =========================================================
+   INITIAL DOM SETUP
+========================================================= */
+
+function initializePDSMonitoringDOM() {
+
+    /*
+     * These functions are intentionally called
+     * after the DOM exists.
+     */
+
+    initializePDSMonitoringModule();
+
+
+    /*
+     * Bind monitoring buttons that may have been
+     * generated by the HTML after initialization.
+     */
+
+    setupMonitoringRefreshButton();
+
+    setupMonitoringClearButton();
+
+    setupMonitoringEditForm();
+}
+
+
+/* =========================================================
+   DOM READY
+========================================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializePDSMonitoringDOM,
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    initializePDSMonitoringDOM();
+}
+
+
+/* =========================================================
+   ONE DRIVE DATA REFRESH EVENT
+========================================================= */
+
+window.addEventListener(
+    "pds:onedrive-data-updated",
+    event => {
+
+        const projects =
+            event.detail?.projects;
+
+
+        if (
+            Array.isArray(
+                projects
+            )
+        ) {
+
+            cachedMonitoringProjects =
+                projects;
+
+
+            populateMonitoringFilterOptions();
+
+            renderMonitoringProjects();
+
+            updateDashboardProjectCounts(
+                projects
+            );
+
+            renderDashboardRecentProjects(
+                projects
+            );
+        }
+    }
+);
+
+
+/* =========================================================
+   DISPATCH DATA UPDATE EVENT
+========================================================= */
+
+function dispatchPDSDataUpdated(
+    projects
+) {
+
+    try {
+
+        window.dispatchEvent(
+            new CustomEvent(
+                "pds:onedrive-data-updated",
+                {
+                    detail: {
+                        projects:
+                            Array.isArray(
+                                projects
+                            )
+                                ? projects
+                                : []
+                    }
+                }
+            )
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Unable to dispatch data update event:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   OVERRIDE-SAFE DATA REFRESH
+========================================================= */
+
+async function refreshPDSMonitoringData() {
+
+    try {
+
+        const projects =
+            await refreshMonitoringFromOneDrive();
+
+
+        cachedMonitoringProjects =
+            Array.isArray(
+                projects
+            )
+                ? projects
+                : [];
+
+
+        dispatchPDSDataUpdated(
+            cachedMonitoringProjects
+        );
+
+
+        return cachedMonitoringProjects;
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Monitoring data refresh failed:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to retrieve the latest data from OneDrive Excel.",
+            "error"
+        );
+
+
+        throw error;
+    }
+}
+
+
+/* =========================================================
+   MANUAL SAVE + REFRESH
+========================================================= */
+
+async function saveAndRefreshMonitoringProject(
+    project
+) {
+
+    try {
+
+        await saveMonitoringProject(
+            project
+        );
+
+
+        const projects =
+            await refreshPDSMonitoringData();
+
+
+        showMessage(
+            "Excel updated successfully. Website data has been refreshed.",
+            "success"
+        );
+
+
+        return projects;
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Save and refresh failed:",
+            error
+        );
+
+
+        showMessage(
+            error?.message ||
+            "Unable to update OneDrive Excel.",
+            "error"
+        );
+
+
+        throw error;
+    }
+}
+
+
+/* =========================================================
+   CLEAN UP INVALID PAGE STATE
+========================================================= */
+
+function validateSavedPageState() {
+
+    const savedPage =
+        localStorage.getItem(
+            PDS_PAGE_STATE_KEY
+        );
+
+
+    if (
+        !savedPage
+    ) {
+
+        return;
+    }
+
+
+    /*
+     * The page may not exist yet if this function
+     * executes before all HTML has been loaded.
+     */
+
+    if (
+        !findPDSPage(
+            savedPage
+        )
+    ) {
+
+        /*
+         * Do not erase the state immediately.
+         * It may be created dynamically later.
+         */
+
+        console.warn(
+            "PDS: Saved page is not currently present:",
+            savedPage
+        );
+    }
+}
+
+
+/* =========================================================
+   PERIODIC EXCEL REFRESH
+========================================================= */
+
+let pdsExcelRefreshTimer =
+    null;
+
+
+function startPDSExcelRefresh() {
+
+    stopPDSExcelRefresh();
+
+
+    /*
+     * Refresh every 5 minutes.
+     *
+     * This does NOT redirect the user or reset
+     * the current page.
+     */
+
+    pdsExcelRefreshTimer =
+        setInterval(
+            async () => {
+
+                if (
+                    !oneDriveInitialized
+                ) {
+
+                    return;
+                }
+
+
+                try {
+
+                    const currentPage =
+                        pdsCurrentPage;
+
+
+                    await refreshPDSMonitoringData();
+
+
+                    /*
+                     * Return to the same page after
+                     * the refresh.
+                     */
+
+                    if (
+                        currentPage
+                    ) {
+
+                        showPDSPage(
+                            currentPage,
+                            {
+                                saveState: false,
+                                restoreScroll: true,
+                                updateHistory: false
+                            }
+                        );
+                    }
+
+                } catch (error) {
+
+                    console.warn(
+                        "PDS: Automatic Excel refresh failed:",
+                        error
+                    );
+                }
+
+            },
+            5 * 60 * 1000
+        );
+}
+
+
+function stopPDSExcelRefresh() {
+
+    if (
+        pdsExcelRefreshTimer
+    ) {
+
+        clearInterval(
+            pdsExcelRefreshTimer
+        );
+
+
+        pdsExcelRefreshTimer =
+            null;
+    }
+}
+
+
+/* =========================================================
+   START AUTOMATIC REFRESH AFTER ONE DRIVE LOGIN
+========================================================= */
+
+window.addEventListener(
+    "pds:onedrive-ready",
+    () => {
+
+        console.log(
+            "PDS: OneDrive ready."
+        );
+
+
+        startPDSExcelRefresh();
+
+
+        refreshPDSMonitoringData()
+            .catch(
+                error => {
+
+                    console.warn(
+                        "PDS: Initial Excel refresh failed:",
+                        error
+                    );
+                }
+            );
+    }
+);
+
+
+/* =========================================================
+   ONE DRIVE LOGOUT CLEANUP
+========================================================= */
+
+window.addEventListener(
+    "pds:onedrive-logout",
+    () => {
+
+        stopPDSExcelRefresh();
+
+
+        cachedMonitoringProjects =
+            [];
+
+
+        renderMonitoringProjects();
+
+
+        updateDashboardProjectCounts(
+            []
+        );
+
+
+        renderDashboardRecentProjects(
+            []
+        );
+    }
+);
+
+
+/* =========================================================
+   FINAL PDS STATUS
+========================================================= */
+
+console.log(
+    "PDS — Planning & Design Section: script loaded."
+);
+/* =========================================================
+   PART 13
+   FINAL UTILITY FUNCTIONS
+========================================================= */
+
+
+/* =========================================================
+   SAFE NUMBER
+========================================================= */
+
+function safeNumber(
+    value,
+    fallback = 0
+) {
+
+    if (
+        value ===
+        undefined ||
+        value ===
+        null ||
+        value ===
+        ""
+    ) {
+
+        return fallback;
+    }
+
+
+    const cleaned =
+        String(
+            value
+        )
+            .replace(
+                /,/g,
+                ""
+            )
+            .replace(
+                /%/g,
+                ""
+            )
+            .trim();
+
+
+    const number =
+        Number(
+            cleaned
+        );
+
+
+    return Number.isFinite(
+        number
+    )
+        ? number
+        : fallback;
+}
+
+
+/* =========================================================
+   SAFE STRING
+========================================================= */
+
+function safeString(
+    value,
+    fallback = ""
+) {
+
+    if (
+        value ===
+        undefined ||
+        value ===
+        null
+    ) {
+
+        return fallback;
+    }
+
+
+    return String(
+        value
+    ).trim();
+}
+
+
+/* =========================================================
+   NORMALIZE STATUS
+========================================================= */
+
+function normalizeStatus(
+    value
+) {
+
+    return safeString(
+        value,
+        "Not Started"
+    );
+}
+
+
+/* =========================================================
+   NORMALIZE PERCENT
+========================================================= */
+
+function normalizePercent(
+    value
+) {
+
+    const number =
+        safeNumber(
+            value,
+            0
+        );
+
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            number
+        )
+    );
+}
+
+
+/* =========================================================
+   FORMAT CURRENCY
+========================================================= */
+
+function formatCurrency(
+    value
+) {
+
+    const number =
+        safeNumber(
+            value,
+            0
+        );
+
+
+    return number.toLocaleString(
+        "en-PH",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+/* =========================================================
+   FORMAT NUMBER
+========================================================= */
+
+function formatNumber(
+    value
+) {
+
+    const number =
+        safeNumber(
+            value,
+            0
+        );
+
+
+    return number.toLocaleString(
+        "en-PH"
+    );
+}
+
+
+/* =========================================================
+   DEBOUNCE
+========================================================= */
+
+function debounce(
+    callback,
+    delay = 300
+) {
+
+    let timer =
+        null;
+
+
+    return function (
+        ...args
+    ) {
+
+        clearTimeout(
+            timer
+        );
+
+
+        timer =
+            setTimeout(
+                () => {
+
+                    callback.apply(
+                        this,
+                        args
+                    );
+
+                },
+                delay
+            );
+    };
+}
+
+
+/* =========================================================
+   COPY TO CLIPBOARD
+========================================================= */
+
+async function copyToClipboard(
+    text
+) {
+
+    const value =
+        safeString(
+            text
+        );
+
+
+    if (!value) {
+
+        return false;
+    }
+
+
+    try {
+
+        if (
+            navigator.clipboard &&
+            navigator.clipboard.writeText
+        ) {
+
+            await navigator.clipboard.writeText(
+                value
+            );
+
+            return true;
+        }
+
+
+        /*
+         * Fallback for older browsers.
+         */
+
+        const textarea =
+            document.createElement(
+                "textarea"
+            );
+
+
+        textarea.value =
+            value;
+
+
+        textarea.style.position =
+            "fixed";
+
+
+        textarea.style.left =
+            "-9999px";
+
+
+        document.body.appendChild(
+            textarea
+        );
+
+
+        textarea.select();
+
+
+        const success =
+            document.execCommand(
+                "copy"
+            );
+
+
+        textarea.remove();
+
+
+        return success;
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Clipboard operation failed:",
+            error
+        );
+
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   DOWNLOAD TEXT FILE
+========================================================= */
+
+function downloadTextFile(
+    filename,
+    content
+) {
+
+    const blob =
+        new Blob(
+            [
+                content
+            ],
+            {
+                type:
+                    "text/plain;charset=utf-8"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        filename ||
+        "pds-export.txt";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+        1000
+    );
+}
+
+
+/* =========================================================
+   CONFIRM ACTION
+========================================================= */
+
+function pdsConfirm(
+    message
+) {
+
+    return window.confirm(
+        message ||
+        "Are you sure?"
+    );
+}
+
+
+/* =========================================================
+   WAIT
+========================================================= */
+
+function pdsWait(
+    milliseconds
+) {
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                milliseconds
+            )
+    );
+}
+
+
+/* =========================================================
+   WAIT FOR ELEMENT
+========================================================= */
+
+function waitForElement(
+    selector,
+    timeout = 10000
+) {
+
+    return new Promise(
+        (
+            resolve,
+            reject
+        ) => {
+
+            const existing =
+                document.querySelector(
+                    selector
+                );
+
+
             if (
-                event.key !==
-                "Escape"
+                existing
             ) {
+
+                resolve(
+                    existing
+                );
 
                 return;
             }
 
 
-            const modal =
-                $("monitoringEditModal");
+            const observer =
+                new MutationObserver(
+                    () => {
+
+                        const element =
+                            document.querySelector(
+                                selector
+                            );
 
 
-            if (
-                modal &&
-                !modal.classList.contains(
-                    "hidden"
-                )
-            ) {
+                        if (
+                            element
+                        ) {
 
-                closeMonitoringEditModal();
-            }
+                            observer.disconnect();
+
+                            resolve(
+                                element
+                            );
+                        }
+                    }
+                );
+
+
+            observer.observe(
+                document.documentElement,
+                {
+                    childList: true,
+                    subtree: true
+                }
+            );
+
+
+            setTimeout(
+                () => {
+
+                    observer.disconnect();
+
+
+                    reject(
+                        new Error(
+                            `Element not found: ${selector}`
+                        )
+                    );
+
+                },
+                timeout
+            );
         }
     );
 }
 
 
 /* =========================================================
-   OPEN PROJECT MONITORING
+   GET CURRENT PDS PAGE
 ========================================================= */
 
-async function openProjectMonitoring() {
+function getCurrentPDSPage() {
 
-    /*
-     * Keep the current page/navigation
-     * state intact.
-     */
+    return (
+        pdsCurrentPage ||
+        localStorage.getItem(
+            PDS_PAGE_STATE_KEY
+        ) ||
+        "dashboard"
+    );
+}
+
+
+/* =========================================================
+   FORCE PAGE SAVE
+========================================================= */
+
+function savePDSPageState() {
+
+    saveCurrentPageState();
+}
+
+
+/* =========================================================
+   RESTORE PAGE
+========================================================= */
+
+function restorePDSPageState() {
+
+    const page =
+        getCurrentPDSPage();
+
+
+    return showPDSPage(
+        page,
+        {
+            saveState: false,
+            restoreScroll: true,
+            updateHistory: false
+        }
+    );
+}
+
+
+/* =========================================================
+   REFRESH CURRENT PAGE
+========================================================= */
+
+async function refreshCurrentPDSPage() {
+
+    const currentPage =
+        getCurrentPDSPage();
+
 
     if (
-        typeof saveCurrentPageState ===
-        "function"
+        currentPage
+            .toLowerCase()
+            .includes(
+                "monitor"
+            )
     ) {
 
-        try {
+        await refreshPDSMonitoringData();
 
-            saveCurrentPageState();
+    } else if (
+        currentPage
+            .toLowerCase()
+            .includes(
+                "dashboard"
+            )
+    ) {
 
-        } catch {
-            /* Ignore legacy state errors. */
-        }
+        await refreshDashboardFromOneDrive();
+
     }
 
 
-    monitoringState.currentPage =
-        1;
+    /*
+     * IMPORTANT:
+     * Keep the user on the same page.
+     */
+
+    showPDSPage(
+        currentPage,
+        {
+            saveState: false,
+            restoreScroll: true,
+            updateHistory: false
+        }
+    );
+}
 
 
-    initializeMonitoringFilters();
+/* =========================================================
+   WINDOW EXPORTS
+   Allows HTML onclick handlers to continue working.
+========================================================= */
 
-    initializeMonitoringEditor();
+window.showPDSPage =
+    showPDSPage;
+
+
+window.openProjectMonitoringPage =
+    openProjectMonitoringPage;
+
+
+window.editMonitoringProject =
+    editMonitoringProject;
+
+
+window.closeMonitoringEditModal =
+    closeMonitoringEditModal;
+
+
+window.saveMonitoringProjectFromForm =
+    saveMonitoringProjectFromForm;
+
+
+window.openMonitoringProjectDetails =
+    openMonitoringProjectDetails;
+
+
+window.closeMonitoringProjectDetails =
+    closeMonitoringProjectDetails;
+
+
+window.refreshPDSMonitoringData =
+    refreshPDSMonitoringData;
+
+
+window.refreshCurrentPDSPage =
+    refreshCurrentPDSPage;
+
+
+window.clearMonitoringFilters =
+    clearMonitoringFilters;
+
+
+window.savePDSPageState =
+    savePDSPageState;
+
+
+/* =========================================================
+   FINAL ERROR HANDLER
+========================================================= */
+
+window.addEventListener(
+    "error",
+    event => {
+
+        console.error(
+            "PDS JavaScript Error:",
+            event.error ||
+            event.message
+        );
+    }
+);
+
+
+window.addEventListener(
+    "unhandledrejection",
+    event => {
+
+        console.error(
+            "PDS Unhandled Promise Rejection:",
+            event.reason
+        );
+    }
+);
+
+
+/* =========================================================
+   FINAL STARTUP MESSAGE
+========================================================= */
+
+console.log(
+    "PDS — Planning & Design Section initialized."
+);
+
+console.log(
+    "PDS: Current page =",
+    getCurrentPDSPage()
+);
+/* =========================================================
+   PART 14
+   FINAL PROJECT ↔ ONEDRIVE EXCEL SYNCHRONIZATION
+========================================================= */
+
+
+/* =========================================================
+   BUILD EXCEL UPDATE PAYLOAD
+========================================================= */
+
+function buildExcelUpdatePayload(
+    project
+) {
+
+    if (!project) {
+
+        throw new Error(
+            "Project data is required."
+        );
+    }
+
+
+    return {
+
+        category:
+            safeString(
+                project.category
+            ),
+
+        program:
+            safeString(
+                project.program
+            ),
+
+        subProgram:
+            safeString(
+                project.subProgram
+            ),
+
+        projectTitle:
+            safeString(
+                project.projectTitle
+            ),
+
+        noOfProjects:
+            safeString(
+                project.noOfProjects
+            ),
+
+        allocation:
+            safeString(
+                project.allocation
+            ),
+
+        municipality:
+            safeString(
+                project.municipality
+            ),
+
+        program2:
+            safeString(
+                project.program2
+            ),
+
+        plan:
+            safeString(
+                project.plan
+            ),
+
+        advertisementBatch:
+            safeString(
+                project.advertisementBatch
+            ),
+
+        contractId:
+            safeString(
+                project.contractId
+            ),
+
+        canvass:
+            safeString(
+                project.canvass
+            ),
+
+        marketScoping:
+            safeString(
+                project.marketScoping
+            ),
+
+        certOfDed:
+            safeString(
+                project.certOfDed
+            ),
+
+        certOfCmpd:
+            safeString(
+                project.certOfCmpd
+            ),
+
+        certOfValidation:
+            safeString(
+                project.certOfValidation
+            ),
+
+        printedCompleteProgram:
+            safeString(
+                project.printedCompleteProgram
+            ),
+
+        submittedExcelFile:
+            safeString(
+                project.submittedExcelFile
+            ),
+
+        remarks:
+            safeString(
+                project.remarks
+            ),
+
+        architectural:
+            safeString(
+                project.architectural
+            ),
+
+        structural:
+            safeString(
+                project.structural
+            ),
+
+        plumbing:
+            safeString(
+                project.plumbing
+            ),
+
+        electrical:
+            safeString(
+                project.electrical
+            ),
+
+        mechanical:
+            safeString(
+                project.mechanical
+            ),
+
+        survey:
+            safeString(
+                project.survey
+            ),
+
+        printedCompletePlan:
+            safeString(
+                project.printedCompletePlan
+            ),
+
+        remarks2:
+            safeString(
+                project.remarks2
+            ),
+
+        programStatus:
+            safeString(
+                project.programStatus
+            ),
+
+        programPercent:
+            normalizePercent(
+                project.programPercent
+            ),
+
+        planStatus:
+            safeString(
+                project.planStatus
+            ),
+
+        planPercent:
+            normalizePercent(
+                project.planPercent
+            ),
+
+        lastUpdated:
+            project.lastUpdated ||
+            new Date().toISOString(),
+
+        daysSinceUpdate:
+            safeNumber(
+                project.daysSinceUpdate,
+                0
+            ),
+
+        overallStatus:
+            safeString(
+                project.overallStatus
+            )
+
+    };
+}
+
+
+/* =========================================================
+   VALIDATE PROJECT BEFORE EXCEL SAVE
+========================================================= */
+
+function validateMonitoringProject(
+    project
+) {
+
+    const errors = [];
+
+
+    if (!project) {
+
+        errors.push(
+            "Project data is missing."
+        );
+
+        return errors;
+    }
+
+
+    if (
+        !safeString(
+            project.projectTitle
+        )
+    ) {
+
+        errors.push(
+            "Project Title is required."
+        );
+    }
+
+
+    const programPercent =
+        normalizePercent(
+            project.programPercent
+        );
+
+
+    const planPercent =
+        normalizePercent(
+            project.planPercent
+        );
+
+
+    if (
+        programPercent < 0 ||
+        programPercent > 100
+    ) {
+
+        errors.push(
+            "Program % must be between 0 and 100."
+        );
+    }
+
+
+    if (
+        planPercent < 0 ||
+        planPercent > 100
+    ) {
+
+        errors.push(
+            "Plan % must be between 0 and 100."
+        );
+    }
+
+
+    return errors;
+}
+
+
+/* =========================================================
+   SAVE PROJECT DIRECTLY TO OVERALL
+========================================================= */
+
+async function synchronizeProjectToOverall(
+    project
+) {
+
+    const errors =
+        validateMonitoringProject(
+            project
+        );
+
+
+    if (
+        errors.length
+    ) {
+
+        throw new Error(
+            errors.join(" ")
+        );
+    }
+
+
+    /*
+     * OneDrive must already be authenticated.
+     */
+
+    if (
+        !oneDriveInitialized
+    ) {
+
+        throw new Error(
+            "OneDrive is not connected. Please sign in to OneDrive first."
+        );
+    }
+
+
+    const payload =
+        buildExcelUpdatePayload(
+            project
+        );
+
+
+    /*
+     * Use the existing Excel writer.
+     */
+
+    if (
+        typeof saveProjectToOverall !==
+        "function"
+    ) {
+
+        throw new Error(
+            "The Excel OVERALL save function is unavailable."
+        );
+    }
+
+
+    await saveProjectToOverall(
+        project,
+        payload
+    );
+
+
+    /*
+     * Excel is the source of truth.
+     * Refresh the data after the write.
+     */
+
+    const refreshed =
+        await refreshMonitoringFromOneDrive();
+
+
+    cachedMonitoringProjects =
+        Array.isArray(
+            refreshed
+        )
+            ? refreshed
+            : [];
+
+
+    dispatchPDSDataUpdated(
+        cachedMonitoringProjects
+    );
+
+
+    return cachedMonitoringProjects;
+}
+
+
+/* =========================================================
+   UPDATE LOCAL PROJECT CACHE
+========================================================= */
+
+function updateCachedProject(
+    project
+) {
+
+    if (
+        !project
+    ) {
+
+        return;
+    }
+
+
+    if (
+        !Array.isArray(
+            cachedMonitoringProjects
+        )
+    ) {
+
+        cachedMonitoringProjects =
+            [];
+    }
+
+
+    const index =
+        cachedMonitoringProjects.findIndex(
+            item =>
+                String(
+                    item.id
+                ) ===
+                String(
+                    project.id
+                )
+        );
+
+
+    if (
+        index >= 0
+    ) {
+
+        cachedMonitoringProjects[
+            index
+        ] = {
+
+            ...cachedMonitoringProjects[
+                index
+            ],
+
+            ...project
+        };
+
+    } else {
+
+        cachedMonitoringProjects.push(
+            project
+        );
+    }
+}
+
+
+/* =========================================================
+   PROJECT DATA CHANGED
+========================================================= */
+
+function handleProjectDataChanged(
+    project
+) {
+
+    updateCachedProject(
+        project
+    );
+
+
+    updateDashboardProjectCounts(
+        cachedMonitoringProjects
+    );
+
+
+    renderDashboardRecentProjects(
+        cachedMonitoringProjects
+    );
+
+
+    if (
+        pdsCurrentPage &&
+        pdsCurrentPage
+            .toLowerCase()
+            .includes(
+                "monitor"
+            )
+    ) {
+
+        renderMonitoringProjects();
+    }
+}
+
+
+/* =========================================================
+   SAVE MONITORING + SYNCHRONIZE
+========================================================= */
+
+async function commitMonitoringProject(
+    project
+) {
+
+    const previousPage =
+        getCurrentPDSPage();
 
 
     try {
 
-        await loadProjectMonitoring(
-            true
+        showMessage(
+            "Saving changes to OneDrive Excel...",
+            "info"
         );
+
+
+        const projects =
+            await synchronizeProjectToOverall(
+                project
+            );
+
+
+        /*
+         * Find the saved record again from
+         * the refreshed Excel data.
+         */
+
+        const savedProject =
+            projects.find(
+                item =>
+                    String(
+                        item.projectTitle
+                    ).trim()
+                    ===
+                    String(
+                        project.projectTitle
+                    ).trim()
+            ) ||
+            project;
+
+
+        handleProjectDataChanged(
+            savedProject
+        );
+
+
+        /*
+         * Restore the page the user was on.
+         */
+
+        showPDSPage(
+            previousPage,
+            {
+                saveState: false,
+                restoreScroll: true,
+                updateHistory: false
+            }
+        );
+
+
+        showMessage(
+            "Changes saved to OneDrive Excel.",
+            "success"
+        );
+
+
+        return savedProject;
 
     } catch (error) {
 
         console.error(
-            "PDS: Project Monitoring load failed:",
+            "PDS: Excel synchronization failed:",
             error
         );
 
-        showMonitoringErrorState(
+
+        showMessage(
             error?.message ||
-            "Unable to load the OVERALL worksheet."
+            "Unable to synchronize changes with OneDrive Excel.",
+            "error"
+        );
+
+
+        throw error;
+    }
+}
+
+
+/* =========================================================
+   REPLACE FORM SAVE WITH SYNCHRONIZED SAVE
+========================================================= */
+
+async function saveMonitoringChanges() {
+
+    if (
+        !currentEditingMonitoringProject
+    ) {
+
+        showMessage(
+            "No project is currently selected.",
+            "error"
         );
 
         return;
     }
 
 
-    /*
-     * Do not redirect the entire application.
-     *
-     * The navigation system remains
-     * responsible for showing the page.
-     */
-
-    const monitoringPage =
-        $("projectMonitoringPage") ||
-        $("monitoringPage");
+    let updatedProject;
 
 
-    if (
-        monitoringPage
+    try {
+
+        updatedProject =
+            collectMonitoringFormData();
+
+    } catch (error) {
+
+        showMessage(
+            error.message,
+            "error"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        const savedProject =
+            await commitMonitoringProject(
+                updatedProject
+            );
+
+
+        currentEditingMonitoringProject =
+            null;
+
+
+        closeMonitoringEditModal();
+
+
+        return savedProject;
+
+    } catch (
+        error
     ) {
 
-        monitoringPage.classList.add(
-            "active"
+        console.error(
+            "PDS: Monitoring save failed:",
+            error
         );
-
-        monitoringPage.classList.remove(
-            "hidden"
-        );
-
-        monitoringPage.style.display =
-            "";
     }
 }
 
 
 /* =========================================================
-   INITIALIZE PROJECT MONITORING NAVIGATION
+   BIND SYNCHRONIZED SAVE BUTTON
 ========================================================= */
 
-function initializeProjectMonitoringNavigation() {
+function setupSynchronizedSaveButton() {
 
-    const links =
+    const buttons =
         document.querySelectorAll(
-            "[data-page='project-monitoring'], " +
-            "[data-section='project-monitoring'], " +
-            "#projectMonitoringNav, " +
-            "#projectMonitoringLink"
+            "#saveMonitoringProject, #saveMonitoringBtn, [data-action='save-monitoring-project']"
         );
 
 
-    links.forEach(
-        link => {
+    buttons.forEach(
+        button => {
+
+            /*
+             * Remove the old handler by replacing
+             * the element with a clone.
+             */
 
             if (
-                link.dataset.pdsMonitoringNavBound ===
+                button.dataset.syncBound ===
                 "true"
             ) {
 
@@ -9754,23 +12277,546 @@ function initializeProjectMonitoringNavigation() {
             }
 
 
-            link.dataset.pdsMonitoringNavBound =
+            button.dataset.syncBound =
                 "true";
 
 
-            link.addEventListener(
+            button.addEventListener(
                 "click",
-                async () => {
+                async event => {
+
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+
+                    await saveMonitoringChanges();
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   SAVE PROJECT FROM OUTSIDE MONITORING EDITOR
+========================================================= */
+
+async function saveProjectAndSync(
+    project
+) {
+
+    if (
+        !project
+    ) {
+
+        throw new Error(
+            "No project data supplied."
+        );
+    }
+
+
+    return await commitMonitoringProject(
+        project
+    );
+}
+
+
+/* =========================================================
+   EXCEL SOURCE-OF-TRUTH CHECK
+========================================================= */
+
+function isExcelSourceAvailable() {
+
+    return (
+        oneDriveInitialized ===
+        true
+    );
+}
+
+
+/* =========================================================
+   REQUIRE EXCEL CONNECTION
+========================================================= */
+
+function requireExcelConnection() {
+
+    if (
+        !isExcelSourceAvailable()
+    ) {
+
+        throw new Error(
+            "OneDrive Excel is not connected. Connect OneDrive before editing project monitoring data."
+        );
+    }
+
+
+    return true;
+}
+
+
+/* =========================================================
+   ONE DRIVE STATUS DISPLAY
+========================================================= */
+
+function updateOneDriveStatusUI() {
+
+    const statusElements =
+        document.querySelectorAll(
+            "#oneDriveStatus, #onedriveStatus, [data-onedrive-status]"
+        );
+
+
+    const connected =
+        isExcelSourceAvailable();
+
+
+    statusElements.forEach(
+        element => {
+
+            if (
+                connected
+            ) {
+
+                element.textContent =
+                    "OneDrive Excel Connected";
+
+
+                element.classList.remove(
+                    "offline",
+                    "disconnected",
+                    "error"
+                );
+
+
+                element.classList.add(
+                    "connected"
+                );
+
+            } else {
+
+                element.textContent =
+                    "OneDrive Excel Not Connected";
+
+
+                element.classList.remove(
+                    "connected"
+                );
+
+
+                element.classList.add(
+                    "disconnected"
+                );
+            }
+        }
+    );
+}
+
+
+/* =========================================================
+   ONE DRIVE READY UI HOOK
+========================================================= */
+
+window.addEventListener(
+    "pds:onedrive-ready",
+    () => {
+
+        updateOneDriveStatusUI();
+
+        setupSynchronizedSaveButton();
+
+    }
+);
+
+
+/* =========================================================
+   INITIAL EXCEL STATUS
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        updateOneDriveStatusUI();
+
+        setupSynchronizedSaveButton();
+
+    },
+    {
+        once: true
+    }
+);
+
+
+/* =========================================================
+   GLOBAL EXPORTS
+========================================================= */
+
+window.saveMonitoringChanges =
+    saveMonitoringChanges;
+
+
+window.saveProjectAndSync =
+    saveProjectAndSync;
+
+
+window.synchronizeProjectToOverall =
+    synchronizeProjectToOverall;
+
+
+window.requireExcelConnection =
+    requireExcelConnection;
+
+
+window.isExcelSourceAvailable =
+    isExcelSourceAvailable;/* =========================================================
+   PART 15
+   FINALIZATION + COMPATIBILITY LAYER
+========================================================= */
+
+
+/* =========================================================
+   COMPATIBILITY — OLD FUNCTION NAMES
+========================================================= */
+
+/*
+ * Keep older HTML onclick handlers working.
+ */
+
+if (
+    typeof window.openProjectMonitoring !==
+    "function"
+) {
+
+    window.openProjectMonitoring =
+        openProjectMonitoringPage;
+}
+
+
+if (
+    typeof window.loadProjectMonitoring !==
+    "function"
+) {
+
+    window.loadProjectMonitoring =
+        loadProjectMonitoring;
+}
+
+
+if (
+    typeof window.renderMonitoringProjects !==
+    "function"
+) {
+
+    window.renderMonitoringProjects =
+        renderMonitoringProjects;
+}
+
+
+/* =========================================================
+   MONITORING SEARCH SHORTCUT
+========================================================= */
+
+function focusMonitoringSearch() {
+
+    const input =
+        document.querySelector(
+            "#monitoringSearch"
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    input.focus();
+
+
+    try {
+
+        input.select();
+
+    } catch {
+        /* ignore */
+    }
+}
+
+
+/* =========================================================
+   KEYBOARD SHORTCUT — CTRL + K
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() ===
+                "k"
+        ) {
+
+            const currentPage =
+                getCurrentPDSPage();
+
+
+            if (
+                currentPage
+                    .toLowerCase()
+                    .includes(
+                        "monitor"
+                    )
+            ) {
+
+                event.preventDefault();
+
+                focusMonitoringSearch();
+            }
+        }
+    }
+);
+
+
+/* =========================================================
+   MONITORING TABLE EMPTY STATE
+========================================================= */
+
+function showMonitoringLoadingState() {
+
+    const tbody =
+        document.querySelector(
+            "#monitoringProjectsBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="8"
+                class="empty-state"
+            >
+
+                Loading project monitoring
+                data from OneDrive Excel...
+
+            </td>
+
+        </tr>
+
+    `;
+}
+
+
+/* =========================================================
+   MONITORING ERROR STATE
+========================================================= */
+
+function showMonitoringErrorState(
+    message
+) {
+
+    const tbody =
+        document.querySelector(
+            "#monitoringProjectsBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="8"
+                class="empty-state"
+            >
+
+                ${escapeHTML(
+                    message ||
+                    "Unable to load project monitoring data."
+                )}
+
+            </td>
+
+        </tr>
+
+    `;
+}
+
+
+/* =========================================================
+   SAFE MONITORING LOAD
+========================================================= */
+
+async function safelyLoadMonitoring() {
+
+    showMonitoringLoadingState();
+
+
+    try {
+
+        const projects =
+            await loadProjectMonitoring(
+                true
+            );
+
+
+        if (
+            Array.isArray(
+                projects
+            )
+        ) {
+
+            cachedMonitoringProjects =
+                projects;
+
+
+            renderMonitoringProjects();
+
+            updateDashboardProjectCounts(
+                projects
+            );
+
+            renderDashboardRecentProjects(
+                projects
+            );
+        }
+
+
+        return projects;
+
+    } catch (error) {
+
+        console.error(
+            "PDS: Safe monitoring load failed:",
+            error
+        );
+
+
+        showMonitoringErrorState(
+            error?.message ||
+            "Unable to load project monitoring data."
+        );
+
+
+        throw error;
+    }
+}
+
+
+/* =========================================================
+   MONITORING NAVIGATION HOOK
+========================================================= */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const link =
+            event.target.closest(
+                "[data-open-monitoring]"
+            );
+
+
+        if (!link) {
+            return;
+        }
+
+
+        event.preventDefault();
+
+
+        openProjectMonitoringPage();
+    }
+);
+
+
+/* =========================================================
+   ONE DRIVE CONNECTION BUTTON
+========================================================= */
+
+function setupOneDriveConnectionUI() {
+
+    const buttons =
+        document.querySelectorAll(
+            "#connectOneDrive, #connectOneDriveBtn, [data-action='connect-onedrive']"
+        );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.dataset.connectionBound ===
+                "true"
+            ) {
+
+                return;
+            }
+
+
+            button.dataset.connectionBound =
+                "true";
+
+
+            button.addEventListener(
+                "click",
+                async event => {
+
+                    event.preventDefault();
+
 
                     try {
 
-                        await openProjectMonitoring();
+                        if (
+                            typeof initializeOneDrive ===
+                            "function"
+                        ) {
+
+                            await initializeOneDrive();
+
+                        } else if (
+                            typeof signInToOneDrive ===
+                            "function"
+                        ) {
+
+                            await signInToOneDrive();
+
+                        } else {
+
+                            throw new Error(
+                                "OneDrive authentication function is unavailable."
+                            );
+                        }
+
+
+                        updateOneDriveStatusUI();
+
 
                     } catch (error) {
 
                         console.error(
-                            "PDS: Monitoring navigation failed:",
+                            "PDS: OneDrive connection failed:",
                             error
+                        );
+
+
+                        showMessage(
+                            error?.message ||
+                            "Unable to connect to OneDrive.",
+                            "error"
                         );
                     }
                 }
@@ -9781,331 +12827,95 @@ function initializeProjectMonitoringNavigation() {
 
 
 /* =========================================================
-   EXPORT MONITORING API
+   ONE DRIVE STATUS REFRESH
 ========================================================= */
 
-window.openProjectMonitoring =
-    openProjectMonitoring;
+function refreshOneDriveStatus() {
 
-window.editMonitoringProject =
-    editMonitoringProject;
+    updateOneDriveStatusUI();
 
-window.submitMonitoringEdit =
-    submitMonitoringEdit;
 
-window.closeMonitoringEditModal =
-    closeMonitoringEditModal;
+    if (
+        oneDriveInitialized
+    ) {
 
-window.createMonitoringEditModal =
-    createMonitoringEditModal;
+        startPDSExcelRefresh();
 
-window.populateMonitoringEditModal =
-    populateMonitoringEditModal;
+    } else {
 
-window.initializeMonitoringEditor =
-    initializeMonitoringEditor;
-
-window.initializeProjectMonitoringNavigation =
-    initializeProjectMonitoringNavigation;
+        stopPDSExcelRefresh();
+    }
+}
 
 
 /* =========================================================
-/* =========================================================
-   PAGE STATE + SINGLE-PAGE NAVIGATION
+   INITIALIZE FINAL UI
 ========================================================= */
 
-const PDS_PAGE_STATE_KEY = "pdsCurrentPage";
-const PDS_SCROLL_STATE_KEY = "pdsScrollPositions";
+function initializeFinalPDSUI() {
 
-let pdsScrollPositions = {};
-
-try {
-    const savedScroll = localStorage.getItem(PDS_SCROLL_STATE_KEY);
-    if (savedScroll) {
-        const parsed = JSON.parse(savedScroll);
-        if (parsed && typeof parsed === "object") {
-            pdsScrollPositions = parsed;
-        }
-    }
-} catch {
-    pdsScrollPositions = {};
-}
-
-function normalizePageId(pageId) {
-    const value = safeString(pageId)
-        .trim()
-        .replace(/^#/, "")
-        .replace(/\/$/, "");
-
-    if (!value) return "dashboard";
-
-    const aliases = {
-        home: "dashboard",
-        projects: "projects",
-        project: "projects",
-        monitoring: "project-monitoring",
-        "project-monitoring": "project-monitoring",
-        documents: "documents",
-        standards: "standards",
-        "standards-guidelines": "standards",
-        "department-orders": "department-orders",
-        "forms-templates": "forms-templates",
-        news: "news",
-        announcements: "news",
-        "pds-ai": "pds-ai",
-        about: "about",
-        contact: "contact",
-        profile: "profile"
-    };
-
-    return aliases[value.toLowerCase()] || value;
-}
-
-function getPageIdFromElement(element) {
-    if (!element) return "";
-
-    return (
-        element.getAttribute("data-page") ||
-        element.getAttribute("data-section") ||
-        element.getAttribute("data-target") ||
-        (element.getAttribute("href") || "").replace(/^#/, "") ||
-        ""
-    );
-}
-
-function getPDSPageElements() {
-    return Array.from(
-        document.querySelectorAll(
-            "[data-pds-page], .pds-page, .page, [id$='Page']"
-        )
-    );
-}
-
-function findPDSPage(pageId) {
-    const normalized = normalizePageId(pageId);
-
-    const candidates = [
-        normalized,
-        normalized + "Page",
-        normalized.replace(/-([a-z])/g, (_, c) => c.toUpperCase()) + "Page"
-    ];
-
-    for (const id of candidates) {
-        const element = document.getElementById(id);
-        if (element) return element;
-    }
-
-    const allPages = getPDSPageElements();
-    return allPages.find(page => {
-        const id = normalizePageId(getPageIdFromElement(page) || page.id);
-        return id === normalized;
-    }) || null;
-}
-
-function saveCurrentPageState() {
     try {
-        localStorage.setItem(PDS_PAGE_STATE_KEY, pdsCurrentPage);
-        localStorage.setItem(
-            PDS_SCROLL_STATE_KEY,
-            JSON.stringify(pdsScrollPositions)
-        );
-    } catch {
-        /* Ignore localStorage errors. */
-    }
 
-    return pdsCurrentPage;
-}
+        setupOneDriveConnectionUI();
 
-function loadSavedPageState() {
-    try {
-        const savedPage = localStorage.getItem(PDS_PAGE_STATE_KEY);
-        if (savedPage) {
-            pdsCurrentPage = normalizePageId(savedPage);
-        }
+        setupMonitoringRefreshButton();
 
-        const savedScroll = localStorage.getItem(PDS_SCROLL_STATE_KEY);
-        if (savedScroll) {
-            const parsed = JSON.parse(savedScroll);
-            if (parsed && typeof parsed === "object") {
-                pdsScrollPositions = parsed;
-            }
-        }
-    } catch {
-        /* Ignore storage errors. */
-    }
+        setupMonitoringClearButton();
 
-    return pdsCurrentPage;
-}
+        setupMonitoringEditForm();
 
-function showPDSPage(
-    pageId,
-    options = {}
-) {
-    const {
-        saveState = true,
-        restoreScroll = true,
-        updateHistory = true
-    } = options;
+        setupSynchronizedSaveButton();
 
-    const normalized = normalizePageId(pageId);
-    const targetPage = findPDSPage(normalized);
+        setupMonitoringRowDetails();
 
-    if (!targetPage) {
-        console.warn("PDS: Page not found:", normalized);
-        return false;
-    }
+        refreshOneDriveStatus();
 
-    const currentPageElement = findPDSPage(pdsCurrentPage);
-    if (currentPageElement && currentPageElement !== targetPage) {
-        pdsScrollPositions[pdsCurrentPage] = window.scrollY || 0;
-    }
 
-    getPDSPageElements().forEach(page => {
-        const pageIdForElement = normalizePageId(
-            getPageIdFromElement(page) || page.id
-        );
-        const isTarget = page === targetPage || pageIdForElement === normalized;
+        /*
+         * Restore the user's last page.
+         */
 
-        page.classList.toggle("active", isTarget);
-        page.classList.toggle("hidden", !isTarget);
-        page.setAttribute("aria-hidden", isTarget ? "false" : "true");
+        const savedPage =
+            getCurrentPDSPage();
 
-        if (isTarget) {
-            page.style.display = "";
-        } else {
-            page.style.display = "none";
-        }
-    });
 
-    document.querySelectorAll("[data-page], [data-section]").forEach(nav => {
-        const navPage = normalizePageId(getPageIdFromElement(nav));
-        const active = navPage === normalized;
-        nav.classList.toggle("active", active);
-        if (active) {
-            nav.setAttribute("aria-current", "page");
-        } else {
-            nav.removeAttribute("aria-current");
-        }
-    });
+        if (
+            savedPage
+        ) {
 
-    pdsCurrentPage = normalized;
-
-    if (saveState) saveCurrentPageState();
-
-    if (restoreScroll) {
-        const savedScroll = Number(pdsScrollPositions[normalized] || 0);
-        requestAnimationFrame(() => {
-            window.scrollTo({ top: savedScroll, behavior: "auto" });
-        });
-    }
-
-    if (updateHistory) {
-        try {
-            history.replaceState(
-                { pdsPage: normalized },
-                "",
-                `#${encodeURIComponent(normalized)}`
-            );
-        } catch {
-            /* Ignore history errors. */
-        }
-    }
-
-    document.dispatchEvent(
-        new CustomEvent("pds:page-changed", {
-            detail: { page: normalized }
-        })
-    );
-
-    return true;
-}
-
-function initializePDSPageNavigation() {
-    if (window.__PDS_PAGE_NAVIGATION_READY__) return;
-    window.__PDS_PAGE_NAVIGATION_READY__ = true;
-
-    loadSavedPageState();
-
-    document.querySelectorAll(
-        "[data-page], [data-section], [data-target], a[href^='#']"
-    ).forEach(element => {
-        if (element.dataset.pdsPageNavBound === "true") return;
-
-        const pageId = getPageIdFromElement(element);
-        if (!pageId) return;
-
-        const normalized = normalizePageId(pageId);
-        if (!normalized) return;
-
-        element.dataset.pdsPageNavBound = "true";
-
-        element.addEventListener("click", event => {
-            const href = element.getAttribute("href");
-            if (href && !href.startsWith("#")) return;
-
-            event.preventDefault();
-            showPDSPage(normalized, {
-                saveState: true,
-                restoreScroll: true,
-                updateHistory: true
-            });
-        });
-    });
-
-    if (!findPDSPage(pdsCurrentPage)) {
-        pdsCurrentPage = "dashboard";
-    }
-
-    showPDSPage(pdsCurrentPage, {
-        saveState: false,
-        restoreScroll: true,
-        updateHistory: false
-    });
-}
-
-function initializePDSScrollPersistence() {
-    if (window.__PDS_SCROLL_PERSISTENCE_READY__) return;
-    window.__PDS_SCROLL_PERSISTENCE_READY__ = true;
-
-    let scrollTimer = null;
-
-    window.addEventListener("scroll", () => {
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-            if (!pdsCurrentPage) return;
-
-            pdsScrollPositions[pdsCurrentPage] = window.scrollY || 0;
-
-            try {
-                localStorage.setItem(
-                    PDS_SCROLL_STATE_KEY,
-                    JSON.stringify(pdsScrollPositions)
+            const restored =
+                showPDSPage(
+                    savedPage,
+                    {
+                        saveState: false,
+                        restoreScroll: true,
+                        updateHistory: false
+                    }
                 );
-            } catch {
-                /* Ignore storage errors. */
+
+
+            if (!restored) {
+
+                showPDSPage(
+                    "dashboard",
+                    {
+                        saveState: false,
+                        restoreScroll: false,
+                        updateHistory: false
+                    }
+                );
             }
-        }, 150);
-    }, { passive: true });
+        }
 
-    window.addEventListener("beforeunload", saveCurrentPageState);
-}
 
-/* =========================================================
-   FINAL PDS PAGE INITIALIZATION
-========================================================= */
-
-function initializeFinalPDSPageState() {
-
-    try {
-
-        initializePDSPageNavigation();
-
-        initializePDSScrollPersistence();
+        console.log(
+            "PDS: Final UI initialization complete."
+        );
 
     } catch (error) {
 
         console.error(
-            "PDS: Page state initialization failed:",
+            "PDS: Final UI initialization failed:",
             error
         );
     }
@@ -10113,30 +12923,7 @@ function initializeFinalPDSPageState() {
 
 
 /* =========================================================
-   GLOBAL PAGE STATE API
-========================================================= */
-
-window.showPDSPage =
-    showPDSPage;
-
-window.saveCurrentPageState =
-    saveCurrentPageState;
-
-window.loadSavedPageState =
-    loadSavedPageState;
-
-window.initializePDSPageNavigation =
-    initializePDSPageNavigation;
-
-window.initializePDSScrollPersistence =
-    initializePDSScrollPersistence;
-
-window.initializeFinalPDSPageState =
-    initializeFinalPDSPageState;
-
-
-/* =========================================================
-   FINAL DOM STARTUP
+   FINAL DOM READY
 ========================================================= */
 
 if (
@@ -10145,153 +12932,261 @@ if (
 ) {
 
     document.addEventListener(
-               "DOMContentLoaded",
-        () => {
-
-            initializeFinalPDSPageState();
-
-        },
+        "DOMContentLoaded",
+        initializeFinalPDSUI,
         {
-            once:
-                true
+            once: true
         }
     );
 
 } else {
 
-    initializeFinalPDSPageState();
+    initializeFinalPDSUI();
 }
 
+
 /* =========================================================
-   FINAL PDS AUTH STARTUP
+   FINAL GLOBAL REFERENCES
 ========================================================= */
 
-(function startPDSAuthSystem() {
+window.focusMonitoringSearch =
+    focusMonitoringSearch;
 
-    console.log("PDS AUTH: STARTING...");
 
-    async function bootAuth() {
+window.safelyLoadMonitoring =
+    safelyLoadMonitoring;
+
+
+window.refreshOneDriveStatus =
+    refreshOneDriveStatus;
+
+
+/* =========================================================
+   FINAL DIAGNOSTIC
+========================================================= */
+
+window.PDS_DIAGNOSTIC =
+    function () {
+
+        return {
+
+            currentPage:
+                getCurrentPDSPage(),
+
+            oneDriveInitialized:
+                oneDriveInitialized,
+
+            monitoringProjects:
+                Array.isArray(
+                    cachedMonitoringProjects
+                )
+                    ? cachedMonitoringProjects.length
+                    : 0,
+
+            currentUser:
+                currentUser?.email ||
+                null,
+
+            workbook:
+                ONEDRIVE_FILE_NAME,
+
+            worksheet:
+                ONEDRIVE_SHEET_NAME
+
+        };
+    };
+
+
+console.log(
+    "PDS: Diagnostic available as PDS_DIAGNOSTIC()."
+);
+
+
+/* =========================================================
+   END OF PART 15
+========================================================= */
+/* =========================================================
+   PART 16
+   FINAL SCRIPT CLOSURE
+========================================================= */
+
+
+/* =========================================================
+   FINAL SAFE INITIALIZATION
+========================================================= */
+
+(function () {
+
+    "use strict";
+
+
+    /*
+     * Prevent duplicate initialization if this
+     * script is accidentally loaded more than once.
+     */
+
+    if (
+        window.__PDS_SCRIPT_INITIALIZED__
+    ) {
+
+        console.warn(
+            "PDS: script.js was already initialized."
+        );
+
+        return;
+    }
+
+
+    window.__PDS_SCRIPT_INITIALIZED__ =
+        true;
+
+
+    console.log(
+        "PDS: Final script initialization started."
+    );
+
+
+    /* =====================================================
+       ENSURE BASIC STATE
+    ===================================================== */
+
+    try {
+
+        if (
+            typeof pdsCurrentPage ===
+            "undefined"
+        ) {
+
+            pdsCurrentPage =
+                localStorage.getItem(
+                    PDS_PAGE_STATE_KEY
+                ) ||
+                "dashboard";
+        }
+
+
+        if (
+            typeof pdsScrollPositions ===
+            "undefined"
+        ) {
+
+            pdsScrollPositions =
+                {};
+        }
+
+
+    } catch (error) {
+
+        console.warn(
+            "PDS: Unable to restore page state:",
+            error
+        );
+    }
+
+
+    /* =====================================================
+       FINAL PAGE RESTORATION
+    ===================================================== */
+
+    function restoreLastPDSPage() {
 
         try {
 
-            /* WAIT FOR SUPABASE */
-            const loaded =
-                await waitForSupabase();
+            const hash =
+                window.location.hash;
 
-            if (!loaded) {
-                console.error(
-                    "PDS AUTH: Supabase library NOT loaded."
-                );
 
-                return;
+            let pageId =
+                null;
+
+
+            if (
+                hash &&
+                hash.length > 1
+            ) {
+
+                pageId =
+                    decodeURIComponent(
+                        hash.substring(1)
+                    );
             }
 
 
-            /* CREATE SUPABASE CLIENT */
-            const ready =
-                initializeSupabase();
+            if (
+                !pageId
+            ) {
 
-            if (!ready || !db) {
-
-                console.error(
-                    "PDS AUTH: Supabase client NOT initialized."
-                );
-
-                return;
+                pageId =
+                    localStorage.getItem(
+                        PDS_PAGE_STATE_KEY
+                    );
             }
 
 
-            console.log(
-                "PDS AUTH: Supabase client ready."
-            );
+            if (
+                !pageId
+            ) {
 
-
-            /* AUTH STATE LISTENER */
-            initializeAuthListener();
-
-
-            /* SIGN IN / SIGN OUT BUTTONS */
-            initializeAuthForms();
-
-
-            /* CHECK CURRENT SESSION */
-            const {
-                data,
-                error
-            } =
-                await db.auth.getSession();
-
-
-            if (error) {
-
-                console.error(
-                    "PDS AUTH: Session error:",
-                    error
-                );
-
-                currentUser = null;
-                currentProfile = null;
-
-                updateAuthenticatedUI();
-
-                return;
+                pageId =
+                    "dashboard";
             }
 
 
-            currentUser =
-                data?.session?.user || null;
-
-
-            if (currentUser) {
-
-                console.log(
-                    "PDS AUTH: Session found:",
-                    currentUser.email
+            const restored =
+                showPDSPage(
+                    pageId,
+                    {
+                        saveState: false,
+                        restoreScroll: true,
+                        updateHistory: false
+                    }
                 );
 
 
-                await loadCurrentProfile(
-                    currentUser.id
+            if (
+                !restored
+            ) {
+
+                showPDSPage(
+                    "dashboard",
+                    {
+                        saveState: false,
+                        restoreScroll: false,
+                        updateHistory: false
+                    }
                 );
-
-
-            } else {
-
-                console.log(
-                    "PDS AUTH: No session."
-                );
-
-                currentProfile = null;
-
             }
 
-
-            /* SHOW CORRECT SCREEN */
-            updateAuthenticatedUI();
-
-
-            console.log(
-                "PDS AUTH: READY."
-            );
 
         } catch (error) {
 
             console.error(
-                "PDS AUTH: BOOT ERROR:",
+                "PDS: Page restoration failed:",
                 error
             );
 
-            currentUser = null;
-            currentProfile = null;
 
             try {
-                updateAuthenticatedUI();
-            } catch {}
 
+                showPDSPage(
+                    "dashboard",
+                    {
+                        saveState: false,
+                        restoreScroll: false,
+                        updateHistory: false
+                    }
+                );
+
+            } catch {
+                /* ignore */
+            }
         }
-
     }
 
+
+    /* =====================================================
+       FINAL DOM EVENT
+    ===================================================== */
 
     if (
         document.readyState ===
@@ -10300,7 +13195,11 @@ if (
 
         document.addEventListener(
             "DOMContentLoaded",
-            bootAuth,
+            () => {
+
+                restoreLastPDSPage();
+
+            },
             {
                 once: true
             }
@@ -10308,16 +13207,187 @@ if (
 
     } else {
 
-        bootAuth();
-
+        restoreLastPDSPage();
     }
 
 
-    /* GLOBAL TEST FUNCTIONS */
-    window.PDS_SIGN_IN =
-        signInUser;
+    /* =====================================================
+       EXPOSE FINAL CONTROLS
+    ===================================================== */
 
-    window.PDS_SIGN_OUT =
-        signOutUser;
+    window.PDS = {
+
+        getCurrentPage:
+            getCurrentPDSPage,
+
+        showPage:
+            showPDSPage,
+
+        savePageState:
+            savePDSPageState,
+
+        restorePage:
+            restorePDSPageState,
+
+        refresh:
+            refreshCurrentPDSPage,
+
+        refreshMonitoring:
+            refreshPDSMonitoringData,
+
+        editMonitoring:
+            editMonitoringProject,
+
+        saveMonitoring:
+            saveMonitoringChanges,
+
+        openProject:
+            openMonitoringProjectDetails,
+
+        closeProject:
+            closeMonitoringProjectDetails,
+
+        clearFilters:
+            clearMonitoringFilters,
+
+        oneDriveConnected:
+            isExcelSourceAvailable
+
+    };
+
+
+    /* =====================================================
+       FINAL CONSOLE INFORMATION
+    ===================================================== */
+
+    console.log(
+        "PDS — Planning & Design Section"
+    );
+
+    console.log(
+        "PDS: OneDrive workbook:",
+        typeof ONEDRIVE_FILE_NAME !==
+            "undefined"
+            ? ONEDRIVE_FILE_NAME
+            : "Not configured"
+    );
+
+    console.log(
+        "PDS: Worksheet:",
+        typeof ONEDRIVE_SHEET_NAME !==
+            "undefined"
+            ? ONEDRIVE_SHEET_NAME
+            : "Not configured"
+    );
+
+    console.log(
+        "PDS: Current page:",
+        getCurrentPDSPage()
+    );
+
+    console.log(
+        "PDS: Excel source-of-truth mode enabled."
+    );
+
 
 })();
+
+/* =========================================================
+   AUTHENTICATION STARTUP
+   IMPORTANT: start only after DOM + Supabase library are ready.
+========================================================= */
+
+async function startPDSAuthentication() {
+
+    if (authStartupPromise) {
+        return authStartupPromise;
+    }
+
+    authStartupPromise = (async () => {
+
+        console.log("PDS Auth: Starting authentication...");
+
+        const ready = await waitForSupabase();
+
+        if (!ready) {
+            console.error("PDS Auth: Supabase library was not loaded.");
+            updateAuthenticatedUI();
+            showMessage(
+                "Supabase could not be loaded. Please refresh the page.",
+                "error"
+            );
+            return false;
+        }
+
+        if (!db && !initializeSupabase()) {
+            console.error("PDS Auth: Supabase initialization failed.");
+            updateAuthenticatedUI();
+            showMessage(
+                "Supabase authentication could not be initialized.",
+                "error"
+            );
+            return false;
+        }
+
+        initializeAuthListener();
+        initializeAuthForms();
+
+        const session = await getCurrentSession();
+
+        currentUser = session?.user || null;
+
+        if (currentUser) {
+            await loadCurrentProfile(currentUser.id);
+        } else {
+            currentProfile = null;
+        }
+
+        updateAuthenticatedUI();
+
+        if (currentUser) {
+            await initializeAfterLogin();
+        }
+
+        console.log(
+            "PDS Auth: Authentication startup complete.",
+            currentUser?.email || "No active session"
+        );
+
+        return true;
+
+    })().catch(error => {
+
+        authStartupPromise = null;
+
+        console.error(
+            "PDS Auth: Startup failed:",
+            error
+        );
+
+        updateAuthenticatedUI();
+
+        showMessage(
+            error?.message ||
+            "Authentication could not be initialized.",
+            "error"
+        );
+
+        return false;
+    });
+
+    return authStartupPromise;
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener(
+        "DOMContentLoaded",
+        () => { startPDSAuthentication(); },
+        { once: true }
+    );
+} else {
+    startPDSAuthentication();
+}
+
+window.startPDSAuthentication = startPDSAuthentication;
+window.signInUser = signInUser;
+window.signOutUser = signOutUser;
