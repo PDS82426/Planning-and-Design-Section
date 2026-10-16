@@ -713,8 +713,10 @@ function initializeAuthForms() {
     }
 
 
-    const signInForm =
-        $("signInForm");
+
+const signInForm =
+    $("loginForm") || $("signInForm");
+
 
 
     const emailInput =
