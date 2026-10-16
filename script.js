@@ -6489,297 +6489,86 @@ function findPDSPage(pageId) {
    SHOW PAGE
 ========================================================= */
 
-function showPDSPage(
-    pageId,
-    options = {}
-) {
 
-    const normalized =
-        normalizePageId(
-            pageId
-        );
+function showPDSPage(pageId, options = {}) {
+    const normalized = normalizePageId(pageId);
 
+    if (!normalized) return false;
 
-    if (!normalized) {
+    const {
+        saveState = true,
+        restoreScroll = false,
+        updateHistory = false
+    } = options;
+
+    const target = document.getElementById(normalized);
+
+    if (
+        !target ||
+        !target.matches("section.page-section")
+    ) {
+        console.warn("PDS: Page not found:", normalized);
         return false;
     }
 
-
-    const {
-
-        saveState = true,
-
-        restoreScroll = true,
-
-        updateHistory = false
-
-    } = options;
-
-
-    if (
-        saveState &&
-        pdsCurrentPage &&
-        pdsCurrentPage !==
-            normalized
-    ) {
-
+    if (saveState && pdsCurrentPage && pdsCurrentPage !== normalized) {
         saveCurrentPageState();
     }
 
+    // Show exactly one page section.
+    document.querySelectorAll("section.page-section").forEach(page => {
+        const isTarget = page === target;
 
-    const pages =
-        getPDSPageElements();
+        page.classList.toggle("hidden", !isTarget);
+        page.classList.toggle("active", isTarget);
+        page.setAttribute("aria-hidden", String(!isTarget));
+        page.style.display = isTarget ? "" : "none";
+    });
 
-
-    let target =
-        findPDSPage(
-            normalized
+    // Update active navigation items.
+    document.querySelectorAll("[data-page], [data-section]").forEach(nav => {
+        const navPage = normalizePageId(
+            nav.dataset.page || nav.dataset.section
         );
 
+        const isActive = navPage === normalized;
 
-    /*
-     * Some existing PDS HTML structures use
-     * IDs directly rather than data-page.
-     */
+        nav.classList.toggle("active", isActive);
 
-    if (!target) {
-
-        target =
-            document.getElementById(
-                normalized
-            );
-    }
-
-
-    if (!target) {
-
-        console.warn(
-            "PDS: Page not found:",
-            normalized
-        );
-
-        return false;
-    }
-
-
-    /*
-     * Hide only actual page/section elements.
-     * Do not hide the permanent sidebar,
-     * top navigation, or sign-in shell.
-     */
-
-    pages.forEach(
-        page => {
-
-            if (
-                page === target
-            ) {
-
-                page.classList.remove(
-                    "hidden"
-                );
-
-                page.style.display =
-                    "";
-
-                page.setAttribute(
-                    "aria-hidden",
-                    "false"
-                );
-
-            } else {
-
-                /*
-                 * Avoid hiding elements that are
-                 * parents of the target.
-                 */
-
-                if (
-                    page.contains(
-                        target
-                    ) ||
-                    target.contains(
-                        page
-                    )
-                ) {
-
-                    return;
-                }
-
-
-                page.classList.add(
-                    "hidden"
-                );
-
-                page.setAttribute(
-                    "aria-hidden",
-                    "true"
-                );
-            }
+        if (isActive) {
+            nav.setAttribute("aria-current", "page");
+        } else {
+            nav.removeAttribute("aria-current");
         }
-    );
+    });
 
-
-    pdsCurrentPage =
-        normalized;
-
+    pdsCurrentPage = normalized;
 
     if (saveState) {
-
         try {
-
-            localStorage.setItem(
-                PDS_PAGE_STATE_KEY,
-                normalized
-            );
-
-        } catch {
-            /* ignore */
+            localStorage.setItem(PDS_PAGE_STATE_KEY, normalized);
+        } catch (error) {
+            console.warn("PDS: Could not save page state.", error);
         }
     }
-
-
-    /*
-     * Update navigation buttons.
-     */
-
-    document
-        .querySelectorAll(
-            "[data-page], [data-section]"
-        )
-        .forEach(
-            nav => {
-
-                const navPage =
-                    normalizePageId(
-                        nav.dataset?.page ||
-                        nav.dataset?.section
-                    );
-
-
-                if (
-                    navPage ===
-                    normalized
-                ) {
-
-                    nav.classList.add(
-                        "active"
-                    );
-
-                    nav.setAttribute(
-                        "aria-current",
-                        "page"
-                    );
-
-                } else {
-
-                    nav.classList.remove(
-                        "active"
-                    );
-
-                    nav.removeAttribute(
-                        "aria-current"
-                    );
-                }
-            }
-        );
-
 
     if (updateHistory) {
-
-        try {
-
-            history.replaceState(
-                {
-                    pdsPage:
-                        normalized
-                },
-                "",
-                `#${encodeURIComponent(normalized)}`
-            );
-
-        } catch {
-            /* ignore */
-        }
+        history.replaceState(
+            { pdsPage: normalized },
+            "",
+            `#${encodeURIComponent(normalized)}`
+        );
     }
-
-
-    /*
-     * Restore the previous scroll position.
-     */
 
     if (restoreScroll) {
-
-        const scrollTop =
-            Number(
-                pdsScrollPositions[
-                    normalized
-                ]
-            );
-
-
-        requestAnimationFrame(
-            () => {
-
-                if (
-                    Number.isFinite(
-                        scrollTop
-                    ) &&
-                    scrollTop > 0
-                ) {
-
-                    window.scrollTo(
-                        {
-                            top:
-                                scrollTop,
-
-                            behavior:
-                                "auto"
-                        }
-                    );
-
-                } else {
-
-                    window.scrollTo(
-                        {
-                            top: 0,
-
-                            behavior:
-                                "auto"
-                        }
-                    );
-                }
-            }
-        );
+        window.scrollTo({ top: 0, behavior: "auto" });
     }
 
-
-    /*
-     * Load page-specific data only when
-     * that page is actually opened.
-     */
-
-    if (
-        normalized
-            .toLowerCase()
-            .includes(
-                "monitor"
-            )
-    ) {
-
-        loadProjectMonitoring(
-            false
-        ).catch(
-            error => {
-
-                console.error(
-                    "PDS: Monitoring page load failed:",
-                    error
-                );
-            }
-        );
+    if (normalized.toLowerCase().includes("monitor")) {
+        loadProjectMonitoring(false).catch(error => {
+            console.error("PDS: Monitoring page load failed:", error);
+        });
     }
-
 
     return true;
 }
