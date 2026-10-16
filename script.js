@@ -6445,52 +6445,47 @@ function getPDSPageElements() {
    FIND PAGE ELEMENT
 ========================================================= */
 
-function findPDSPage(
-    pageId
-) {
 
-    const normalized =
-        normalizePageId(
-            pageId
-        );
-
+function findPDSPage(pageId) {
+    const normalized = normalizePageId(pageId);
 
     if (!normalized) {
         return null;
     }
 
+    // First, look for an element whose ID matches the page.
+    const byId = document.getElementById(normalized);
 
+    if (
+        byId &&
+        (
+            byId.matches("section, .page-section, .content-section, .dashboard-section") ||
+            byId.matches("[data-page]")
+        )
+    ) {
+        return byId;
+    }
+
+    // Prefer actual page sections over sidebar navigation items.
     const selectors = [
-
+        `section[data-section="${CSS.escape(normalized)}"]`,
+        `.page-section[data-section="${CSS.escape(normalized)}"]`,
+        `.content-section[data-section="${CSS.escape(normalized)}"]`,
         `[data-page="${CSS.escape(normalized)}"]`,
-
-        `[data-section="${CSS.escape(normalized)}"]`,
-
-        `#${CSS.escape(normalized)}`,
-
         `.page-${CSS.escape(normalized)}`
-
     ];
 
-
-    for (
-        const selector of selectors
-    ) {
-
-        const element =
-            document.querySelector(
-                selector
-            );
-
+    for (const selector of selectors) {
+        const element = document.querySelector(selector);
 
         if (element) {
             return element;
         }
     }
 
-
     return null;
 }
+
 
 
 /* =========================================================
