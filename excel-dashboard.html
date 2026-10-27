@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>PDS | Local Excel Monitoring Dashboard</title>
+  <link rel="stylesheet" href="excel-dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <a class="back" href="./index.html">← Back to PDS Control Desk</a>
+      <p class="eyebrow">PLANNING &amp; DESIGN SECTION</p>
+      <h1>FY2027 NEP Monitoring</h1>
+      <p class="sub">Local Excel dashboard · manual upload</p>
+    </header>
+
+    <section class="privacy" role="note">
+      <strong>Privacy notice</strong>
+      <p>The selected workbook is read in this browser. This page does not upload the workbook or save its rows to GitHub. Use only your authorized copy and a trusted device. The page itself is public, so never add confidential project data directly to website files.</p>
+    </section>
+
+    <section class="panel upload-panel">
+      <label for="workbookFile">1. Choose the latest Excel workbook</label>
+      <input id="workbookFile" type="file" accept=".xlsx,.xlsm,.xls">
+      <div class="controls">
+        <label for="sheetSelect">Worksheet</label>
+        <select id="sheetSelect" disabled><option value="">Upload a workbook first</option></select>
+        <label for="headerRow">Header row</label>
+        <input id="headerRow" type="number" min="1" max="500" value="6" inputmode="numeric">
+        <button id="loadSheet" disabled>Load dashboard</button>
+      </div>
+      <p class="hint" id="fileStatus" aria-live="polite">No workbook loaded. Nothing is sent to a server.</p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="stats">
+        <article class="stat"><span>Projects in view</span><strong id="totalProjects">0</strong></article>
+        <article class="stat"><span>Total allocation (PHP)</span><strong id="totalAllocation">₱0</strong></article>
+        <article class="stat"><span>With SARO update</span><strong id="withSaro">0</strong></article>
+        <article class="stat"><span>Procurement statuses</span><strong id="statusCount">0</strong></article>
+      </div>
+      <section class="panel">
+        <div class="table-tools">
+          <label class="search-label" for="searchProjects">2. Search projects</label>
+          <input id="searchProjects" type="search" placeholder="Search title, municipality, status…">
+          <label for="statusFilter">Procurement status</label>
+          <select id="statusFilter"><option value="">All statuses</option></select>
+        </div>
+        <p id="tableInfo" class="hint"></p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Project title</th><th>Municipality</th><th>Allocation (PHP)</th><th>Procurement status</th><th>Contract status</th><th>Contract ID</th><th>Program</th><th>Plan</th><th>SARO update</th>
+            </tr></thead>
+            <tbody id="projectRows"><tr><td colspan="9" class="empty">Upload the workbook and load a worksheet to view projects.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <p class="footnote">For privacy, this page does not write changes back to Excel. Update the workbook in its approved location, then upload the latest copy here when you need to refresh this view.</p>
+    </section>
+    <footer>Planning &amp; Design Section · Client-side workbook viewer</footer>
+  </main>
+  <script src="excel-dashboard.js"></script>
+</body>
+</html>
