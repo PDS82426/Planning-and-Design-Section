@@ -25,24 +25,32 @@ const CONFIG = {
     MS_SCOPES: ["User.Read", "Files.ReadWrite"],
     MS_SCRIPT: "https://alcdn.msauth.net/browser/2.38.2/js/msal-browser.min.js",
     GRAPH: "https://graph.microsoft.com/v1.0",
-    WORKBOOK_NAME: "trial for website.xlsx",
-    SHEET_NAME: "OVERALL"
+    WORKBOOK_NAMES: ["FY2027_NEP_Monitoring_7.xlsx", "trial for website.xlsx"],
+    SHEET_NAME: "2027 NEP"
 };
 
-/* Header aliases for the OVERALL sheet (upper-case) */
+/* Columns of the "2027 NEP" sheet (header names, upper-case).
+   "last:" = take the LAST column with that name (the sheet has two "PROGRAM"
+   columns: C = program category, AN = programmer assigned). */
 const COLS = {
-    title: ["PROJECT TITLE AS PER GAA", "PROJECT TITLE"],
-    municipality: ["MUNICIPALITY"],
-    allocation: ["ALLOCATION"],
-    program: ["PROGRAM"],
-    plan: ["PLAN"],
-    contractId: ["CONTRACT ID"],
-    remarks: ["REMARKS"],
-    status: ["OVERALL STATUS", "STATUS"],
-    assigned: ["ASSIGNED TO", "ASSIGNED", "PDS IN CHARGE", "ENGINEER", "PROJECT ENGINEER", "IN CHARGE"]
+    no:           ["#NO"],                                   // column A (no header)
+    title:        ["PROJECT TITLE AS PER GAA", "PROJECT TITLE AS PER GAB", "PROJECT TITLE AS PER NEP"],
+    municipality: ["MUNICIPALITY3", "MUNICIPALITY2", "MUNICIPALITY"],
+    allocation:   ["ALLOCATION", "ALLOCATION43", "ALLOCATION1"],
+    programmer:   ["last:PROGRAM"],
+    planner:      ["PLAN"],
+    status:       ["PROCUREMENT STATUS"],
+    contractStatus: ["STATUS OF CONTRACT"],
+    batch:        ["ADVERTISEMENT BATCH"],
+    contractId:   ["CONTRACT ID"],
+    ppcDate:      ["PPC DATE"],
+    advDate:      ["ADVERTISEMENT DATE"],
+    bidDate:      ["BIDDING DATE"],
+    contractor:   ["CONTRACTOR"],
+    saro:         ["SARO UPDATE"],
+    remarks:      ["REMARKS2", "REMARKS"]
 };
-const EDITABLE = ["program", "plan", "status", "remarks"];
-const STATUSES = ["In Progress", "Completed", "For Completion", "For Signature", "On Hold"];
+const EDITABLE = ["status", "batch", "remarks"];
 
 /* ---------------------------------------------------------
    STATE
@@ -456,15 +464,16 @@ async function graph(path, opts) {
 }
 async function findWorkbook() {
     if (workbookId) return workbookId;
-    const q = encodeURIComponent(CONFIG.WORKBOOK_NAME.replace(/'/g, "''"));
-    const r = await graph(`/me/drive/root/search(q='${q}')`);
-    const hit = (r.value || []).find((f) => f.name === CONFIG.WORKBOOK_NAME && f.file);
-    if (!hit) throw new Error(`"${CONFIG.WORKBOOK_NAME}" was not found in your OneDrive.`);
-    workbookId = hit.id;
-    return workbookId;
+    for (const name of CONFIG.WORKBOOK_NAMES) {
+        const q = encodeURIComponent(name.replace(/'/g, "''"));
+        const r = await graph(`/me/drive/root/search(q='${q}')`);
+        const hit = (r.value || []).find((f) => f.name === name && f.file);
+        if (hit) { workbookId = hit.id; return workbookId; }
+    }
+    throw new Error("Workbook not found in your OneDrive. Upload \"" + CONFIG.WORKBOOK_NAMES[0] + "\" to OneDrive.");
 }
 
-/* column index 0-based -> Excel letters */
+/* ---- Excel helpers ---- */
 function colLetter(n) {
     let s = "";
     n++;
@@ -477,33 +486,42 @@ function letterToIdx(s) {
     return n - 1;
 }
 function parseAddress(addr) {
-    // "OVERALL!A8:AI150"
     const m = /!\$?([A-Z]+)\$?(\d+)/.exec(addr || "");
     return m ? { col: letterToIdx(m[1]), row: parseInt(m[2], 10) } : { col: 0, row: 1 };
 }
 function num(v) {
     if (typeof v === "number") return v;
-    const n = parseFloat(String(v ?? "").replace(/[₱,%\s,]/g, ""));
+    const n = parseFloat(String(v ?? "").replace(/[₱,\s]/g, ""));
     return isNaN(n) ? null : n;
 }
-function pct(v) {
-    // Excel stores 85% as 0.85
-    if (v === "" || v == null) return null;
-    if (typeof v === "string" && v.includes("%")) return num(v);
-    const n = num(v);
-    if (n == null) return null;
-    return n <= 1 ? Math.round(n * 1000) / 10 : n;
+function txt(v) {
+    const t = String(v ?? "").replace(/ /g, " ").trim();
+    return t === "-" ? "" : t;
 }
+function serialToDate(v) {
+    const n = typeof v === "number" ? v : NaN;
+    return isNaN(n) || n < 20000 ? null : new Date(Math.round((n - 25569) * 86400000));
+}
+function fmtSerial(v) {
+    const d = serialToDate(v);
+    return d ? d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }) : "—";
+}
+/* column index for the first alias that exists */
 function findCol(headers, aliases) {
     for (const a of aliases) {
-        const i = headers.findIndex((h) => h === a);
-        if (i >= 0) return i;
-    }
-    for (const a of aliases) {
-        const i = headers.findIndex((h) => h.includes(a));
-        if (i >= 0) return i;
+        if (a.startsWith("last:")) {
+            const i = headers.lastIndexOf(a.slice(5));
+            if (i >= 0) return i;
+        } else {
+            const i = headers.indexOf(a);
+            if (i >= 0) return i;
+        }
     }
     return -1;
+}
+/* all column indexes for aliases, in priority order (for "first non-empty" lookups) */
+function allCols(headers, aliases) {
+    return aliases.map((a) => headers.indexOf(a)).filter((i) => i >= 0);
 }
 
 async function fetchOverall() {
@@ -512,54 +530,56 @@ async function fetchOverall() {
     const r = await graph(`/me/drive/items/${id}/workbook/worksheets('${sheet}')/usedRange(valuesOnly=false)`);
     const values = r.values || [];
     const formulas = r.formulas || [];
-    if (!values.length) throw new Error("The OVERALL sheet is empty.");
+    if (!values.length) throw new Error("The '" + CONFIG.SHEET_NAME + "' sheet is empty.");
     const origin = parseAddress(r.address);
 
-    // detect header row
     let h = -1;
     for (let i = 0; i < Math.min(values.length, 20); i++) {
         const t = values[i].map((v) => String(v ?? "").toUpperCase()).join("|");
-        if (t.includes("PROJECT TITLE") || (t.includes("ALLOCATION") && t.includes("MUNICIPALITY"))) { h = i; break; }
+        if (t.includes("PROJECT TITLE AS PER") && t.includes("MUNICIPALITY")) { h = i; break; }
     }
-    if (h < 0) h = values.findIndex((row) => row.some((v) => String(v ?? "").trim() !== ""));
-    if (h < 0) throw new Error("No header row found in OVERALL.");
+    if (h < 0) throw new Error("Header row not found in '" + CONFIG.SHEET_NAME + "'.");
 
     const headers = values[h].map((v) => String(v ?? "").trim().toUpperCase());
     const map = {};
-    Object.keys(COLS).forEach((k) => { map[k] = findCol(headers, COLS[k]); });
-    if (map.title < 0) throw new Error("Column 'PROJECT TITLE AS PER GAA' was not found.");
+    Object.keys(COLS).forEach((k) => { map[k] = k === "no" ? origin.col === 0 ? 0 : -1 : findCol(headers, COLS[k]); });
+    const titleCols = allCols(headers, COLS.title);
+    const allocCols = allCols(headers, COLS.allocation);
+    const muniCols = allCols(headers, COLS.municipality);
+    if (!titleCols.length) throw new Error("No 'PROJECT TITLE' column found.");
+    const first = (row, cols) => { for (const c of cols) { const v = txt(row[c]); if (v) return v; } return ""; };
+    const firstNum = (row, cols) => { for (const c of cols) { const n = num(row[c]); if (n) return n; } return null; };
 
     sheetMeta = { headers, map, rowOffset: origin.row, colOffset: origin.col, headerIdx: h };
 
     const out = [];
     for (let i = h + 1; i < values.length; i++) {
         const row = values[i];
-        const title = String(row[map.title] ?? "").trim();
+        const title = first(row, titleCols);
         if (!title) continue;
         const get = (k) => (map[k] >= 0 ? row[map[k]] : "");
         out.push({
-            sheetRow: origin.row + i,          // real worksheet row number
-            no: String(out.length + 1),
+            sheetRow: origin.row + i,
+            no: txt(get("no")) || String(out.length + 1),
             title,
-            municipality: String(get("municipality") ?? ""),
-            allocation: num(get("allocation")),
-            program: pct(get("program")),
-            plan: pct(get("plan")),
-            contractId: String(get("contractId") ?? ""),
-            remarks: String(get("remarks") ?? ""),
-            status: String(get("status") ?? "").trim(),
-            assigned: String(get("assigned") ?? ""),
+            municipality: first(row, muniCols),
+            allocation: firstNum(row, allocCols),
+            programmer: txt(get("programmer")),
+            planner: txt(get("planner")),
+            status: txt(get("status")),
+            contractStatus: txt(get("contractStatus")),
+            batch: txt(get("batch")),
+            contractId: txt(get("contractId")),
+            ppcDate: get("ppcDate"),
+            advDate: get("advDate"),
+            bidDate: get("bidDate"),
+            contractor: txt(get("contractor")),
+            saro: txt(get("saro")),
+            remarks: txt(get("remarks")),
             formulaCols: Object.keys(map).filter((k) => map[k] >= 0 && String((formulas[i] || [])[map[k]] ?? "").startsWith("="))
         });
     }
     return out;
-}
-
-function deriveStatus(p) {
-    if (p.status) return p.status;
-    if (p.program != null && p.program >= 100) return "Completed";
-    if (p.program != null && p.program > 0) return "In Progress";
-    return "Pending";
 }
 
 async function saveMonitoringProject(sheetRow, changes) {
@@ -572,14 +592,9 @@ async function saveMonitoringProject(sheetRow, changes) {
         const col = sheetMeta.map[key];
         if (col < 0) continue;
         if (p && p.formulaCols.includes(key)) continue;       // never overwrite formulas
-        let v = changes[key];
-        if (key === "program" || key === "plan") {
-            const n = num(v);
-            v = n == null ? "" : n / 100;                      // store as fraction
-        }
         const addr = colLetter(col + sheetMeta.colOffset) + sheetRow;
         await graph(`/me/drive/items/${id}/workbook/worksheets('${sheet}')/range(address='${addr}')`, {
-            method: "PATCH", body: JSON.stringify({ values: [[v]] })
+            method: "PATCH", body: JSON.stringify({ values: [[changes[key]]] })
         });
     }
 }
@@ -602,6 +617,7 @@ async function loadMonitoring(force) {
         if (force) workbookId = null;
         monitoring = await fetchOverall();
         monitoringLoaded = true;
+        fillStatusFilter();
         renderMonitoring();
     } catch (e) {
         console.error(e);
@@ -613,19 +629,37 @@ async function loadMonitoring(force) {
     }
 }
 
-function myName() {
-    return ((currentProfile && (currentProfile.full_name || currentProfile.name)) || "").toLowerCase();
+function fillStatusFilter() {
+    const sel = $("monitoringStatusFilter");
+    const keep = sel.value;
+    const set = [...new Set(monitoring.map((p) => p.status).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="all">All Status</option>' +
+        set.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+    sel.value = set.includes(keep) ? keep : "all";
+}
+
+/* name tokens that identify the signed-in user in the PROGRAM / PLAN columns */
+function myTokens() {
+    const src = [
+        currentProfile && (currentProfile.full_name || currentProfile.name),
+        currentProfile && currentProfile.nickname,
+        currentUser && currentUser.email ? currentUser.email.split("@")[0] : ""
+    ].join(" ");
+    return [...new Set(src.toUpperCase().split(/[^A-Z]+/).filter((t) => t.length >= 3))];
+}
+function isMine(p) {
+    const t = myTokens();
+    const names = [p.programmer, p.planner].map((n) => n.toUpperCase());
+    return t.some((tok) => names.some((n) => n && (n === tok || n.split(/[^A-Z]+/).includes(tok) || tok.startsWith(n) && n.length >= 4)));
 }
 function filteredMonitoring() {
     const q = ($("monitoringSearch").value || "").toLowerCase();
     const st = $("monitoringStatusFilter").value;
     const mine = $("myProjectsFilter").checked;
-    const me = myName();
-    const hasAssignCol = sheetMeta && sheetMeta.map.assigned >= 0;
     return monitoring.filter((p) => {
-        if (mine && hasAssignCol && me && !p.assigned.toLowerCase().includes(me.split(/\s+/).pop())) return false;
-        if (st !== "all" && deriveStatus(p) !== st) return false;
-        if (q && !(p.title + " " + p.municipality + " " + p.contractId).toLowerCase().includes(q)) return false;
+        if (mine && !isMine(p)) return false;
+        if (st !== "all" && p.status !== st) return false;
+        if (q && !(p.title + " " + p.municipality + " " + p.contractId + " " + p.programmer + " " + p.planner + " " + p.batch).toLowerCase().includes(q)) return false;
         return true;
     });
 }
@@ -633,49 +667,44 @@ function filteredMonitoring() {
 function renderMonitoring() {
     const list = $("monitoringList");
     const items = filteredMonitoring();
-    const avg = (k) => {
-        const v = items.map((p) => p[k]).filter((x) => x != null);
-        return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) + "%" : "0%";
-    };
-    $("monitoringTotal").textContent = items.length;
-    $("monitoringProgramAverage").textContent = avg("program");
-    $("monitoringPlanAverage").textContent = avg("plan");
-    $("monitoringInProgress").textContent = items.filter((p) => deriveStatus(p) === "In Progress").length;
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    set("monitoringTotal", items.length);
+    set("monitoringAllocation", "₱" + (items.reduce((a, p) => a + (p.allocation || 0), 0) / 1e6).toLocaleString("en-PH", { maximumFractionDigits: 1 }) + "M");
+    set("monitoringForPPC", items.filter((p) => /ppc/i.test(p.contractStatus)).length);
+    set("monitoringAdvertised", items.filter((p) => /advertis/i.test(p.contractStatus)).length);
 
-    hide($("monitoringEmpty"));
+    const empty = $("monitoringEmpty");
+    hide(empty);
     if (!items.length) {
         list.innerHTML = "";
-        return show($("monitoringEmpty"), "flex");
+        if ($("myProjectsFilter").checked && !monitoring.some(isMine)) {
+            list.innerHTML = '<div class="monitoring-message"><strong>No projects are assigned to your name.</strong><span>Your name was not found in the PROGRAM / PLAN columns. Untick "My Projects" to see all.</span></div>';
+        } else show(empty, "flex");
+        return;
     }
-    list.innerHTML = items.map((p) => {
-        const st = deriveStatus(p);
-        const bar = (v) => v == null ? "—" : v + "%";
-        return `<div class="monitoring-row">
-            <div>${esc(p.contractId || p.no)}</div>
-            <div><strong>${esc(p.title)}</strong><br><small>${esc(p.municipality)} · ${esc(fmtMoney(p.allocation))}</small></div>
-            <div>${bar(p.program)}</div>
-            <div>${bar(p.plan)}</div>
-            <div><span class="status ${statusClass(st)}">${esc(st)}</span></div>
+    list.innerHTML = items.map((p) => `<div class="monitoring-row">
+            <div>${esc(p.no)}</div>
+            <div><strong>${esc(p.title)}</strong><br><small>${esc(p.municipality)} · ${esc(fmtMoney(p.allocation))}${p.batch ? " · " + esc(p.batch) : ""}</small></div>
+            <div>${esc(p.programmer || "—")}</div>
+            <div>${esc(p.planner || "—")}</div>
+            <div><span class="status ${statusClass(p.status)}">${esc(p.status || "—")}</span><br><small>${esc(p.contractStatus)}</small></div>
             <div>
                 <button class="row-btn" type="button" data-mview="${p.sheetRow}">VIEW</button>
                 <button class="row-btn" type="button" data-medit="${p.sheetRow}">EDIT</button>
             </div>
-        </div>`;
-    }).join("");
+        </div>`).join("");
 }
 
 function openMonitoringView(row) {
     const p = monitoring.find((x) => x.sheetRow === row);
     if (!p) return;
+    const line = (k, v) => `<dt>${k}</dt><dd>${esc(v || "—")}</dd>`;
     $("projectModalContent").innerHTML = `<dl class="detail-grid">
-        <dt>PROJECT</dt><dd>${esc(p.title)}</dd>
-        <dt>MUNICIPALITY</dt><dd>${esc(p.municipality || "—")}</dd>
-        <dt>ALLOCATION</dt><dd>${esc(fmtMoney(p.allocation))}</dd>
-        <dt>CONTRACT ID</dt><dd>${esc(p.contractId || "—")}</dd>
-        <dt>PROGRAM</dt><dd>${p.program == null ? "—" : p.program + "%"}</dd>
-        <dt>PLAN</dt><dd>${p.plan == null ? "—" : p.plan + "%"}</dd>
-        <dt>STATUS</dt><dd>${esc(deriveStatus(p))}</dd>
-        <dt>REMARKS</dt><dd>${esc(p.remarks || "—")}</dd>
+        ${line("PROJECT", p.title)}${line("MUNICIPALITY", p.municipality)}${line("ALLOCATION", fmtMoney(p.allocation))}
+        ${line("PROGRAMMER", p.programmer)}${line("PLANNER", p.planner)}
+        ${line("PROCUREMENT STATUS", p.status)}${line("STATUS OF CONTRACT", p.contractStatus)}${line("ADVERTISEMENT BATCH", p.batch)}
+        ${line("PPC DATE", fmtSerial(p.ppcDate))}${line("ADVERTISEMENT DATE", fmtSerial(p.advDate))}${line("BIDDING DATE", fmtSerial(p.bidDate))}
+        ${line("CONTRACT ID", p.contractId)}${line("CONTRACTOR", p.contractor)}${line("SARO UPDATE", p.saro)}${line("REMARKS", p.remarks)}
     </dl>`;
     show($("projectModal"), "flex");
 }
@@ -684,20 +713,19 @@ function openMonitoringEdit(row) {
     const p = monitoring.find((x) => x.sheetRow === row);
     if (!p) return;
     const locked = (k) => (p.formulaCols.includes(k) || sheetMeta.map[k] < 0 ? "disabled" : "");
-    const cur = deriveStatus(p);
+    const statuses = [...new Set(monitoring.map((x) => x.status).filter(Boolean))].sort();
     $("projectModalContent").innerHTML = `
         <form id="monitoringEditForm">
             <strong>${esc(p.title)}</strong>
             <div class="form-grid">
-                <label>Program (%)<input type="number" min="0" max="100" step="0.1" name="program" value="${p.program ?? ""}" ${locked("program")}></label>
-                <label>Plan (%)<input type="number" min="0" max="100" step="0.1" name="plan" value="${p.plan ?? ""}" ${locked("plan")}></label>
-                <label class="full">Overall status
-                    <select name="status" ${locked("status")}>
-                        ${STATUSES.map((s) => `<option ${s === cur ? "selected" : ""}>${esc(s)}</option>`).join("")}
-                    </select></label>
+                <label class="full">Procurement status
+                    <input name="status" list="statusList" value="${esc(p.status)}" ${locked("status")}>
+                    <datalist id="statusList">${statuses.map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
+                <label>Advertisement batch<input name="batch" value="${esc(p.batch)}" ${locked("batch")}></label>
+                <label>Programmer / Planner<input value="${esc(p.programmer + " / " + p.planner)}" disabled></label>
                 <label class="full">Remarks<textarea name="remarks" rows="3" ${locked("remarks")}>${esc(p.remarks)}</textarea></label>
             </div>
-            <p class="list-note" style="padding:0;text-align:left;">Disabled fields are formulas or missing columns and are never overwritten.</p>
+            <p class="list-note" style="padding:0;text-align:left;">Formula cells (contract status, PPC / advertisement / bidding dates) are read-only and never overwritten.</p>
             <div class="modal-actions">
                 <button type="button" class="button secondary" id="monitoringEditCancel">CANCEL</button>
                 <button type="submit" class="button primary">SAVE TO EXCEL</button>
@@ -709,11 +737,13 @@ function openMonitoringEdit(row) {
         e.preventDefault();
         const btn = e.target.querySelector('[type="submit"]');
         btn.disabled = true;
-        const fd = new FormData(e.target);
         const changes = {};
-        EDITABLE.forEach((k) => { if (fd.has(k) && !e.target.elements[k].disabled) changes[k] = fd.get(k); });
+        EDITABLE.forEach((k) => {
+            const el = e.target.elements[k];
+            if (el && !el.disabled && el.value.trim() !== (p[k] || "")) changes[k] = el.value.trim();
+        });
         try {
-            await saveMonitoringProject(row, changes);
+            if (Object.keys(changes).length) await saveMonitoringProject(row, changes);
             toast("Saved to Excel.", "success");
             hide($("projectModal"));
             await loadMonitoring(false);
