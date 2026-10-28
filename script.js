@@ -98,6 +98,15 @@ let authStateSubscription = null;
 let authStartupPromise = null;
 let workspaceInitializationPromise = null;
 
+let monitoringFilters = {
+    search: "",
+    category: "",
+    municipality: "",
+    program: "",
+    status: ""
+};
+
+
 
 /* =========================================================
    DOM HELPER
