@@ -56,51 +56,131 @@
     }
   });
 
-  loadButton.addEventListener('click', () => {
-    if (!workbook) return;
+
+loadButton.addEventListener('click', () => {
+  try {
+    if (!workbook) {
+      throw new Error('Please select a valid Excel workbook first.');
+    }
+
     const name = sheetSelect.value;
     const sheet = workbook.Sheets[name];
-    if (!sheet) { fileStatus.textContent = 'Choose a valid worksheet.'; return; }
-    const matrix = XLSX.utils.sheet_to_json(sheet, {header:1, defval:'', raw:true, blankrows:false});
-    const headerRow = Math.max(1, Number($('headerRow').value) || 6);
+
+    if (!sheet) {
+      throw new Error('Choose a valid worksheet.');
+    }
+
+    const matrix = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: '',
+      raw: true,
+      blankrows: false
+    });
+
+    const headerRow = Math.max(
+      1,
+      Number($('headerRow').value) || 6
+    );
+
     const headers = matrix[headerRow - 1] || [];
-    if (!headers.some(value => text(value))) { fileStatus.textContent = `No headers found on row ${headerRow}. Change the header row and try again.`; return; }
-    const normalizedHeaders = headers.map(normalize);
-    const titleIdx = findIndex(headers, ['PROJECT TITLE AS PER NEP','PROJECT TITLE AS PER GAA','PROJECT TITLE AS PER GAB','PROJECT TITLE']);
-    const hasUsefulHeaders = titleIdx >= 0 && findIndex(headers, ['ALLOCATION','ALLOCATION1','ALLOCATION43']) >= 0;
-    if (!hasUsefulHeaders) { fileStatus.textContent = 'This worksheet does not look like a project monitoring sheet. Choose 2027 NEP or 2027 RO Projects, and set the correct header row.'; return; }
+
+    if (!headers.some(value => text(value))) {
+      throw new Error(
+        `No headers found on row ${headerRow}. ` +
+        'Check the header row number.'
+      );
+    }
+
+    const titleIdx = findIndex(headers, [
+      'PROJECT TITLE AS PER NEP',
+      'PROJECT TITLE AS PER GAA',
+      'PROJECT TITLE AS PER GAB',
+      'PROJECT TITLE'
+    ]);
+
+    const allocationIdx = findIndex(headers, [
+      'ALLOCATION',
+      'ALLOCATION1',
+      'ALLOCATION4',
+      'ALLOCATION43'
+    ]);
+
+    if (titleIdx < 0 || allocationIdx < 0) {
+      throw new Error(
+        'Required project-title or allocation column not found. ' +
+        'Select the correct worksheet and header row.'
+      );
+    }
+
     currentHeaders = headers;
-    currentRows = matrix.slice(headerRow).map((row, i) => ({row, excelRow:headerRow + i + 1})).filter(item => item.row.some(value => text(value))).map(item => {
-      const row = item.row;
-      const title = cell(row, headers, ['PROJECT TITLE AS PER GAA','PROJECT TITLE AS PER GAB','PROJECT TITLE AS PER NEP','PROJECT TITLE']);
-      const projectTitle = text(title) || text(cell(row, headers, ['PROJECT TITLE AS PER GAB'])) || text(cell(row, headers, ['PROJECT TITLE AS PER NEP']));
-      const allocationRaw = cell(row, headers, ['ALLOCATION','ALLOCATION43','ALLOCATION1','ALLOCATION4']);
-      const municipality = cell(row, headers, ['MUNICIPALITY3','MUNICIPALITY2','MUNICIPALITY']);
-      const procurement = cell(row, headers, ['PROCUREMENT STATUS']);
-      const contractStatus = cell(row, headers, ['STATUS OF CONTRACT']);
-      const saro = cell(row, headers, ['SARO UPDATE']);
-      return {
-        excelRow:item.excelRow,
-        projectTitle:text(projectTitle),
-        municipality:text(municipality),
-        allocation:money(allocationRaw),
-        procurement:text(procurement),
-        contractStatus:text(contractStatus),
-        contractId:text(cell(row, headers, ['CONTRACT ID'])),
-        program:text(cell(row, headers, ['PROGRAM2','PROGRAM'])),
-        plan:text(cell(row, headers, ['PLAN'])),
-        saro:text(saro),
-        category:text(cell(row, headers, ['CATEGORY','CATEGORY2'])),
-        searchText:row.map(text).join(' ').toLowerCase()
-      };
-    }).filter(project => project.projectTitle || project.contractId);
+
+    currentRows = matrix
+      .slice(headerRow)
+      .map((row, i) => ({
+        row,
+        excelRow: headerRow + i + 1
+      }))
+      .filter(item => item.row.some(value => text(value)))
+      .map(item => {
+        const row = item.row;
+
+        return {
+          excelRow: item.excelRow,
+          projectTitle: text(cell(row, headers, [
+            'PROJECT TITLE AS PER GAA',
+            'PROJECT TITLE AS PER GAB',
+            'PROJECT TITLE AS PER NEP',
+            'PROJECT TITLE'
+          ])),
+          municipality: text(cell(row, headers, [
+            'MUNICIPALITY3',
+            'MUNICIPALITY2',
+            'MUNICIPALITY'
+          ])),
+          allocation: money(cell(row, headers, [
+            'ALLOCATION',
+            'ALLOCATION43',
+            'ALLOCATION1',
+            'ALLOCATION4'
+          ])),
+          procurement: text(cell(row, headers, [
+            'PROCUREMENT STATUS'
+          ])),
+          contractStatus: text(cell(row, headers, [
+            'STATUS OF CONTRACT'
+          ])),
+          contractId: text(cell(row, headers, ['CONTRACT ID'])),
+          program: text(cell(row, headers, ['PROGRAM2', 'PROGRAM'])),
+          plan: text(cell(row, headers, ['PLAN'])),
+          saro: text(cell(row, headers, ['SARO UPDATE'])),
+          category: text(cell(row, headers, ['CATEGORY', 'CATEGORY2'])),
+          searchText: row.map(text).join(' ').toLowerCase()
+        };
+      })
+      .filter(project => project.projectTitle || project.contractId);
+
     populateStatuses();
     $('searchProjects').value = '';
     $('statusFilter').value = '';
     $('dashboard').hidden = false;
+
     render();
-    fileStatus.textContent = `Loaded ${currentRows.length.toLocaleString()} project rows from “${name}”, header row ${headerRow}. Workbook data has not been uploaded.`;
-  });
+
+    fileStatus.textContent =
+      `Loaded ${currentRows.length.toLocaleString()} project rows ` +
+      `from "${name}", header row ${headerRow}.`;
+
+  } catch (error) {
+    console.error('Dashboard loading error:', error);
+
+    $('dashboard').hidden = true;
+
+    fileStatus.textContent =
+      'Dashboard could not load: ' +
+      (error.message || 'Unexpected error. Check the browser console.');
+  }
+});
+
 
   function populateStatuses() {
     const select = $('statusFilter');
